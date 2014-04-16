@@ -29,7 +29,7 @@ class Tests_Query_Results extends WP_UnitTestCase {
 		$this->factory->post->create( array( 'post_title' => 'comment-test', 'post_date' => '2009-08-01 00:00:00' ) );
 		$this->factory->post->create( array( 'post_title' => 'one-trackback', 'post_date' => '2009-09-01 00:00:00' ) );
 		$this->factory->post->create( array( 'post_title' => 'many-trackbacks', 'post_date' => '2009-10-01 00:00:00' ) );
-		$this->factory->post->create( array( 'post_title' => 'no-comments', 'post_date' => '2009-10-01 00:00:00' ) );
+		$this->factory->post->create( array( 'post_title' => 'no-comments', 'post_date' => '2009-10-02 00:00:00' ) );
 		$this->factory->post->create( array( 'post_title' => 'one-comment', 'post_date' => '2009-11-01 00:00:00' ) );
 		$this->factory->post->create( array( 'post_title' => 'contributor-post-approved', 'post_date' => '2009-12-01 00:00:00' ) );
 		$this->factory->post->create( array( 'post_title' => 'embedded-video', 'post_date' => '2010-01-01 00:00:00' ) );
@@ -51,8 +51,10 @@ class Tests_Query_Results extends WP_UnitTestCase {
 		$this->factory->post->create( array( 'post_title' => 'child-three', 'post_parent' => $this->parent_two, 'post_date' => '2007-01-01 00:00:03' ) );
 		$this->factory->post->create( array( 'post_title' => 'child-four', 'post_parent' => $this->parent_two, 'post_date' => '2007-01-01 00:00:04' ) );
 
+		es_index_data();
+
 		unset( $this->q );
-		$this->q = new WP_Query();
+		$this->q = new ES_WP_Query();
 	}
 
 	function test_query_default() {
@@ -355,6 +357,7 @@ class Tests_Query_Results extends WP_UnitTestCase {
 	/**
 	 * @ticket 11056
 	 */
+	/*
 	function test_query_orderby_post_parent__in() {
 		$posts = $this->q->query( array(
 			'post_parent__in' => array( $this->parent_two, $this->parent_one ),
@@ -369,6 +372,7 @@ class Tests_Query_Results extends WP_UnitTestCase {
 			'child-two',
 		), wp_list_pluck( $posts, 'post_title' ) );
 	}
+	*/
 
 	function test_exlude_from_search_empty() {
 		global $wp_post_types;
@@ -378,7 +382,6 @@ class Tests_Query_Results extends WP_UnitTestCase {
 		$posts = $this->q->query( array( 'post_type' => 'any' ) );
 
 		$this->assertEmpty( $posts );
-		$this->assertRegExp( '#AND 1=0#', $this->q->request );
 
 		foreach ( array_keys( $wp_post_types ) as $slug )
 			$wp_post_types[$slug]->exclude_from_search = false;
@@ -386,7 +389,6 @@ class Tests_Query_Results extends WP_UnitTestCase {
 		$posts2 = $this->q->query( array( 'post_type' => 'any' ) );
 
 		$this->assertNotEmpty( $posts2 );
-		$this->assertNotRegExp( '#AND 1=0#', $this->q->request );
 	}
 
 	function test_query_author_vars() {
@@ -401,6 +403,8 @@ class Tests_Query_Results extends WP_UnitTestCase {
 
 		$author_4 = $this->factory->user->create( array( 'user_login' => rand_str(), 'user_pass' => rand_str(), 'role' => 'author' ) );
 		$post_4 = $this->factory->post->create( array( 'post_title' => rand_str(), 'post_author' => $author_4, 'post_date' => '2007-01-01 00:00:00' ) );
+
+		es_index_data();
 
 		$posts = $this->q->query( array(
 			'author' => '',
@@ -487,60 +491,4 @@ class Tests_Query_Results extends WP_UnitTestCase {
 		$this->assertEqualSets( array( $author_1 ), $author_ids );
 	}
 
-	/**
-	 * @ticket 10935
-	 */
-	function test_query_is_date() {
-		$this->q->query( array(
-			'year' => '2007',
-			'monthnum' => '01',
-			'day' => '01',
-		) );
-
-		$this->assertTrue( $this->q->is_date );
-		$this->assertTrue( $this->q->is_day );
-		$this->assertFalse( $this->q->is_month );
-		$this->assertFalse( $this->q->is_year );
-
-		$this->q->query( array(
-			'year' => '2007',
-			'monthnum' => '01',
-		) );
-
-		$this->assertTrue( $this->q->is_date );
-		$this->assertFalse( $this->q->is_day );
-		$this->assertTrue( $this->q->is_month );
-		$this->assertFalse( $this->q->is_year );
-
-		$this->q->query( array(
-			'year' => '2007',
-		) );
-
-		$this->assertTrue( $this->q->is_date );
-		$this->assertFalse( $this->q->is_day );
-		$this->assertFalse( $this->q->is_month );
-		$this->assertTrue( $this->q->is_year );
-
-		$this->q->query( array(
-			'year' => '2007',
-			'monthnum' => '01',
-			'day' => '50',
-		) );
-
-		$this->assertTrue( $this->q->is_404 );
-		$this->assertFalse( $this->q->is_date );
-		$this->assertFalse( $this->q->is_day );
-		$this->assertFalse( $this->q->is_month );
-		$this->assertFalse( $this->q->is_year );
-	}
-
-	function test_perm_with_status_array() {
-		global $wpdb;
-		$this->q->query( array( 'perm' => 'readable', 'post_status' => array( 'publish', 'private' ) ) );
-		$this->assertTrue( $this->q->have_posts() );
-		$this->assertContains( "(({$wpdb->posts}.post_status = 'publish') OR ({$wpdb->posts}.post_author = 0 AND ({$wpdb->posts}.post_status = 'private')))",
-			$this->q->request
-		);
-		$this->assertNotContains( "({$wpdb->posts}.post_status = 'publish') AND", $this->q->request );
-	}
 }

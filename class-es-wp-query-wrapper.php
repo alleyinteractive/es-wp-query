@@ -9,19 +9,35 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 	abstract protected function query_es( $es_args );
 
+	public function es_map( $field ) {
+		if ( ! empty( $this->es_map[ $field ] ) ) {
+			return $this->es_map[ $field ];
+		} else {
+			return $field;
+		}
+	}
+
+	public function tax_map( $taxonomy, $field ) {
+		return sprintf( $this->es_map( $field ), $taxonomy );
+	}
+
+	public function meta_map( $meta_key ) {
+		return sprintf( $this->es_map( 'post_meta' ), $meta_key );
+	}
+
 	protected function set_posts( $q, $es_response ) {
 		$this->posts = array();
 		if ( isset( $es_response['hits']['hits'] ) ) {
 			switch ( $q['fields'] ) {
 				case 'ids' :
 					foreach ( $es_response['hits']['hits'] as $hit ) {
-						$this->posts[] = $hit['fields'][ $this->es_map['post_id'] ];
+						$this->posts[] = $hit['fields'][ $this->es_map( 'post_id' ) ];
 					}
 					return;
 
 				case 'id=>parent' :
 					foreach ( $es_response['hits']['hits'] as $hit ) {
-						$this->posts[ $hit['fields'][ $this->es_map['post_id'] ] ] = $hit['fields'][ $this->es_map['post_parent'] ];
+						$this->posts[ $hit['fields'][ $this->es_map( 'post_id' ) ] ] = $hit['fields'][ $this->es_map( 'post_parent' ) ];
 					}
 					return;
 
@@ -32,12 +48,13 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 					} else {
 						$post_ids = array();
 						foreach ( $es_response['hits']['hits'] as $hit ) {
-							$post_ids[] = absint( $hit['fields'][ $this->es_map['post_id'] ] );
+							$post_ids[] = absint( $hit['fields'][ $this->es_map( 'post_id' ) ] );
 						}
 						$post_ids = array_filter( $post_ids );
 						if ( ! empty( $post_ids ) ) {
 							global $wpdb;
-							return $wpdb->get_results( "SELECT $wpdb->posts.* FROM $wpdb->posts WHERE ID IN (" . implode( ',', $post_ids ) . ")" );
+							$post__in = implode( ',', $post_ids );
+							$this->posts = $wpdb->get_results( "SELECT $wpdb->posts.* FROM $wpdb->posts WHERE ID IN ($post__in) ORDER BY FIELD( {$wpdb->posts}.ID, $post__in )" );
 						}
 						return;
 					}
@@ -45,6 +62,15 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		} else {
 			$this->posts = array();
 		}
+	}
+
+	// @todo: Core queries where 1=0 here, which probably happens for good reason.
+	// We're just going to abandon ship for now, but if it causes issues we'll switch
+	// to a mysql query where 1=0
+	protected function no_results() {
+		$this->posts = array();
+		$this->post_count = $this->found_posts = $this->max_num_pages = 0;
+		return $this->posts;
 	}
 
 	/**
@@ -73,6 +99,8 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 	 * @access public
 	 * @uses do_action_ref_array() Calls 'pre_get_posts' hook before retrieving posts.
 	 *
+	 * @todo determine early if the query can be run using ES, otherwise defer to WP_Query
+	 *
 	 * @return array List of posts.
 	 */
 	public function get_posts() {
@@ -95,26 +123,30 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			'pinged'                => 'pinged',
 			'post_modified'         => 'post_modified',
 			'post_modified_gmt'     => 'post_modified_gmt',
-			'post_content_filtered' => 'post_content_filtered',
 			'post_parent'           => 'post_parent',
 			'guid'                  => 'guid',
 			'menu_order'            => 'menu_order',
 			'post_type'             => 'post_type',
 			'post_mime_type'        => 'post_mime_type',
 			'comment_count'         => 'comment_count',
-			'post_meta.meta_value'  => 'post_meta.%s',
+			'post_meta'             => 'post_meta.%s',
+			'term_id'               => 'terms.%s.term_id',
+			'term_slug'             => 'terms.%s.slug',
+			'term_name'             => 'terms.%s.name',
+			'term_parent'           => 'terms.%s.parent',
+			'term_tt_id'            => 'terms.%s.term_taxonomy_id',
 		) );
 
 		$this->parse_query();
 
-		do_action_ref_array('pre_get_posts', array(&$this));
-		do_action_ref_array('es_pre_get_posts', array(&$this));
+		do_action_ref_array( 'pre_get_posts', array( &$this ) );
+		do_action_ref_array( 'es_pre_get_posts', array( &$this ) );
 
 		// Shorthand.
 		$q = &$this->query_vars;
 
 		// Fill again in case pre_get_posts unset some vars.
-		$q = $this->fill_query_vars($q);
+		$q = $this->fill_query_vars( $q );
 
 		// Parse meta query
 		$this->meta_query = new ES_WP_Meta_Query();
@@ -145,8 +177,8 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		$query = array();
 		$sort = array();
 		$fields = array();
-		$from = -1;
-		$size = -1;
+		$from = 0;
+		$size = 10;
 
 		if ( !isset( $q['ignore_sticky_posts'] ) )
 			$q['ignore_sticky_posts'] = false;
@@ -215,21 +247,21 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 		switch ( $q['fields'] ) {
 			case 'ids':
-				$fields = array( $this->es_map['post_id'] );
+				$fields = array( $this->es_map( 'post_id' ) );
 				break;
 			case 'id=>parent':
-				$fields = array( $this->es_map['post_id'], $this->es_map['post_parent'] );
+				$fields = array( $this->es_map( 'post_id' ), $this->es_map( 'post_parent' ) );
 				break;
 			default:
 				if ( apply_filters( 'es_query_use_source', false ) ) {
 					$fields = array( '_source' );
 				} else {
-					$fields = array( $this->es_map['post_id'] );
+					$fields = array( $this->es_map( 'post_id' ) );
 				}
 		}
 
 		if ( '' !== $q['menu_order'] ) {
-			$filter[] = $this->dsl_terms( $this->es_map['menu_order'], $q['menu_order'] );
+			$filter[] = $this->dsl_terms( $this->es_map( 'menu_order' ), $q['menu_order'] );
 		}
 
 		// The "m" parameter is meant for months but accepts datetimes of varying specificity
@@ -251,13 +283,16 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			if ( $m_len > 13 ) {
 				$date['second'] = substr( $q['m'], 12, 2 );
 				// If we have absolute precision, we can use a term filter instead of a range
-				$filter[] = $this->dsl_terms( $this->es_map['post_date'], ES_WP_Date_Query::build_datetime( $date ) );
+				$filter[] = $this->dsl_terms( $this->es_map( 'post_date' ), ES_WP_Date_Query::build_datetime( $date ) );
 			} else {
 				// We don't have second-level precision, so we need to build a range query from what we have
 				$date_query = new ES_WP_Date_Query( array( 'after' => $date, 'before' => $date, 'inclusive' => true ) );
-				$date_filter = $date_query->get_es_query();
+				$date_filter = $date_query->get_dsl( $this );
 				if ( ! empty( $date_filter ) ) {
 					$filter[] = $date_filter;
+				} elseif ( false === $date_filter ) {
+					// @todo: potentially do this differently; see no_results() for more info
+					return $this->no_results();
 				}
 			}
 		}
@@ -279,26 +314,32 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$date_parameters['year'] = $q['year'];
 
 		if ( $q['monthnum'] )
-			$date_parameters['monthnum'] = $q['monthnum'];
-
-		if ( $q['w'] )
-			$date_parameters['week'] = $q['w'];
+			$date_parameters['month'] = $q['monthnum'];
 
 		if ( $q['day'] )
 			$date_parameters['day'] = $q['day'];
 
 		if ( $date_parameters ) {
 			$date_query = new ES_WP_Date_Query( array( $date_parameters ) );
-			$filter[] = $date_query->get_es_query();
+			$date_filter = $date_query->get_dsl( $this );
+			if ( ! empty( $date_filter ) ) {
+				$filter[] = $date_filter;
+			} elseif ( false === $date_filter ) {
+				// @todo: potentially do this differently; see no_results() for more info
+				return $this->no_results();
+			}
 		}
-		unset( $date_parameters, $date_query );
+		unset( $date_parameters, $date_query, $date_filter );
 
 		// Handle complex date queries
 		if ( ! empty( $q['date_query'] ) ) {
 			$this->date_query = new ES_WP_Date_Query( $q['date_query'] );
-			$date_filter = $this->date_query->get_es_query();
+			$date_filter = $this->date_query->get_dsl( $this );
 			if ( ! empty( $date_filter ) ) {
 				$filter[] = $date_filter;
+			} elseif ( false === $date_filter ) {
+				// @todo: potentially do this differently; see no_results() for more info
+				return $this->no_results();
 			}
 			unset( $date_filter );
 		}
@@ -328,7 +369,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 		if ( '' != $q['name'] ) {
 			$q['name'] = sanitize_title_for_query( $q['name'] );
-			$filter[] = $this->dsl_terms( $this->es_map['post_name'], $q['name'] );
+			$filter[] = $this->dsl_terms( $this->es_map( 'post_name' ), $q['name'] );
 		} elseif ( '' != $q['pagename'] ) {
 			if ( isset($this->queried_object_id) ) {
 				$reqpage = $this->queried_object_id;
@@ -357,7 +398,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			if ( ('page' != get_option('show_on_front') ) || empty( $page_for_posts ) || ( $reqpage != $page_for_posts ) ) {
 				$q['pagename'] = sanitize_title_for_query( wp_basename( $q['pagename'] ) );
 				$q['name'] = $q['pagename'];
-				$filter[] = $this->dsl_terms( $this->es_map['post_id'], absint( $reqpage ) );
+				$filter[] = $this->dsl_terms( $this->es_map( 'post_id' ), absint( $reqpage ) );
 				$reqpage_obj = get_post( $reqpage );
 				if ( is_object($reqpage_obj) && 'attachment' == $reqpage_obj->post_type ) {
 					$this->is_attachment = true;
@@ -369,7 +410,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		} elseif ( '' != $q['attachment'] ) {
 			$q['attachment'] = sanitize_title_for_query( wp_basename( $q['attachment'] ) );
 			$q['name'] = $q['attachment'];
-			$filter[] = $this->dsl_terms( $this->es_map['post_name'], $q['attachment'] );
+			$filter[] = $this->dsl_terms( $this->es_map( 'post_name' ), $q['attachment'] );
 		}
 
 
@@ -382,29 +423,29 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 		// If a post number is specified, load that post
 		if ( $q['p'] ) {
-			$filter[] = $this->dsl_terms( $this->es_map['post_id'], absint( $q['p'] ) );
+			$filter[] = $this->dsl_terms( $this->es_map( 'post_id' ), absint( $q['p'] ) );
 		} elseif ( $q['post__in'] ) {
 			$post__in = array_map( 'absint', $q['post__in'] );
-			$filter[] = $this->dsl_terms( $this->es_map['post_id'], $post__in );
+			$filter[] = $this->dsl_terms( $this->es_map( 'post_id' ), $post__in );
 		} elseif ( $q['post__not_in'] ) {
 			$post__not_in = array_map( 'absint', $q['post__not_in'] );
-			$filter[] = array( 'not' => $this->dsl_terms( $this->es_map['post_id'], $post__not_in ) );
+			$filter[] = array( 'not' => $this->dsl_terms( $this->es_map( 'post_id' ), $post__not_in ) );
 		}
 
 		if ( is_numeric( $q['post_parent'] ) ) {
-			$filter[] = $this->dsl_terms( $this->es_map['post_parent'], absint( $q['post_parent'] ) );
+			$filter[] = $this->dsl_terms( $this->es_map( 'post_parent' ), absint( $q['post_parent'] ) );
 		} elseif ( $q['post_parent__in'] ) {
 			$post_parent__in = array_map( 'absint', $q['post_parent__in'] );
-			$filter[] = $this->dsl_terms( $this->es_map['post_parent'], $post_parent__in );
+			$filter[] = $this->dsl_terms( $this->es_map( 'post_parent' ), $post_parent__in );
 		} elseif ( $q['post_parent__not_in'] ) {
 			$post_parent__not_in = array_map( 'absint', $q['post_parent__not_in'] );
-			$filter[] = array( 'not' => $this->dsl_terms( $this->es_map['post_parent'], $post_parent__not_in ) );
+			$filter[] = array( 'not' => $this->dsl_terms( $this->es_map( 'post_parent' ), $post_parent__not_in ) );
 		}
 
 		if ( $q['page_id'] ) {
 			if  ( ('page' != get_option('show_on_front') ) || ( $q['page_id'] != get_option('page_for_posts') ) ) {
 				$q['p'] = $q['page_id'];
-				$filter[] = $this->dsl_terms( $this->es_map['post_id'], absint( $q['page_id'] ) );
+				$filter[] = $this->dsl_terms( $this->es_map( 'post_id' ), absint( $q['page_id'] ) );
 			}
 		}
 
@@ -425,9 +466,9 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$query[] = apply_filters_ref_array( 'es_posts_search', array( $search, &$this ) );
 			if ( ! is_user_logged_in() ) {
 				$filter[] = array( 'or' => array(
-					$this->dsl_terms( $this->es_map['post_password'], '' ),
+					$this->dsl_terms( $this->es_map( 'post_password' ), '' ),
 					array( 'missing' => array(
-						'field'      => $this->es_map['post_password'],
+						'field'      => $this->es_map( 'post_password' ),
 						'existence'  => true,
 						'null_value' => true
 					) )
@@ -440,7 +481,10 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$this->parse_tax_query( $q );
 			$this->tax_query = new ES_WP_Tax_Query( $this->tax_query );
 
-			$tax_filter = $this->tax_query->get_es_query();
+			$tax_filter = $this->tax_query->get_dsl( $this );
+			if ( false === $tax_filter ) {
+				return $this->no_results();
+			}
 			if ( ! empty( $tax_filter ) ) {
 				$filter[] = $tax_filter;
 			}
@@ -536,10 +580,10 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 		if ( ! empty( $q['author__not_in'] ) ) {
 			$author__not_in = array_map( 'absint', array_unique( (array) $q['author__not_in'] ) );
-			$filter[] = array( 'not' => $this->dsl_terms( $this->es_map['post_author'], $author__not_in ) );
+			$filter[] = array( 'not' => $this->dsl_terms( $this->es_map( 'post_author' ), $author__not_in ) );
 		} elseif ( ! empty( $q['author__in'] ) ) {
 			$author__in = array_map( 'absint', array_unique( (array) $q['author__in'] ) );
-			$filter[] = $this->dsl_terms( $this->es_map['post_author'], $author__in );
+			$filter[] = $this->dsl_terms( $this->es_map( 'post_author' ), $author__in );
 		}
 
 		// Author stuff for nice URLs
@@ -557,7 +601,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			if ( $q['author'] ) {
 				$q['author'] = $q['author']->ID;
 			}
-			$filter[] = $this->dsl_terms( $this->es_map['post_author'], absint( $q['author'] ) );
+			$filter[] = $this->dsl_terms( $this->es_map( 'post_author' ), absint( $q['author'] ) );
 		}
 
 		// MIME-Type stuff for attachment browsing
@@ -575,19 +619,19 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		if ( empty( $q['order'] ) || ( ( strtolower( $q['order'] ) != 'asc' ) && ( strtolower( $q['order'] ) != 'desc' ) ) ) {
 			$q['order'] = 'desc';
 		}
+		$q['order'] = strtolower( $q['order'] );
 
 		// Order by
 		if ( empty( $q['orderby'] ) ) {
-			$sort[] = array( $this->es_map['post_date'] => $q['order'] );
+			$sort[] = array( $this->es_map( 'post_date' ) => $q['order'] );
 		} elseif ( 'none' == $q['orderby'] ) {
 			// nothing to see here
 		} elseif ( $q['orderby'] == 'post__in' && ! empty( $post__in ) ) {
-			// Elasticsearch doesn't have an equivalent of this, so it may not work quite right.
-			// However, we'll hang on to it and try our best.
-			$orderby = "FIELD( {$wpdb->posts}.ID, $post__in )";
+			// @todo: Figure this out... Elasticsearch doesn't have an equivalent of this
+			// $orderby = "FIELD( {$wpdb->posts}.ID, $post__in )";
 		} elseif ( $q['orderby'] == 'post_parent__in' && ! empty( $post_parent__in ) ) {
 			// (see above)
-			$orderby = "FIELD( {$wpdb->posts}.post_parent, $post_parent__in )";
+			// $orderby = "FIELD( {$wpdb->posts}.post_parent, $post_parent__in )";
 		} else {
 			// Used to filter values
 			$allowed_keys = array( 'name', 'author', 'date', 'title', 'modified', 'menu_order', 'parent', 'ID', 'rand', 'comment_count' );
@@ -606,10 +650,10 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 				switch ( $orderby ) {
 					case 'menu_order':
-						$sort[] = array( $this->es_map['menu_order'] => $q['order'] );
+						$sort[] = array( $this->es_map( 'menu_order' ) => $q['order'] );
 						break;
 					case 'ID':
-						$sort[] = array( $this->es_map['post_id'] => $q['order'] );
+						$sort[] = array( $this->es_map( 'post_id' ) => $q['order'] );
 						break;
 					case 'rand':
 						// There's no simple solution to this in ES
@@ -619,19 +663,19 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 					case 'meta_value':
 					case 'meta_value_num':
 						// casting doesn't work here, there's no ES equivalent
-						$sort[] = array( sprintf( $this->es_map['post_meta.meta_value'], $q['meta_key'] ) => $q['order'] );
+						$sort[] = array( $this->meta_map( $q['meta_key'] ) => $q['order'] );
 						break;
 					case 'comment_count':
-						$sort[] = array( $this->es_map['comment_count'] => $q['order'] );
+						$sort[] = array( $this->es_map( 'comment_count' ) => $q['order'] );
 						break;
 					default:
-						$sort[] = array( $this->es_map[ 'post_' . $orderby ] => $q['order'] );
+						$sort[] = array( $this->es_map( 'post_' . $orderby ) => $q['order'] );
 				}
 
 			}
 
 			if ( empty( $sort ) ) {
-				$sort[] = array( $this->es_map['post_date'] => $q['order'] );
+				$sort[] = array( $this->es_map( 'post_date' ) => $q['order'] );
 			}
 		}
 
@@ -668,23 +712,23 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		if ( 'any' == $post_type ) {
 			$in_search_post_types = get_post_types( array('exclude_from_search' => false) );
 			if ( empty( $in_search_post_types ) )
-				// @todo Perhaps we should return a wp_error here instead?
-				$filter[] = $this->dsl_terms( $this->es_map['post_id'], -1 );
+				// @todo: potentially do this differently; see no_results() for more info
+				return $this->no_results();
 			else
-				$filter[] = $this->dsl_terms( $this->es_map['post_type'], $in_search_post_types );
+				$filter[] = $this->dsl_terms( $this->es_map( 'post_type' ), array_values( $in_search_post_types ) );
 		} elseif ( ! empty( $post_type ) ) {
-			$filter[] = $this->dsl_terms( $this->es_map['post_type'], $post_type );
+			$filter[] = $this->dsl_terms( $this->es_map( 'post_type' ), $post_type );
 			if ( ! is_array( $post_type ) ) {
 				$post_type_object = get_post_type_object ( $post_type );
 			}
 		} elseif ( $this->is_attachment ) {
-			$filter[] = $this->dsl_terms( $this->es_map['post_type'], 'attachment' );
+			$filter[] = $this->dsl_terms( $this->es_map( 'post_type' ), 'attachment' );
 			$post_type_object = get_post_type_object ( 'attachment' );
 		} elseif ( $this->is_page ) {
-			$filter[] = $this->dsl_terms( $this->es_map['post_type'], 'page' );
+			$filter[] = $this->dsl_terms( $this->es_map( 'post_type' ), 'page' );
 			$post_type_object = get_post_type_object ( 'page' );
 		} else {
-			$filter[] = $this->dsl_terms( $this->es_map['post_type'], 'post' );
+			$filter[] = $this->dsl_terms( $this->es_map( 'post_type' ), 'post' );
 			$post_type_object = get_post_type_object ( 'post' );
 		}
 
@@ -710,7 +754,8 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$p_status = array();
 			$e_status = array();
 			if ( in_array('any', $q_status) ) {
-				$e_status = get_post_stati( array('exclude_from_search' => true) );
+				$e_status = get_post_stati( array( 'exclude_from_search' => true ) );
+				$e_status = array_values( $e_status );
 			} else {
 				foreach ( get_post_stati() as $status ) {
 					if ( in_array( $status, $q_status ) ) {
@@ -723,36 +768,36 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			}
 
 			if ( empty( $q['perm'] ) || 'readable' != $q['perm'] ) {
-				$r_status = array_merge($r_status, $p_status);
+				$r_status = array_merge( $r_status, $p_status );
 				unset( $p_status );
 			}
 
 			if ( ! empty( $e_status ) ) {
 				// $statuswheres[] = "(" . join( ' AND ', $e_status ) . ")";
-				$status_ands[] = array( 'not' => $this->dsl_terms( $this->es_map['post_status'], $e_status ) );
+				$status_ands[] = array( 'not' => $this->dsl_terms( $this->es_map( 'post_status' ), $e_status ) );
 			}
 			if ( ! empty( $r_status ) ) {
 				if ( !empty($q['perm'] ) && 'editable' == $q['perm'] && !current_user_can($edit_others_cap) ) {
 					// $statuswheres[] = "($wpdb->posts.post_author = $user_id " . "AND (" . join( ' OR ', $r_status ) . "))";
 					$status_ands[] = array( 'bool' => array( 'must' => array(
-						$this->dsl_terms( $this->es_map['post_author'], $user_id ),
-						$this->dsl_terms( $this->es_map['post_status'], $r_status )
+						$this->dsl_terms( $this->es_map( 'post_author' ), $user_id ),
+						$this->dsl_terms( $this->es_map( 'post_status' ), $r_status )
 					) ) );
 				} else {
 					// $statuswheres[] = "(" . join( ' OR ', $r_status ) . ")";
-					$status_ands[] = $this->dsl_terms( $this->es_map['post_status'], $r_status );
+					$status_ands[] = $this->dsl_terms( $this->es_map( 'post_status' ), $r_status );
 				}
 			}
 			if ( ! empty( $p_status ) ) {
 				if ( ! empty( $q['perm'] ) && 'readable' == $q['perm'] && ! current_user_can( $read_private_cap ) ) {
 					// $statuswheres[] = "($wpdb->posts.post_author = $user_id " . "AND (" . join( ' OR ', $p_status ) . "))";
 					$status_ands[] = array( 'bool' => array( 'must' => array(
-						$this->dsl_terms( $this->es_map['post_author'], $user_id ),
-						$this->dsl_terms( $this->es_map['post_status'], $p_status )
+						$this->dsl_terms( $this->es_map( 'post_author' ), $user_id ),
+						$this->dsl_terms( $this->es_map( 'post_status' ), $p_status )
 					) ) );
 				} else {
 					// $statuswheres[] = "(" . join( ' OR ', $p_status ) . ")";
-					$status_ands[] = $this->dsl_terms( $this->es_map['post_status'], $p_status );
+					$status_ands[] = $this->dsl_terms( $this->es_map( 'post_status' ), $p_status );
 				}
 			}
 			if ( $post_status_join ) {
@@ -785,14 +830,14 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 						$singular_states[] = $state;
 					} else {
 						$singular_states_ors[] = array( 'and' => array(
-							$this->dsl_terms( $this->es_map['post_author'], $user_id ),
-							$this->dsl_terms( $this->es_map['post_status'], $state )
+							$this->dsl_terms( $this->es_map( 'post_author' ), $user_id ),
+							$this->dsl_terms( $this->es_map( 'post_status' ), $state )
 						) );
 					}
 				}
 			}
 
-			$singular_states_filter = $this->dsl_terms( $this->es_map['post_status'], array_unique( $singular_states ) );
+			$singular_states_filter = $this->dsl_terms( $this->es_map( 'post_status' ), array_unique( $singular_states ) );
 			if ( ! empty( $singular_states_ors ) ) {
 				$filter[] = array( 'or' => array_merge( $singular_states_filter, $singular_states_ors ) );
 			} else {
@@ -802,7 +847,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		}
 
 		if ( ! empty( $this->meta_query->queries ) ) {
-			$filter[] = $this->meta_query->get_es_query( 'post' );
+			$filter[] = $this->meta_query->get_dsl( $this, 'post' );
 		}
 
 		// Apply filters on the filter clause prior to paging so that any
@@ -812,7 +857,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		}
 
 		// Paging
-		if ( empty($q['nopaging']) && !$this->is_singular ) {
+		if ( empty( $q['nopaging'] ) && ! $this->is_singular ) {
 			$page = absint( $q['paged'] );
 			if ( !$page )
 				$page = 1;
@@ -823,6 +868,8 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				$from = absint( $q['offset'] );
 			}
 			$size = $q['posts_per_page'];
+		} else {
+			$from = $size = false;
 		}
 
 		// Comments feeds
@@ -916,15 +963,20 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			'query'  => $query,
 			'sort'   => $sort,
 			'fields' => $fields,
-			'size'   => $size,
-			'from'   => $from
+			'from'   => $from,
+			'size'   => $size
 		);
 
 		// Remove empty criteria
 		foreach ( $this->es_args as $key => $value ) {
-			if ( empty( $value ) ) {
+			if ( empty( $value ) && 0 !== $value ) {
 				unset( $this->es_args[ $key ] );
 			}
+		}
+
+		// Elasticsearch needs a size, so we set it very high if posts_per_page = -1
+		if ( -1 == $q['posts_per_page'] && ! isset( $this->es_args['size'] ) ) {
+			$this->es_args['size'] = $size = apply_filters( 'es_query_max_results', 1000 );
 		}
 
 		$old_args = $this->es_args;
@@ -1141,14 +1193,14 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 			if ( false !== strpos($mime_pattern, '*') ) {
 				$mime_pattern = preg_replace( '/\*+/', '', $mime_pattern );
-				$query[] = array( 'prefix' => array( $this->es_map['post_mime_type'] => $mime_pattern ) );
+				$query[] = array( 'prefix' => array( $this->es_map( 'post_mime_type' ) => $mime_pattern ) );
 			} else {
 				$strict_mime_types[] = $mime_pattern;
 			}
 		}
 
 		if ( ! empty( $strict_mime_types ) ) {
-			$filter = $this->dsl_terms( $this->es_map['post_mime_type'], $strict_mime_types );
+			$filter = $this->dsl_terms( $this->es_map( 'post_mime_type' ), $strict_mime_types );
 		}
 
 		return compact( 'filters', 'query' );

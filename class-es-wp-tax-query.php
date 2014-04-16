@@ -17,87 +17,90 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	 *
 	 * @return array
 	 */
-	public function get_es_query() {
+	public function get_dsl( $es_query ) {
 		global $wpdb;
 
 		$join = '';
-		$where = array();
-		$i = 0;
+		$filter = array();
 		$count = count( $this->queries );
 
 		foreach ( $this->queries as $index => $query ) {
+			$filter_options = array();
+			$current_filter = null;
+
 			$this->clean_query( $query );
 
 			if ( is_wp_error( $query ) )
-				return self::$no_results;
+				return false;
 
-			extract( $query );
+			if ( 'AND' == $query['operator'] ) {
+				$filter_options = array( 'execution' => 'and' );
+			}
 
-			if ( 'IN' == $operator ) {
+			if ( 'IN' == $query['operator'] ) {
 
-				if ( empty( $terms ) ) {
+				if ( empty( $query['terms'] ) ) {
 					if ( 'OR' == $this->relation ) {
-						if ( ( $index + 1 === $count ) && empty( $where ) )
-							return self::$no_results;
+						if ( ( $index + 1 === $count ) && empty( $filter ) )
+							return false;
 						continue;
 					} else {
-						return self::$no_results;
+						return false;
 					}
 				}
 
-				$terms = implode( ',', $terms );
+			} elseif ( 'NOT IN' == $query['operator'] ) {
 
-				$alias = $i ? 'tt' . $i : $wpdb->term_relationships;
-
-				$join .= " INNER JOIN $wpdb->term_relationships";
-				$join .= $i ? " AS $alias" : '';
-				$join .= " ON ($primary_table.$primary_id_column = $alias.object_id)";
-
-				$where[] = "$alias.term_taxonomy_id $operator ($terms)";
-			} elseif ( 'NOT IN' == $operator ) {
-
-				if ( empty( $terms ) )
+				if ( empty( $query['terms'] ) )
 					continue;
 
-				$terms = implode( ',', $terms );
+			} elseif ( 'AND' == $query['operator'] ) {
 
-				$where[] = "$primary_table.$primary_id_column NOT IN (
-					SELECT object_id
-					FROM $wpdb->term_relationships
-					WHERE term_taxonomy_id IN ($terms)
-				)";
-			} elseif ( 'AND' == $operator ) {
-
-				if ( empty( $terms ) )
+				if ( empty( $query['terms'] ) )
 					continue;
 
-				$num_terms = count( $terms );
-
-				$terms = implode( ',', $terms );
-
-				$where[] = "(
-					SELECT COUNT(1)
-					FROM $wpdb->term_relationships
-					WHERE term_taxonomy_id IN ($terms)
-					AND object_id = $primary_table.$primary_id_column
-				) = $num_terms";
 			}
 
-			$i++;
+			switch ( $query['field'] ) {
+				case 'slug' :
+				case 'name' :
+					$terms = array_map( 'sanitize_title_for_query', $query['terms'] );
+					$current_filter = $es_query::dsl_terms( $es_query->tax_map( $query['taxonomy'], 'term_' . $query['field'] ), $query['terms'], $filter_options );
+					break;
+
+				case 'term_taxonomy_id' :
+					// This will likely not be hit, as these were probably turned into term_ids. However, by
+					// returning false to the 'es_use_mysql_for_term_taxonomy_id' filter, you disable that.
+					$current_filter = $es_query::dsl_terms( $es_query->tax_map( $query['taxonomy'], 'term_tt_id' ), $query['terms'], $filter_options );
+					break;
+
+				default :
+					$terms = array_map( 'absint', $query['terms'] );
+					$current_filter = $es_query::dsl_terms( $es_query->tax_map( $query['taxonomy'], 'term_id' ), $query['terms'], $filter_options );
+					break;
+			}
+
+			if ( 'NOT IN' == $query['operator'] ) {
+				$filter[] = array( 'not' => $current_filter );
+			} else {
+				$filter[] = $current_filter;
+			}
 		}
 
-		if ( ! empty( $where ) )
-			$where = ' AND ( ' . implode( " $this->relation ", $where ) . ' )';
-		else
-			$where = '';
-
-		// return compact( 'join', 'where' );
+		if ( 1 == count( $filter ) ) {
+			return reset( $filter );
+		} elseif ( ! empty( $filter ) ) {
+			return array( strtolower( $this->relation ) => $filter );
+		} else {
+			return array();
+		}
 	}
 
 	/**
 	 * Validates a single query.
 	 *
-	 * @since 3.2.0
+	 * This is copied from core verbatim, because the core method is private.
+	 *
 	 * @access private
 	 *
 	 * @param array &$query The single query
@@ -124,13 +127,17 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 			$query['terms'] = $children;
 		}
 
-		$this->transform_query( $query, 'term_taxonomy_id' );
+		// If we have a term_taxonomy_id, use mysql, as that's almost certainly not stored in ES.
+		// However, you can override this.
+		if ( 'term_taxonomy_id' == $query['field'] ) {
+			if ( apply_filters( 'es_use_mysql_for_term_taxonomy_id', true ) ) {
+				$this->transform_query( $query, 'term_id' );
+			}
+		}
 	}
 
 	/**
 	 * Transforms a single query, from one field to another.
-	 *
-	 * @since 3.2.0
 	 *
 	 * @param array &$query The single query
 	 * @param string $resulting_field The resulting field

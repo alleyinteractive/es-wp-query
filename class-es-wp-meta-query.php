@@ -13,7 +13,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 	 * @param string $type Type of meta
 	 * @return array array()
 	 */
-	public function get_es_query( $type ) {
+	public function get_dsl( $es_query, $type ) {
 		global $wpdb;
 
 		if ( ! $meta_table = _get_meta_table( $type ) )

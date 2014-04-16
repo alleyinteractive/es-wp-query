@@ -12,46 +12,50 @@ class ES_WP_Date_Query extends WP_Date_Query {
 	 *
 	 * @return array
 	 */
-	public function get_es_query() {
+	public function get_dsl( $es_query ) {
 		// The parts of the final query
-		$where = array();
+		$filter = array();
 
-		foreach ( $this->queries as $key => $query ) {
-			$where_parts = $this->get_es_subquery( $query );
-			if ( $where_parts ) {
-				// Combine the parts of this subquery into a single string
-				$where[ $key ] = '( ' . implode( ' AND ', $where_parts ) . ' )';
+		foreach ( $this->queries as $query ) {
+			$filter_parts = $this->get_es_subquery( $query, $es_query );
+			if ( ! empty( $filter_parts ) ) {
+				// Combine the parts of this subquery
+				if ( 1 == count( $filter_parts ) ) {
+					$filter[] = reset( $filter_parts );
+				} else {
+					$filter[] = array( 'and' => $filter_parts );
+				}
 			}
 		}
 
-		// Combine the subquery strings into a single string
-		if ( $where )
-			$where = ' AND ( ' . implode( " {$this->relation} ", $where ) . ' )';
-		else
-			$where = '';
+		// Combine the subqueries
+		if ( 1 == count( $filter ) ) {
+			$filter = reset( $filter );
+		} elseif ( ! empty( $filter ) ) {
+			$filter = array( strtolower( $this->relation ) => $filter );
+		} else {
+			$filter = array();
+		}
 
 		/**
 		 * Filter the date query WHERE clause.
 		 *
-		 * @since 3.7.0
-		 *
 		 * @param string        $where WHERE clause of the date query.
 		 * @param WP_Date_Query $this  The WP_Date_Query instance.
 		 */
-		// return apply_filters( 'get_date_dsl', $where, $this );
+		return apply_filters( 'get_date_dsl', $filter, $this );
 	}
 
 	/**
-	 * Turns a single date subquery into pieces for a WHERE clause.
+	 * Turns a single date subquery into elasticsearch filters
 	 *
-	 * @since 3.7.0
-	 * return array
+	 * @return array
 	 */
-	protected function get_es_subquery( $query ) {
+	protected function get_es_subquery( $query, $es_query ) {
 		global $wpdb;
 
 		// The sub-parts of a $where part
-		$where_parts = array();
+		$filter_parts = array();
 
 		$column = ( ! empty( $query['column'] ) ) ? esc_sql( $query['column'] ) : $this->column;
 
@@ -59,62 +63,81 @@ class ES_WP_Date_Query extends WP_Date_Query {
 
 		$compare = $this->get_compare( $query );
 
-		$lt = '<';
-		$gt = '>';
-		if ( ! empty( $query['inclusive'] ) ) {
-			$lt .= '=';
-			$gt .= '=';
+		$inclusive = ! empty( $query['inclusive'] );
+
+		if ( $inclusive ) {
+			$lt = 'lte';
+			$gt = 'gte';
+		} else {
+			$lt = 'lt';
+			$gt = 'gt';
 		}
 
-		// Range queries
-		if ( ! empty( $query['after'] ) )
-			$where_parts[] = $wpdb->prepare( "$column $gt %s", $this->build_mysql_datetime( $query['after'], true ) );
+		// Range queries, we like range queries
+		$range = array();
 
-		if ( ! empty( $query['before'] ) )
-			$where_parts[] = $wpdb->prepare( "$column $lt %s", $this->build_mysql_datetime( $query['before'], false ) );
+		if ( ! empty( $query['after'] ) ) {
+			$range[ $gt ] = $this->build_datetime( $query['after'], ! $inclusive );
+		}
+
+		if ( ! empty( $query['before'] ) ) {
+			$range[ $lt ] = $this->build_datetime( $query['before'], $inclusive );
+		}
+
+		if ( ! empty( $range ) ) {
+			$filter_parts[] = $es_query->dsl_range( $es_query->es_map( $column ), $range );
+		}
+		unset( $range );
+
 
 		// Specific value queries
-
-		if ( isset( $query['year'] ) && $value = $this->build_value( $compare, $query['year'] ) )
-			$where_parts[] = "YEAR( $column ) $compare $value";
-
-		if ( isset( $query['month'] ) && $value = $this->build_value( $compare, $query['month'] ) )
-			$where_parts[] = "MONTH( $column ) $compare $value";
-
-		// Legacy
-		if ( isset( $query['monthnum'] ) && $value = $this->build_value( $compare, $query['monthnum'] ) )
-			$where_parts[] = "MONTH( $column ) $compare $value";
-
-		if ( isset( $query['week'] ) && false !== ( $value = $this->build_value( $compare, $query['week'] ) ) )
-			$where_parts[] = _wp_mysql_week( $column ) . " $compare $value";
+		$date = array();
+		if ( isset( $query['year'] ) ) {
+			$date['year'] = $query['year'];
+		} else {
+			return $filter_parts;
+		}
 
 		// Legacy
-		if ( isset( $query['w'] ) && false !== ( $value = $this->build_value( $compare, $query['w'] ) ) )
-			$where_parts[] = _wp_mysql_week( $column ) . " $compare $value";
+		if ( isset( $query['monthnum'] ) ) {
+			$date['month'] = $query['monthnum'];
+		}
 
-		if ( isset( $query['dayofyear'] ) && $value = $this->build_value( $compare, $query['dayofyear'] ) )
-			$where_parts[] = "DAYOFYEAR( $column ) $compare $value";
-
-		if ( isset( $query['day'] ) && $value = $this->build_value( $compare, $query['day'] ) )
-			$where_parts[] = "DAYOFMONTH( $column ) $compare $value";
-
-		if ( isset( $query['dayofweek'] ) && $value = $this->build_value( $compare, $query['dayofweek'] ) )
-			$where_parts[] = "DAYOFWEEK( $column ) $compare $value";
-
-		if ( isset( $query['hour'] ) || isset( $query['minute'] ) || isset( $query['second'] ) ) {
-			// Avoid notices
-			foreach ( array( 'hour', 'minute', 'second' ) as $unit ) {
-				if ( ! isset( $query[$unit] ) ) {
-					$query[$unit] = null;
-				}
-			}
-
-			if ( $time_query = $this->build_time_query( $column, $compare, $query['hour'], $query['minute'], $query['second'] ) ) {
-				$where_parts[] = $time_query;
+		foreach ( array( 'month', 'day', 'hour', 'minute', 'second' ) as $unit ) {
+			if ( isset( $query[ $unit ] ) ) {
+				$date[ $unit ] = $query[ $unit ];
+			} elseif ( ! isset( $date[ $unit ] ) ) {
+				// This deviates from core. We can't query for e.g. all posts published at 5pm in 2014.
+				// We can only do ranges, so we take note of the most precise argument we get  linearly
+				// and we disregard anything after a gap.
+				break;
 			}
 		}
 
-		return $where_parts;
+		$range = $es_query->dsl_range( $column, $this->build_date_range( $date, $compare ) );
+
+		switch ( $compare ) {
+			case '!=' :
+				$filter_parts[] = array( 'not' => $range );
+				break;
+
+			case '>' :
+			case '>=' :
+			case '<' :
+			case '<=' :
+				$filter_parts[] = $range;
+				break;
+
+			case '=' :
+				if ( isset( $date['second'] ) ) {
+					$filter_parts[] = $es_query->dsl_terms( $es_query->es_map( $column ), $this->build_datetime( $date ) );
+				} else {
+					$filter_parts[] = $range;
+				}
+				break;
+		}
+
+		return $filter_parts;
 	}
 
 	/**
@@ -163,4 +186,31 @@ class ES_WP_Date_Query extends WP_Date_Query {
 
 		return sprintf( '%04d-%02d-%02d %02d:%02d:%02d', $datetime['year'], $datetime['month'], $datetime['day'], $datetime['hour'], $datetime['minute'], $datetime['second'] );
 	}
+
+
+	private function build_date_range( $date, $compare ) {
+		// To improve readability
+		$upper_edge = true;
+		$lower_edge = false;
+
+		switch ( $compare ) {
+			case '!=' :
+			case '=' :
+				return array(
+					'gte' => $this->build_datetime( $date, $lower_edge ),
+					'lte' => $this->build_datetime( $date, $upper_edge )
+				);
+
+			case '>' :
+				return array( 'gt' => $this->build_datetime( $date, $upper_edge ) );
+			case '>=' :
+				return array( 'gte' => $this->build_datetime( $date, $lower_edge ) );
+
+			case '<' :
+				return array( 'lt' => $this->build_datetime( $date, $lower_edge ) );
+			case '<=' :
+				return array( 'lte' => $this->build_datetime( $date, $upper_edge ) );
+		}
+	}
+
 }

@@ -10,54 +10,48 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 	 *
 	 * @access public
 	 *
-	 * @param string $type Type of meta
+	 * @param object $es_query Any object which extends ES_WP_Query_Wrapper.
+	 * @param string $type Type of meta. Currently, only 'post' is supported.
 	 * @return array array()
 	 */
 	public function get_dsl( $es_query, $type ) {
 		global $wpdb;
 
-		if ( ! $meta_table = _get_meta_table( $type ) )
+		if ( ! 'post' == $type ) {
 			return false;
+		}
 
-		$meta_id_column = sanitize_key( $type . '_id' );
-
-		$join = array();
-		$where = array();
-
-		$key_only_queries = array();
 		$queries = array();
+		$filter = array();
 
-		// Split out the queries with empty arrays as value
+		// Split out 'exists' and 'not exists' queries. These may also be
+		// queries missing a value or with an empty array as the value.
 		foreach ( $this->queries as $k => $q ) {
-			if ( isset( $q['value'] ) && is_array( $q['value'] ) && empty( $q['value'] ) ) {
-				$key_only_queries[$k] = $q;
-				unset( $this->queries[$k] );
+			if ( isset( $q['compare'] ) && 'EXISTS' == strtoupper( substr( $q['compare'], -6 ) ) ) {
+				unset( $q['value'] );
 			}
-		}
 
-		// Split out the meta_key only queries (we can only do this for OR)
-		if ( 'OR' == $this->relation ) {
-			foreach ( $this->queries as $k => $q ) {
-				if ( ! array_key_exists( 'value', $q ) && ! empty( $q['key'] ) )
-					$key_only_queries[$k] = $q;
-				else
-					$queries[$k] = $q;
+			if ( ( isset( $q['value'] ) && is_array( $q['value'] ) && empty( $q['value'] ) ) || ( ! array_key_exists( 'value', $q ) && ! empty( $q['key'] ) ) ) {
+				if ( isset( $q['compare'] ) && 'NOT EXISTS' == strtoupper( $q['compare'] ) ) {
+					$filter[] = $es_query->dsl_missing( $es_query->meta_map( trim( $q['key'] ) ) );
+				} else {
+					$filter[] = $es_query->dsl_exists( $es_query->meta_map( trim( $q['key'] ) ) );
+				}
+				unset( $this->queries[ $k ] );
+			} else {
+				$queries[ $k ] = $q;
 			}
-		} else {
-			$queries = $this->queries;
-		}
-
-		// Specify all the meta_key only queries in one go
-		if ( $key_only_queries ) {
-			$join[]  = "INNER JOIN $meta_table ON $primary_table.$primary_id_column = $meta_table.$meta_id_column";
-
-			foreach ( $key_only_queries as $key => $q )
-				$where["key-only-$key"] = $wpdb->prepare( "$meta_table.meta_key = %s", trim( $q['key'] ) );
 		}
 
 		foreach ( $queries as $k => $q ) {
 			$meta_key = isset( $q['key'] ) ? trim( $q['key'] ) : '';
-			$meta_type = $this->get_cast_for_type( isset( $q['type'] ) ? $q['type'] : '' );
+			if ( empty( $meta_key ) ) {
+				$keyless_filter = apply_filters( 'es_meta_query_without_key', array(), $q, $this, $es_query );
+				if ( ! empty( $keyless_filter ) ) {
+					$filter[] = $keyless_filter;
+				}
+				continue;
+			}
 
 			if ( array_key_exists( 'value', $q ) && is_null( $q['value'] ) )
 				$q['value'] = '';
@@ -69,85 +63,84 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 			else
 				$meta_compare = is_array( $meta_value ) ? 'IN' : '=';
 
-			if ( ! in_array( $meta_compare, array(
-				'=', '!=', '>', '>=', '<', '<=',
-				'LIKE', 'NOT LIKE',
-				'IN', 'NOT IN',
-				'BETWEEN', 'NOT BETWEEN',
-				'NOT EXISTS',
-				'REGEXP', 'NOT REGEXP', 'RLIKE'
-			) ) )
-				$meta_compare = '=';
-
-			$i = count( $join );
-			$alias = $i ? 'mt' . $i : $meta_table;
-
-			if ( 'NOT EXISTS' == $meta_compare ) {
-				$join[$i]  = "LEFT JOIN $meta_table";
-				$join[$i] .= $i ? " AS $alias" : '';
-				$join[$i] .= " ON ($primary_table.$primary_id_column = $alias.$meta_id_column AND $alias.meta_key = '$meta_key')";
-
-				$where[$k] = ' ' . $alias . '.' . $meta_id_column . ' IS NULL';
-
-				continue;
-			}
-
-			$join[$i]  = "INNER JOIN $meta_table";
-			$join[$i] .= $i ? " AS $alias" : '';
-			$join[$i] .= " ON ($primary_table.$primary_id_column = $alias.$meta_id_column)";
-
-			$where[$k] = '';
-			if ( !empty( $meta_key ) )
-				$where[$k] = $wpdb->prepare( "$alias.meta_key = %s", $meta_key );
-
-			if ( is_null( $meta_value ) ) {
-				if ( empty( $where[$k] ) )
-					unset( $join[$i] );
-				continue;
-			}
-
 			if ( in_array( $meta_compare, array( 'IN', 'NOT IN', 'BETWEEN', 'NOT BETWEEN' ) ) ) {
-				if ( ! is_array( $meta_value ) )
+				if ( ! is_array( $meta_value ) ) {
 					$meta_value = preg_split( '/[,\s]+/', $meta_value );
+				}
 
 				if ( empty( $meta_value ) ) {
-					unset( $join[$i] );
 					continue;
 				}
 			} else {
 				$meta_value = trim( $meta_value );
 			}
 
-			if ( 'IN' == substr( $meta_compare, -2) ) {
-				$meta_compare_string = '(' . substr( str_repeat( ',%s', count( $meta_value ) ), 1 ) . ')';
-			} elseif ( 'BETWEEN' == substr( $meta_compare, -7) ) {
-				$meta_value = array_slice( $meta_value, 0, 2 );
-				$meta_compare_string = '%s AND %s';
-			} elseif ( 'LIKE' == substr( $meta_compare, -4 ) ) {
-				$meta_value = '%' . like_escape( $meta_value ) . '%';
-				$meta_compare_string = '%s';
-			} else {
-				$meta_compare_string = '%s';
+			switch ( $meta_compare ) {
+				case '>' :
+				case '>=' :
+				case '<' :
+				case '<=' :
+					switch ( $meta_compare ) {
+						case '>' :   $operator = 'gt';   break;
+						case '>=' :  $operator = 'gte';  break;
+						case '<' :   $operator = 'lt';   break;
+						case '<=' :  $operator = 'lte';  break;
+					}
+					$this_filter = $es_query->dsl_range( $es_query->meta_map( $meta_key ), array( $operator => $meta_value ) );
+					break;
+
+				case 'LIKE' :
+				case 'NOT LIKE' :
+					$this_filter = array( 'query' => $es_query->dsl_match( $es->meta_map( $meta_key, true ), $meta_value ) );
+					break;
+
+				case 'BETWEEN' :
+				case 'NOT BETWEEN' :
+					$meta_type = $this->get_cast_for_type( isset( $q['type'] ) ? $q['type'] : '' );
+
+					// These may produce unexpected results depending on how your data is indexed.
+					$meta_value = array_slice( $meta_value, 0, 2 );
+					if ( 'DATETIME' == $meta_type && $date1 = strtotime( $meta_value[0] ) && $date2 = strtotime( $meta_value[1] ) ) {
+						$meta_value = array( $date1, $date2 );
+						sort( $meta_value );
+						$this_filter = $es_query->dsl_range(
+							$es_query->meta_map( $meta_key, true ),
+							ES_WP_Date_Query::build_date_range( $meta_value[0], '>=', $meta_value[1], '<=' )
+						);
+					} else {
+						natcasesort( $meta_value );
+						$this_filter = $es_query->dsl_range(
+							$es_query->meta_map( $meta_key ),
+							array( 'gte' => $meta_value[0], 'lte' => $meta_value[1] )
+						);
+					}
+					break;
+
+				default :
+					$this_filter = $es_query->dsl_terms( $es_query->meta_map( $meta_key ), $meta_value );
+					break;
+
 			}
 
-			if ( ! empty( $where[$k] ) )
-				$where[$k] .= ' AND ';
+			if ( ! empty( $this_filter ) ) {
+				if ( in_array( $meta_compare, array( 'NOT IN', '!=', 'NOT BETWEEN', 'NOT LIKE' ) ) ) {
+					$filter[] = array( 'not' => $this_filter );
+				} else {
+					$filter[] = $this_filter;
+				}
+			}
 
-			$where[$k] = ' (' . $where[$k] . $wpdb->prepare( "CAST($alias.meta_value AS {$meta_type}) {$meta_compare} {$meta_compare_string})", $meta_value );
 		}
 
-		$where = array_filter( $where );
+		$filter = array_filter( $filter );
 
-		if ( empty( $where ) )
-			$where = '';
-		else
-			$where = ' AND (' . implode( "\n{$this->relation} ", $where ) . ' )';
+		if ( ! empty( $filter ) && count( $filter ) > 1 ) {
+			$filter = array( strtolower( $this->relation ) => $filter );
+		} elseif ( ! empty( $filter ) ) {
+			$filter = reset( $filter );
+		}
 
-		$join = implode( "\n", $join );
-		if ( ! empty( $join ) )
-			$join = ' ' . $join;
-
-		// return apply_filters_ref_array( 'get_meta_dsl', array( compact( 'join', 'where' ), $this->queries, $type, $primary_table, $primary_id_column, $context ) );
+		return apply_filters_ref_array( 'get_meta_dsl', array( $filter, $this->queries, $type, $es_query ) );
 	}
 
 }

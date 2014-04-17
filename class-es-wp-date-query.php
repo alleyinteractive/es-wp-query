@@ -188,7 +188,12 @@ class ES_WP_Date_Query extends WP_Date_Query {
 	}
 
 
-	private function build_date_range( $date, $compare ) {
+	public static function build_date_range( $date, $compare, $date2 = null, $compare2 = null ) {
+		// If we pass two dates, create a range for both
+		if ( isset( $date2 ) && isset( $compare2 ) ) {
+			return array_merge( self::build_date_range( $date, $compare ), self::build_date_range( $date2, $compare2 ) );
+		}
+
 		// To improve readability
 		$upper_edge = true;
 		$lower_edge = false;
@@ -197,19 +202,19 @@ class ES_WP_Date_Query extends WP_Date_Query {
 			case '!=' :
 			case '=' :
 				return array(
-					'gte' => $this->build_datetime( $date, $lower_edge ),
-					'lte' => $this->build_datetime( $date, $upper_edge )
+					'gte' => self::build_datetime( $date, $lower_edge ),
+					'lte' => self::build_datetime( $date, $upper_edge )
 				);
 
 			case '>' :
-				return array( 'gt' => $this->build_datetime( $date, $upper_edge ) );
+				return array( 'gt' => self::build_datetime( $date, $upper_edge ) );
 			case '>=' :
-				return array( 'gte' => $this->build_datetime( $date, $lower_edge ) );
+				return array( 'gte' => self::build_datetime( $date, $lower_edge ) );
 
 			case '<' :
-				return array( 'lt' => $this->build_datetime( $date, $lower_edge ) );
+				return array( 'lt' => self::build_datetime( $date, $lower_edge ) );
 			case '<=' :
-				return array( 'lte' => $this->build_datetime( $date, $upper_edge ) );
+				return array( 'lte' => self::build_datetime( $date, $upper_edge ) );
 		}
 	}
 

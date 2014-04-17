@@ -29,3 +29,4 @@ require_once( ES_WP_QUERY_PATH . '/class-es-wp-query-wrapper.php' );
 require_once( ES_WP_QUERY_PATH . '/class-es-wp-tax-query.php' );
 require_once( ES_WP_QUERY_PATH . '/class-es-wp-date-query.php' );
 require_once( ES_WP_QUERY_PATH . '/class-es-wp-meta-query.php' );
+require_once( ES_WP_QUERY_PATH . '/functions.php' );

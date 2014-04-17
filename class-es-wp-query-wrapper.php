@@ -21,8 +21,12 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		return sprintf( $this->es_map( $field ), $taxonomy );
 	}
 
-	public function meta_map( $meta_key ) {
-		return sprintf( $this->es_map( 'post_meta' ), $meta_key );
+	public function meta_map( $meta_key, $analyzed = false ) {
+		if ( $analyzed ) {
+			return sprintf( $this->es_map( 'post_meta.analyzed' ), $meta_key );
+		} else {
+			return sprintf( $this->es_map( 'post_meta' ), $meta_key );
+		}
 	}
 
 	protected function set_posts( $q, $es_response ) {
@@ -130,6 +134,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			'post_mime_type'        => 'post_mime_type',
 			'comment_count'         => 'comment_count',
 			'post_meta'             => 'post_meta.%s',
+			'post_meta.analyzed'    => 'post_meta.%s.analyzed',
 			'term_id'               => 'terms.%s.term_id',
 			'term_slug'             => 'terms.%s.slug',
 			'term_name'             => 'terms.%s.name',
@@ -467,11 +472,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			if ( ! is_user_logged_in() ) {
 				$filter[] = array( 'or' => array(
 					$this->dsl_terms( $this->es_map( 'post_password' ), '' ),
-					array( 'missing' => array(
-						'field'      => $this->es_map( 'post_password' ),
-						'existence'  => true,
-						'null_value' => true
-					) )
+					$this->dsl_missing( $this->es_map( 'post_password' ) )
 				) );
 			}
 		}
@@ -1212,6 +1213,18 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 	}
 
 	public static function dsl_range( $field, $args ) {
-		return array( 'range' => array( $field => array( $args ) ) );
+		return array( 'range' => array( $field => $args ) );
+	}
+
+	public static function dsl_exists( $field ) {
+		return array( 'exists' => array( 'field' => $field ) );
+	}
+
+	public static function dsl_missing( $field, $args = array() ) {
+		return array( 'missing' => array_merge( array( 'field' => $field ), $args ) );
+	}
+
+	public static function dsl_match( $field, $value, $args = array() ) {
+		return array( 'match' => array_merge( array( $field => $value ), $args ) );
 	}
 }

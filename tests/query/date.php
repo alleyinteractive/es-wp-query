@@ -44,7 +44,7 @@ class Tests_Query_Date extends WP_UnitTestCase {
 			$this->factory->post->create( array( 'post_date' => $post_date ) );
 		}
 
-		es_index_data();
+		es_wp_query_index_test_data();
 
 		unset( $this->q );
 		$this->q = new ES_WP_Query();

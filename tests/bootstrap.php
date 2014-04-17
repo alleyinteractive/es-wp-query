@@ -11,9 +11,11 @@ function _manually_load_plugin() {
 	if ( file_exists( dirname( __FILE__ ) . '/es.php' ) ) {
 		require_once( dirname( __FILE__ ) . '/es.php' );
 	} else {
-		echo "You must add an adapter to the plugin for this to work.\n"
+		echo "\n\nSetup Required\n"
+			. "=========================================================\n"
+			. "You must add an adapter to the plugin for this to work.\n"
 			. "You can add it to the plugin in es-wp-query/tests/es.php.\n"
-			. "See the readme for more details.";
+			. "See the readme for more details.\n\n";
 		exit( 1 );
 	}
 }

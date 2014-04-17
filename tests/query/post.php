@@ -23,7 +23,7 @@ class Tests_Query_Post extends WP_UnitTestCase {
 		$post_id6 = $this->factory->post->create();
 		add_post_meta( $post_id6, 'bar', 'val1' );
 
-		es_index_data();
+		es_wp_query_index_test_data();
 
 		$query = new ES_WP_Query( array(
 			'meta_query' => array(
@@ -77,7 +77,7 @@ class Tests_Query_Post extends WP_UnitTestCase {
 		add_post_meta( $post_id7, 'baz', rand_str() );
 		add_post_meta( $post_id7, 'bar', 'val2' );
 
-		es_index_data();
+		es_wp_query_index_test_data();
 
 		$query = new ES_WP_Query( array(
 			'meta_query' => array(
@@ -146,7 +146,7 @@ class Tests_Query_Post extends WP_UnitTestCase {
 		$post_id5 = $this->factory->post->create();
 		add_post_meta( $post_id5, 'foo', rand_str() );
 
-		es_index_data();
+		es_wp_query_index_test_data();
 
 		$query = new ES_WP_Query( array(
 			'meta_query' => array(
@@ -213,7 +213,7 @@ class Tests_Query_Post extends WP_UnitTestCase {
 
 		$this->factory->post->create_many( 10 );
 
-		es_index_data();
+		es_wp_query_index_test_data();
 
 		$query = new ES_WP_Query( array(
 			'fields'	=> 'ids',
@@ -254,7 +254,7 @@ class Tests_Query_Post extends WP_UnitTestCase {
 		$post_id5 = $this->factory->post->create();
 		add_post_meta( $post_id5, 'foo', rand_str() );
 
-		es_index_data();
+		es_wp_query_index_test_data();
 
 		$posts = es_get_posts( array(
 			'meta_key' => 'foo',
@@ -299,7 +299,7 @@ class Tests_Query_Post extends WP_UnitTestCase {
 		$post_id6 = $this->factory->post->create();
 		add_post_meta( $post_id6, 'baz', 0 );
 
-		es_index_data();
+		es_wp_query_index_test_data();
 
 		$posts = es_get_posts( array( 'meta_key' => 'foo', 'meta_value' => '0' ) );
 		$this->assertEquals( 1, count ( $posts ) );
@@ -339,7 +339,7 @@ class Tests_Query_Post extends WP_UnitTestCase {
 		$post_c = $this->factory->post->create( array( 'post_category' => array( $cat_c ) ) );
 		$post_d = $this->factory->post->create( array( 'post_category' => array( $cat_d ) ) );
 
-		es_index_data();
+		es_wp_query_index_test_data();
 
 		$posts = es_get_posts( array(
 			'tax_query' => array(

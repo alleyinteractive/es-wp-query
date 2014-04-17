@@ -51,7 +51,7 @@ class Tests_Query_Results extends WP_UnitTestCase {
 		$this->factory->post->create( array( 'post_title' => 'child-three', 'post_parent' => $this->parent_two, 'post_date' => '2007-01-01 00:00:03' ) );
 		$this->factory->post->create( array( 'post_title' => 'child-four', 'post_parent' => $this->parent_two, 'post_date' => '2007-01-01 00:00:04' ) );
 
-		es_index_data();
+		es_wp_query_index_test_data();
 
 		unset( $this->q );
 		$this->q = new ES_WP_Query();
@@ -384,7 +384,7 @@ class Tests_Query_Results extends WP_UnitTestCase {
 		$author_4 = $this->factory->user->create( array( 'user_login' => rand_str(), 'user_pass' => rand_str(), 'role' => 'author' ) );
 		$post_4 = $this->factory->post->create( array( 'post_title' => rand_str(), 'post_author' => $author_4, 'post_date' => '2007-01-01 00:00:00' ) );
 
-		es_index_data();
+		es_wp_query_index_test_data();
 
 		$posts = $this->q->query( array(
 			'author' => '',

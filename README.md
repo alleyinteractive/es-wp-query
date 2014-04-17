@@ -1,34 +1,48 @@
-## Things that don't quite work out of the box
+# Elasticsearch Wrapper for WP_Query
 
-* Sorting by RAND()
-** You can make this work with a custom script
-* Sorting by post__in, post_parent__in
-** You can make this work with a custom script
-* Sort by meta_value
-** depending on your mapping, this may or may not be possible
-* Query by week, w, dayofyear, dayofweek
-** You can probably make this work with a custom script
-* Meta queries without a key
-** Depends on your map.
-* Can't meta compare 'REGEXP', 'NOT REGEXP', 'RLIKE'
+A drop-in replacement for WP_Query to leverage Elasticsearch for complex queries.
 
-
-## Things that don't work at all out of the box
-
-* Meta value casting
-** There's no equivalent in ES
-
-## Noteworthy
-
-* Tests were failing because they were written to assume that two posts with the same date, when ordered by date, would show up in the order in which they were added to the database. However, in ES, they aren't guaranteed to show in that order. tl;dr: unspecified post orders aren't the same between MySQL and ES.
 
 ## Instructions for use
 
-class ES_WP_Query extends ES_WP_Query_Wrapper {
-	protected function query_es( $es_args ) {
-		return wp_remote_post( 'http://localhost:9200/wordpress/post/_search', array( 'body' => json_encode( $es_args ) ) );
+This library is plugin-agnostic with regards to how you're connecting to Elasticsearch. That is to say, it generates Elasticsearch DSL, but does not actually connect to an Elasticsearch server to execute these queries. It also does no indexing of data, it doesn't add a mapping, etc. If you need an Elasticsearch WordPress plugin, we have a free and open-source option available: [SearchPress](https://github.com/alleyinteractive/searchpress).
+
+Once you have your Elasticsearch plugin setup and you have your data indexed, you need to create a class which extends `ES_WP_Query_Wrapper`. That class should, at the least, have a method `query_es()` which executes the query on the Elasticsearch server.
+
+	class ES_WP_Query extends ES_WP_Query_Wrapper {
+		protected function query_es( $es_args ) {
+			return wp_remote_post( 'http://localhost:9200/wordpress/post/_search', array( 'body' => json_encode( $es_args ) ) );
+		}
 	}
-}
+
+## Issues
+
+This plugin is currently in alpha and still has some kinks which need to be worked out.
+
+### Things that don't quite work out of the box
+
+* Sorting by RAND()
+  * You can make this work with a custom script
+* Sorting by post__in, post_parent__in
+  * You can make this work with a custom script
+* Sort by meta_value
+  * depending on your mapping, this may or may not be possible
+* Query by week, w, dayofyear, dayofweek
+  * You can probably make this work with a custom script
+* Meta queries without a key
+  * Depends on your map.
+* Can't meta compare 'REGEXP', 'NOT REGEXP', 'RLIKE'
+
+
+### Things that don't work at all out of the box
+
+* Meta value casting
+  * There's no equivalent in ES
+
+### Noteworthy
+
+* Tests were failing because they were written to assume that two posts with the same date, when ordered by date, would show up in the order in which they were added to the database. However, in ES, they aren't guaranteed to show in that order. tl;dr: unspecified post orders aren't the same between MySQL and ES.
+
 
 ## Tests
 

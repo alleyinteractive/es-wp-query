@@ -91,7 +91,7 @@ Here is a demo file for using [SearchPress](https://github.com/alleyinteractive/
 
 		SP_Config()->update_settings( array( 'active' => true, 'must_init' => false ) );
 
-		SP_API()->refresh_index();
+		SP_API()->post( '_refresh' );
 	}
 
 	function sp_es_field_map( $es_map ) {

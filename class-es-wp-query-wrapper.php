@@ -81,7 +81,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 	 * Set up the amount of found posts and the number of pages (if limit clause was used)
 	 * for the current query.
 	 *
-	 * @access private
+	 * @access public
 	 */
 	public function set_found_posts( $q, $es_response ) {
 		if ( isset( $es_response['hits']['total'] ) ) {
@@ -111,35 +111,38 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		global $wpdb;
 
 		$this->es_map = apply_filters( 'es_field_map', array(
-			'post_id'               => 'post_id',
-			'post_author'           => 'post_author',
-			'post_date'             => 'post_date',
-			'post_date_gmt'         => 'post_date_gmt',
-			'post_content'          => 'post_content',
-			'post_title'            => 'post_title',
-			'post_excerpt'          => 'post_excerpt',
-			'post_status'           => 'post_status',
-			'comment_status'        => 'comment_status',
-			'ping_status'           => 'ping_status',
-			'post_password'         => 'post_password',
-			'post_name'             => 'post_name',
-			'to_ping'               => 'to_ping',
-			'pinged'                => 'pinged',
-			'post_modified'         => 'post_modified',
-			'post_modified_gmt'     => 'post_modified_gmt',
-			'post_parent'           => 'post_parent',
-			'guid'                  => 'guid',
-			'menu_order'            => 'menu_order',
-			'post_type'             => 'post_type',
-			'post_mime_type'        => 'post_mime_type',
-			'comment_count'         => 'comment_count',
-			'post_meta'             => 'post_meta.%s',
-			'post_meta.analyzed'    => 'post_meta.%s.analyzed',
-			'term_id'               => 'terms.%s.term_id',
-			'term_slug'             => 'terms.%s.slug',
-			'term_name'             => 'terms.%s.name',
-			'term_parent'           => 'terms.%s.parent',
-			'term_tt_id'            => 'terms.%s.term_taxonomy_id',
+			'post_id'            => 'post_id',
+			'post_author'        => 'post_author',
+			'post_date'          => 'post_date',
+			'post_date_gmt'      => 'post_date_gmt',
+			'post_content'       => 'post_content',
+			'post_title'         => 'post_title',
+			'post_excerpt'       => 'post_excerpt',
+			'post_status'        => 'post_status',
+			'ping_status'        => 'ping_status',
+			'post_password'      => 'post_password',
+			'post_name'          => 'post_name',
+			'post_modified'      => 'post_modified',
+			'post_modified_gmt'  => 'post_modified_gmt',
+			'post_parent'        => 'post_parent',
+			'menu_order'         => 'menu_order',
+			'post_type'          => 'post_type',
+			'post_mime_type'     => 'post_mime_type',
+			'comment_count'      => 'comment_count',
+			'post_meta'          => 'post_meta.%s',
+			'post_meta.analyzed' => 'post_meta.%s.analyzed',
+			'term_id'            => 'terms.%s.term_id',
+			'term_slug'          => 'terms.%s.slug',
+			'term_name'          => 'terms.%s.name',
+			'term_tt_id'         => 'terms.%s.term_taxonomy_id',
+			'category_id'        => 'terms.%s.term_id',
+			'category_slug'      => 'terms.%s.slug',
+			'category_name'      => 'terms.%s.name',
+			'category_tt_id'     => 'terms.%s.term_taxonomy_id',
+			'tag_id'             => 'terms.%s.term_id',
+			'tag_slug'           => 'terms.%s.slug',
+			'tag_name'           => 'terms.%s.name',
+			'tag_tt_id'          => 'terms.%s.term_taxonomy_id',
 		) );
 
 		$this->parse_query();

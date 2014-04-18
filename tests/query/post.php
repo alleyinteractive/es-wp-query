@@ -281,6 +281,39 @@ class Tests_Query_Post extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @ticket 17264
+	 */
+	function test_duplicate_posts_when_no_key() {
+		$post_id = $this->factory->post->create();
+		add_post_meta( $post_id, 'city', 'Lorem' );
+		add_post_meta( $post_id, 'address', '123 Lorem St.' );
+		$post_id2 = $this->factory->post->create();
+		add_post_meta( $post_id2, 'city', 'Lorem' );
+		$post_id3 = $this->factory->post->create();
+		add_post_meta( $post_id3, 'city', 'Loren' );
+
+		es_wp_query_index_test_data();
+
+		$args = array(
+			'meta_query' => array(
+			array(
+				'value' => 'lorem',
+				'compare' => 'LIKE'
+			)
+			)
+		);
+
+		$posts = es_get_posts( $args );
+		$this->assertEquals( 2, count( $posts ) );
+		foreach ( $posts as $post ) {
+			$this->assertInstanceOf( 'WP_Post', $post );
+			$this->assertEquals( 'raw', $post->filter );
+		}
+		$posts = wp_list_pluck( $posts, 'ID' );
+		$this->assertEqualSets( array( $post_id, $post_id2 ), $posts );
+	}
+
+	/**
 	 * @ticket 15292
 	 */
 	function test_empty_meta_value() {

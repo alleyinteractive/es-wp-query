@@ -1231,4 +1231,8 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 	public static function dsl_match( $field, $value, $args = array() ) {
 		return array( 'match' => array_merge( array( $field => $value ), $args ) );
 	}
+
+	public static function dsl_multi_match( $fields, $query, $args = array() ) {
+		return array( 'multi_match' => array_merge( array( 'query' => $query, 'fields' => (array) $fields ), $args ) );
+	}
 }

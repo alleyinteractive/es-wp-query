@@ -44,14 +44,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 		}
 
 		foreach ( $queries as $k => $q ) {
-			$meta_key = isset( $q['key'] ) ? trim( $q['key'] ) : '';
-			if ( empty( $meta_key ) ) {
-				$keyless_filter = apply_filters( 'es_meta_query_without_key', array(), $q, $this, $es_query );
-				if ( ! empty( $keyless_filter ) ) {
-					$filter[] = $keyless_filter;
-				}
-				continue;
-			}
+			$meta_key = isset( $q['key'] ) ? trim( $q['key'] ) : '*';
 
 			if ( array_key_exists( 'value', $q ) && is_null( $q['value'] ) )
 				$q['value'] = '';
@@ -75,6 +68,16 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 				$meta_value = trim( $meta_value );
 			}
 
+			if ( '*' == $meta_key && ! in_array( $meta_compare, array( '=', '!=', 'LIKE', 'NOT LIKE' ) ) ) {
+				$keyless_filter = apply_filters( 'es_meta_query_keyless_query', array(), $meta_value, $meta_compare, $this, $es_query );
+				if ( ! empty( $keyless_filter ) ) {
+					$filter[] = $keyless_filter;
+				} else {
+					// @todo: How should we handle errors like this?
+				}
+				continue;
+			}
+
 			switch ( $meta_compare ) {
 				case '>' :
 				case '>=' :
@@ -91,7 +94,11 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 
 				case 'LIKE' :
 				case 'NOT LIKE' :
-					$this_filter = array( 'query' => $es_query->dsl_match( $es->meta_map( $meta_key, true ), $meta_value ) );
+					if ( '*' == $meta_key ) {
+						$this_filter = array( 'query' => $es_query->dsl_multi_match( $es_query->meta_map( $meta_key, true ), $meta_value ) );
+					} else {
+						$this_filter = array( 'query' => $es_query->dsl_match( $es_query->meta_map( $meta_key, true ), $meta_value ) );
+					}
 					break;
 
 				case 'BETWEEN' :
@@ -117,7 +124,11 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 					break;
 
 				default :
-					$this_filter = $es_query->dsl_terms( $es_query->meta_map( $meta_key ), $meta_value );
+					if ( '*' == $meta_key ) {
+						$this_filter = array( 'query' => $es_query->dsl_multi_match( $es_query->meta_map( $meta_key ), $meta_value ) );
+					} else {
+						$this_filter = $es_query->dsl_terms( $es_query->meta_map( $meta_key ), $meta_value );
+					}
 					break;
 
 			}

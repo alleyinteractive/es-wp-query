@@ -826,7 +826,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 			if ( is_user_logged_in() ) {
 				// Add private states that are limited to viewing by the author of a post or someone who has caps to read private states.
-				$private_states = get_post_stati( array('private' => true) );
+				$private_states = get_post_stati( array( 'private' => true ) );
 				$singular_states_ors = array();
 				foreach ( (array) $private_states as $state ) {
 					// @todo: leaving off here
@@ -841,7 +841,8 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				}
 			}
 
-			$singular_states_filter = $this->dsl_terms( $this->es_map( 'post_status' ), array_unique( $singular_states ) );
+			$singular_states = array_values( array_unique( $singular_states ) );
+			$singular_states_filter = $this->dsl_terms( $this->es_map( 'post_status' ), $singular_states );
 			if ( ! empty( $singular_states_ors ) ) {
 				$filter[] = array( 'or' => array_merge( $singular_states_filter, $singular_states_ors ) );
 			} else {

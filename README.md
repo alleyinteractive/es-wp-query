@@ -57,6 +57,8 @@ Unit tests are included using phpunit. In order to run the tests, you need to ad
 2. `es.php` can simply load one of the included adapters which is setup for testing. Otherwise, you'll need to do some additional setup.
 3. If you're not using one of the provided adapters:
 	* `es.php` needs to contain or include a function named `es_wp_query_index_test_data()`. This function gets called whenever data is added, to give you an opportunity to index it. You should force Elasticsearch to refresh after indexing, to ensure that the data is immediately searchable.
+		* **NOTE: Even with refreshing, I've noticed that probably <0.1% of the time, a test may fail for no reason, and I think this is related. If a test sporadically and unexpectedly fails for you, you should re-run it to double-check.**
 	* `es.php` must also contain or include a class `ES_WP_Query` which extends `ES_WP_Query_Wrapper`. At a minimum, this class should contain a `protected function query_es( $es_args )` which queries your Elasticsearch server.
 	* This file can also contain anything else you need to get everything working properly, e.g. adjustments to the field map.
 	* See the included adapters, especially `travis.php`, for examples.
+

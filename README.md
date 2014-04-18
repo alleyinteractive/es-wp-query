@@ -2,12 +2,21 @@
 
 A drop-in replacement for WP_Query to leverage Elasticsearch for complex queries.
 
+## Warning!
+
+This plugin is currently in pre-alpha development, and as such, no part of it is guaranteed. It works (the unit tests prove that), but we won't be concerned about backwards compatibility until the first release. If you choose to use this, please pay close attention to the commit log to make sure we don't break anything you've implemented.
+
 
 ## Instructions for use
 
-This library is plugin-agnostic with regards to how you're connecting to Elasticsearch. That is to say, it generates Elasticsearch DSL, but does not actually connect to an Elasticsearch server to execute these queries. It also does no indexing of data, it doesn't add a mapping, etc. If you need an Elasticsearch WordPress plugin, we have a free and open-source option available: [SearchPress](https://github.com/alleyinteractive/searchpress).
+This is actually more of a library than it is a plugin. With that, it is plugin-agnostic with regards to how you're connecting to Elasticsearch. It therefore generates Elasticsearch DSL, but does not actually connect to an Elasticsearch server to execute these queries. It also does no indexing of data, it doesn't add a mapping, etc. If you need an Elasticsearch WordPress plugin, we also offer a free and open-source option called [SearchPress](https://github.com/alleyinteractive/searchpress).
 
-Once you have your Elasticsearch plugin setup and you have your data indexed, you need to create a class which extends `ES_WP_Query_Wrapper`. That class should, at the least, have a method `query_es()` which executes the query on the Elasticsearch server.
+Once you have your Elasticsearch plugin setup and you have your data indexed, you need to tell this library how to use it. If the implementation you're using has an included adapter, you can load it like so:
+
+	es_wp_query_load_adapter( 'adapter-name' );
+
+
+If your Elasticsearch implementation doesn't have an included adapter, you need to create a class called `ES_WP_Query` which extends `ES_WP_Query_Wrapper`. That class should, at the least, have a method `query_es()` which executes the query on the Elasticsearch server. Here's an example:
 
 	class ES_WP_Query extends ES_WP_Query_Wrapper {
 		protected function query_es( $es_args ) {
@@ -15,92 +24,39 @@ Once you have your Elasticsearch plugin setup and you have your data indexed, yo
 		}
 	}
 
-## Issues
-
-This plugin is currently in alpha and still has some kinks which need to be worked out.
-
-### Things that don't quite work out of the box
-
-* Sorting by RAND()
-  * You can make this work with a custom script
-* Sorting by post__in, post_parent__in
-  * You can make this work with a custom script
-* Sort by meta_value
-  * depending on your mapping, this may or may not be possible
-* Query by week, w, dayofyear, dayofweek
-  * You can probably make this work with a custom script
-* Meta queries without a key
-  * Depends on your map.
-* Can't meta compare 'REGEXP', 'NOT REGEXP', 'RLIKE'
+See the [included adapters](https://github.com/alleyinteractive/es-wp-query/tree/master/adapters) for examples and inspiration.
 
 
-### Things that don't work at all out of the box
+Once you have an adapter setup, you can use this library the same way you'd use `WP_Query`, except that you'll instantiate `ES_WP_Query` instead of `WP_Query`. For instance:
 
-* Meta value casting
-  * There's no equivalent in ES
+	$q = new ES_WP_Query( array( 'post_type' => 'event', 'posts_per_page' => 20 ) );
+	while ( $q->have_posts() ) {
+		$q->the_post();
+		printf( '<li><a href="%s">%s</a></li>', get_permalink(), get_the_title() );
+	}
 
-### Noteworthy
 
-* Tests were failing because they were written to assume that two posts with the same date, when ordered by date, would show up in the order in which they were added to the database. However, in ES, they aren't guaranteed to show in that order. tl;dr: unspecified post orders aren't the same between MySQL and ES.
+## Contributing
+
+Any help on this plugin is welcome and appreciated!
+
+### Bugs
+
+If you find a bug, [check the current issues](https://github.com/alleyinteractive/es-wp-query/issues) and if your bug isn't listed, [file a new one](https://github.com/alleyinteractive/es-wp-query/issues/new). If you'd like to also fix the bug you found, please indicate that in the issue before working on it (just in case we have other plans which might affect that bug, we don't want you to waste any time).
+
+### Feature Requests
+
+The scope of this plugin is very tight; it should cover as much of WP_Query as possible, and nothing more. If you think this is missing something within that scope, or you think some part of it can be improved, [we'd love to hear about it](https://github.com/alleyinteractive/es-wp-query/issues/new)!
 
 
-## Tests
+## Unit Tests
 
 Unit tests are included using phpunit. In order to run the tests, you need to add an adapter for your Elasticsearch implementation.
 
 1. You need to create a file called `es.php` and add it to the `tests/` directory.
-2. `es.php` needs to contain a function named `es_wp_query_index_test_data()`. This function gets called whenever data is added, to give you an opportunity to index it. You should force Elasticsearch to refresh after indexing, to ensure that the data is immediately searchable.
-3. `es.php` must also contain a class `ES_WP_Query` which extends `ES_WP_Query_Wrapper`. At a minimum, this class should contain a `protected function query_es( $es_args )` which queries your Elasticsearch server.
-4. This file can also contain anything else you need to get everything working properly, e.g. adjustments to the field map.
-
-Here is a demo file for using [SearchPress](https://github.com/alleyinteractive/searchpress) to test:
-
-	<?php
-	require_once dirname( __FILE__ ) . '/../../searchpress/searchpress.php';
-
-	remove_action( 'save_post',       array( SP_Sync_Manager(), 'sync_post' ) );
-	remove_action( 'delete_post',     array( SP_Sync_Manager(), 'delete_post' ) );
-	remove_action( 'trashed_post',    array( SP_Sync_Manager(), 'delete_post' ) );
-
-	class ES_WP_Query extends ES_WP_Query_Wrapper {
-		protected function query_es( $es_args ) {
-			return SP_API()->search( json_encode( $es_args ), array( 'output' => ARRAY_A ) );
-		}
-	}
-
-	function es_wp_query_index_test_data() {
-		SP_Config()->update_settings( array( 'active' => false, 'host' => 'http://localhost:9200' ) );
-		SP_API()->index = 'es-wp-query-tests';
-
-		SP_Config()->flush();
-		SP_Config()->create_mapping();
-
-		$posts = get_posts( 'posts_per_page=-1&post_type=any&post_status=any&orderby=ID&order=ASC' );
-
-		$sp_posts = array();
-		foreach ( $posts as $post ) {
-			$sp_posts[] = new SP_Post( $post );
-		}
-
-		$response = SP_API()->index_posts( $sp_posts );
-		if ( '200' != SP_API()->last_request['response_code'] ) {
-			echo( "ES response not 200!\n" . print_r( $response, 1 ) );
-		} elseif ( ! is_object( $response ) || ! is_array( $response->items ) ) {
-			echo( "Error indexing data! Response:\n" . print_r( $response, 1 ) );
-		}
-
-		SP_Config()->update_settings( array( 'active' => true, 'must_init' => false ) );
-
-		SP_API()->post( '_refresh' );
-	}
-
-	function sp_es_field_map( $es_map ) {
-		return wp_parse_args( array(
-			'post_meta'          => 'post_meta.%s.raw',
-			'post_meta.analyzed' => 'post_meta.%s',
-			'term_name'          => 'terms.%s.name.raw',
-			'post_name'          => 'post_name.raw',
-			'post_type'          => 'post_type.raw',
-		), $es_map );
-	}
-	add_filter( 'es_field_map', 'sp_es_field_map' );
+2. `es.php` can simply load one of the included adapters which is setup for testing. Otherwise, you'll need to do some additional setup.
+3. If you're not using one of the provided adapters:
+	* `es.php` needs to contain or include a function named `es_wp_query_index_test_data()`. This function gets called whenever data is added, to give you an opportunity to index it. You should force Elasticsearch to refresh after indexing, to ensure that the data is immediately searchable.
+	* `es.php` must also contain or include a class `ES_WP_Query` which extends `ES_WP_Query_Wrapper`. At a minimum, this class should contain a `protected function query_es( $es_args )` which queries your Elasticsearch server.
+	* This file can also contain anything else you need to get everything working properly, e.g. adjustments to the field map.
+	* See the included adapters, especially `travis.php`, for examples.

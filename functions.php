@@ -19,8 +19,8 @@ if ( ! function_exists( 'es_get_posts' ) ) {
 	 *     'post_parent' - The parent of the post or post type.
 	 *     'post_status' - Default is 'publish'. Post status to retrieve.
 	 *
-	 * @since 1.2.0
 	 * @uses WP_Query::query() See for more default arguments and information.
+	 * @uses ES_WP_Query
 	 * @link http://codex.wordpress.org/Template_Tags/get_posts
 	 *
 	 * @param array $args Optional. Overrides defaults.
@@ -58,4 +58,17 @@ if ( ! function_exists( 'es_get_posts' ) ) {
 
 	}
 
+}
+
+
+/**
+ * Loads one of the included adapters.
+ *
+ * @param  string $adapter Which adapter to include. Currently allows searchpress, wpcom-vip, and travis.
+ * @return void
+ */
+function es_wp_query_load_adapter( $adapter ) {
+	if ( in_array( $adapter, array( 'searchpress', 'wpcom-vip', 'travis' ) ) ) {
+		require_once( ES_WP_QUERY_PATH . "/adapters/{$adapter}.php" );
+	}
 }

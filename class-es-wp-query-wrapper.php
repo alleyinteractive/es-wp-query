@@ -18,6 +18,11 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 	}
 
 	public function tax_map( $taxonomy, $field ) {
+		if ( 'post_tag' == $taxonomy ) {
+			$field = str_replace( 'term_', 'tag_', $field );
+		} elseif ( 'category' == $taxonomy ) {
+			$field = str_replace( 'term_', 'category_', $field );
+		}
 		return sprintf( $this->es_map( $field ), $taxonomy );
 	}
 

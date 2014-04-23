@@ -7,6 +7,10 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 	protected $es_map = array();
 
+	public $es_args;
+
+	public $es_response;
+
 	abstract protected function query_es( $es_args );
 
 	public function es_map( $field ) {
@@ -996,17 +1000,17 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		}
 
 		if ( 'ids' == $q['fields'] || 'id=>parent' == $q['fields'] ) {
-			$this->response = $this->query_es( $this->es_args );
-			$this->set_posts( $q, $this->response );
+			$this->es_response = $this->query_es( $this->es_args );
+			$this->set_posts( $q, $this->es_response );
 			$this->post_count = count( $this->posts );
-			$this->set_found_posts( $q, $this->response );
+			$this->set_found_posts( $q, $this->es_response );
 
 			return $this->posts;
 		}
 
-		$this->response = $this->query_es( $this->es_args );
-		$this->set_posts( $q, $this->response );
-		$this->set_found_posts( $q, $this->response );
+		$this->es_response = $this->query_es( $this->es_args );
+		$this->set_posts( $q, $this->es_response );
+		$this->set_found_posts( $q, $this->es_response );
 
 		// The rest of this method is mostly core
 

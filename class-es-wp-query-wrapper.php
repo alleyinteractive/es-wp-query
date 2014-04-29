@@ -119,25 +119,37 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 	public function get_posts() {
 		global $wpdb;
 
+		/**
+		 * In addition to what's below, other fields include:
+		 * 		post_id
+		 *      post_author
+		 * 		post_date
+		 * 			post_date.year
+		 * 			post_date.month
+		 * 			post_date.week
+		 * 			post_date.day
+		 * 			post_date.day_of_year
+		 * 			post_date.day_of_week
+		 * 			post_date.hour
+		 * 			post_date.minute
+		 * 			post_date.second
+		 * 		post_date_gmt (plus all the same tokens as post_date)
+		 * 		post_content
+		 * 		post_title
+		 * 		post_excerpt
+		 * 		post_status
+		 * 		ping_status
+		 * 		post_password
+		 * 		post_name
+		 * 		post_modified (plus all the same tokens as post_date)
+		 * 		post_modified_gmt (plus all the same tokens as post_date)
+		 * 		post_parent
+		 * 		menu_order
+		 * 		post_type
+		 * 		post_mime_type
+		 * 		comment_count
+		 */
 		$this->es_map = apply_filters( 'es_field_map', array(
-			'post_id'            => 'post_id',
-			'post_author'        => 'post_author',
-			'post_date'          => 'post_date',
-			'post_date_gmt'      => 'post_date_gmt',
-			'post_content'       => 'post_content',
-			'post_title'         => 'post_title',
-			'post_excerpt'       => 'post_excerpt',
-			'post_status'        => 'post_status',
-			'ping_status'        => 'ping_status',
-			'post_password'      => 'post_password',
-			'post_name'          => 'post_name',
-			'post_modified'      => 'post_modified',
-			'post_modified_gmt'  => 'post_modified_gmt',
-			'post_parent'        => 'post_parent',
-			'menu_order'         => 'menu_order',
-			'post_type'          => 'post_type',
-			'post_mime_type'     => 'post_mime_type',
-			'comment_count'      => 'comment_count',
 			'post_meta'          => 'post_meta.%s',
 			'post_meta.analyzed' => 'post_meta.%s.analyzed',
 			'term_id'            => 'terms.%s.term_id',
@@ -332,6 +344,9 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 		if ( $q['monthnum'] )
 			$date_parameters['month'] = $q['monthnum'];
+
+		if ( $q['w'] )
+			$date_parameters['week'] = $q['w'];
 
 		if ( $q['day'] )
 			$date_parameters['day'] = $q['day'];

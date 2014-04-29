@@ -57,84 +57,60 @@ class ES_WP_Date_Query extends WP_Date_Query {
 		// The sub-parts of a $where part
 		$filter_parts = array();
 
-		$column = ( ! empty( $query['column'] ) ) ? esc_sql( $query['column'] ) : $this->column;
-
-		$column = $this->validate_column( $column );
+		$field = ( ! empty( $query['column'] ) ) ? esc_sql( $query['column'] ) : $this->column;
+		$field = $this->validate_column( $field );
 
 		$compare = $this->get_compare( $query );
 
-		$inclusive = ! empty( $query['inclusive'] );
-
-		if ( $inclusive ) {
-			$lt = 'lte';
-			$gt = 'gte';
-		} else {
-			$lt = 'lt';
-			$gt = 'gt';
-		}
-
 		// Range queries, we like range queries
-		$range = array();
+		if ( ! empty( $query['after'] ) || ! empty( $query['before'] ) ) {
+			$inclusive = ! empty( $query['inclusive'] );
 
-		if ( ! empty( $query['after'] ) ) {
-			$range[ $gt ] = $this->build_datetime( $query['after'], ! $inclusive );
-		}
-
-		if ( ! empty( $query['before'] ) ) {
-			$range[ $lt ] = $this->build_datetime( $query['before'], $inclusive );
-		}
-
-		if ( ! empty( $range ) ) {
-			$filter_parts[] = $es_query->dsl_range( $es_query->es_map( $column ), $range );
-		}
-		unset( $range );
-
-
-		// Specific value queries
-		$date = array();
-		if ( isset( $query['year'] ) ) {
-			$date['year'] = $query['year'];
-		} else {
-			return $filter_parts;
-		}
-
-		// Legacy
-		if ( isset( $query['monthnum'] ) ) {
-			$date['month'] = $query['monthnum'];
-		}
-
-		foreach ( array( 'month', 'day', 'hour', 'minute', 'second' ) as $unit ) {
-			if ( isset( $query[ $unit ] ) ) {
-				$date[ $unit ] = $query[ $unit ];
-			} elseif ( ! isset( $date[ $unit ] ) ) {
-				// This deviates from core. We can't query for e.g. all posts published at 5pm in 2014.
-				// We can only do ranges, so we take note of the most precise argument we get  linearly
-				// and we disregard anything after a gap.
-				break;
+			if ( $inclusive ) {
+				$lt = 'lte';
+				$gt = 'gte';
+			} else {
+				$lt = 'lt';
+				$gt = 'gt';
 			}
+
+			$range = array();
+
+			if ( ! empty( $query['after'] ) ) {
+				$range[ $gt ] = $this->build_datetime( $query['after'], ! $inclusive );
+			}
+
+			if ( ! empty( $query['before'] ) ) {
+				$range[ $lt ] = $this->build_datetime( $query['before'], $inclusive );
+			}
+
+			if ( ! empty( $range ) ) {
+				$filter_parts[] = $es_query->dsl_range( $es_query->es_map( $field ), $range );
+			}
+			unset( $range );
 		}
 
-		$range = $es_query->dsl_range( $column, $this->build_date_range( $date, $compare ) );
+		// Legacy support and field renaming
+		if ( isset( $query['monthnum'] ) ) {
+			$query['month'] = $query['monthnum'];
+		}
+		if ( isset( $query['w'] ) ) {
+			$query['week'] = $query['w'];
+		}
+		if ( isset( $query['w'] ) ) {
+			$query['week'] = $query['w'];
+		}
+		if ( isset( $query['dayofyear'] ) ) {
+			$query['day_of_year'] = $query['dayofyear'];
+		}
+		if ( isset( $query['dayofweek'] ) ) {
+			$query['day_of_week'] = $query['dayofweek'];
+		}
 
-		switch ( $compare ) {
-			case '!=' :
-				$filter_parts[] = array( 'not' => $range );
-				break;
-
-			case '>' :
-			case '>=' :
-			case '<' :
-			case '<=' :
-				$filter_parts[] = $range;
-				break;
-
-			case '=' :
-				if ( isset( $date['second'] ) ) {
-					$filter_parts[] = $es_query->dsl_terms( $es_query->es_map( $column ), $this->build_datetime( $date ) );
-				} else {
-					$filter_parts[] = $range;
-				}
-				break;
+		foreach ( array( 'year', 'month', 'week', 'day', 'day_of_year', 'day_of_week', 'hour', 'minute', 'second' ) as $date_token ) {
+			if ( isset( $query[ $date_token ] ) && $part = $this->build_dsl_part( $es_query->es_map( "{$field}.{$date_token}" ), $query[ $date_token ], $compare ) ) {
+				$filter_parts[] = $part;
+			}
 		}
 
 		return $filter_parts;
@@ -218,4 +194,70 @@ class ES_WP_Date_Query extends WP_Date_Query {
 		}
 	}
 
+	/**
+	 * Builds and validates a value string based on the comparison operator.
+	 *
+	 * @access public
+	 *
+	 * @param string $compare The compare operator to use
+	 * @param string|array $value The value
+	 * @return string|int|false The value to be used in DSL or false on error.
+	 */
+	public function build_dsl_part( $field, $value, $compare ) {
+		if ( ! isset( $value ) )
+			return false;
+
+		$part = false;
+		switch ( $compare ) {
+			// '=', '!=', '>', '>=', '<', '<=', 'IN', 'NOT IN', 'BETWEEN', 'NOT BETWEEN'
+			case 'IN':
+			case 'NOT IN':
+				$part = ES_WP_Query_Wrapper::dsl_terms( $field, array_map( 'intval', (array) $value ) );
+				break;
+
+			case 'BETWEEN':
+			case 'NOT BETWEEN':
+				if ( ! is_array( $value ) ) {
+					$value = array( $value, $value );
+				} elseif ( count( $value ) >= 2 && ( ! isset( $value[0] ) || ! isset( $value[1] ) ) ) {
+					$value = array( array_shift( $value ), array_shift( $value ) );
+				} elseif ( count( $value ) ) {
+					$value = reset( $value );
+					$value = array( $value, $value );
+				}
+
+				if ( ! isset( $value[0] ) || ! isset( $value[1] ) ) {
+					return false;
+				}
+
+				$value = array_map( 'intval', $value );
+				sort( $value );
+
+				$part = ES_WP_Query_Wrapper::dsl_range( $field, array( 'gte' => $value[0], 'lte' => $value[1] ) );
+				break;
+
+			case '>':
+			case '>=':
+			case '<':
+			case '<=':
+				switch ( $compare ) {
+					case '>' :   $operator = 'gt';   break;
+					case '>=' :  $operator = 'gte';  break;
+					case '<' :   $operator = 'lt';   break;
+					case '<=' :  $operator = 'lte';  break;
+				}
+				$part = ES_WP_Query_Wrapper::dsl_range( $field, array( $operator => intval( $value ) ) );
+				break;
+
+			default:
+				$part = ES_WP_Query_Wrapper::dsl_terms( $field, intval( $value ) );
+				break;
+		}
+
+		if ( ! empty( $part ) && in_array( $compare, array( '!=', 'NOT IN', 'NOT BETWEEN' ) ) ) {
+			return array( 'not' => $part );
+		} else {
+			return $part;
+		}
+	}
 }

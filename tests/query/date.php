@@ -253,11 +253,14 @@ class Tests_Query_Date extends WP_UnitTestCase {
 
 	public function test_simple_monthnum_expecting_results() {
 		$posts = $this->_get_query_result( array(
-			'year' => 2025,
 			'monthnum' => 5,
 		) );
 
 		$expected_dates = array(
+			'1972-05-24 14:53:45',
+			'2003-05-27 22:45:07',
+			'2004-05-22 12:34:12',
+			'2007-05-16 17:32:22',
 			'2025-05-20 10:13:01',
 		);
 
@@ -266,8 +269,29 @@ class Tests_Query_Date extends WP_UnitTestCase {
 
 	public function test_simple_monthnum_expecting_noresults() {
 		$posts = $this->_get_query_result( array(
-			'year' => 2025,
 			'monthnum' => 8,
+		) );
+
+		$this->assertCount( 0, $posts );
+	}
+
+	public function test_simple_w_as_in_week_expecting_results() {
+		$posts = $this->_get_query_result( array(
+			'w' => 24,
+		) );
+
+		$expected_dates = array(
+			'2009-06-11 21:30:28',
+			'2010-06-17 17:09:30',
+			'2012-06-13 14:03:34',
+		);
+
+		$this->assertEquals( $expected_dates, wp_list_pluck( $posts, 'post_date' ) );
+	}
+
+	public function test_simple_w_as_in_week_expecting_noresults() {
+		$posts = $this->_get_query_result( array(
+			'w' => 2,
 		) );
 
 		$this->assertCount( 0, $posts );
@@ -275,12 +299,11 @@ class Tests_Query_Date extends WP_UnitTestCase {
 
 	public function test_simple_day_expecting_results() {
 		$posts = $this->_get_query_result( array(
-			'year' => 2007,
-			'monthnum' => 1,
 			'day' => 22,
 		) );
 
 		$expected_dates = array(
+			'2004-05-22 12:34:12',
 			'2007-01-22 03:49:21',
 		);
 
@@ -289,8 +312,6 @@ class Tests_Query_Date extends WP_UnitTestCase {
 
 	public function test_simple_day_expecting_noresults() {
 		$posts = $this->_get_query_result( array(
-			'year' => 2007,
-			'monthnum' => 1,
 			'day' => 30,
 		) );
 
@@ -299,9 +320,6 @@ class Tests_Query_Date extends WP_UnitTestCase {
 
 	public function test_simple_hour_expecting_results() {
 		$posts = $this->_get_query_result( array(
-			'year' => 2009,
-			'monthnum' => 6,
-			'day' => 11,
 			'hour' => 21,
 		) );
 
@@ -314,9 +332,6 @@ class Tests_Query_Date extends WP_UnitTestCase {
 
 	public function test_simple_hour_expecting_noresults() {
 		$posts = $this->_get_query_result( array(
-			'year' => 2009,
-			'monthnum' => 6,
-			'day' => 11,
 			'hour' => 2,
 		) );
 
@@ -325,14 +340,11 @@ class Tests_Query_Date extends WP_UnitTestCase {
 
 	public function test_simple_minute_expecting_results() {
 		$posts = $this->_get_query_result( array(
-			'year' => 2008,
-			'monthnum' => 7,
-			'day' => 15,
-			'hour' => 11,
 			'minute' => 32,
 		) );
 
 		$expected_dates = array(
+			'2007-05-16 17:32:22',
 			'2008-07-15 11:32:26',
 		);
 
@@ -341,10 +353,6 @@ class Tests_Query_Date extends WP_UnitTestCase {
 
 	public function test_simple_minute_expecting_noresults() {
 		$posts = $this->_get_query_result( array(
-			'year' => 2008,
-			'monthnum' => 7,
-			'day' => 15,
-			'hour' => 11,
 			'minute' => 1,
 		) );
 
@@ -353,11 +361,6 @@ class Tests_Query_Date extends WP_UnitTestCase {
 
 	public function test_simple_second_expecting_results() {
 		$posts = $this->_get_query_result( array(
-			'year' => 2010,
-			'monthnum' => 6,
-			'day' => 17,
-			'hour' => 17,
-			'minute' => 9,
 			'second' => 30,
 		) );
 
@@ -370,11 +373,6 @@ class Tests_Query_Date extends WP_UnitTestCase {
 
 	public function test_simple_second_expecting_noresults() {
 		$posts = $this->_get_query_result( array(
-			'year' => 2010,
-			'monthnum' => 6,
-			'day' => 17,
-			'hour' => 17,
-			'minute' => 9,
 			'second' => 50,
 		) );
 

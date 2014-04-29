@@ -288,21 +288,7 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	public function test_date_query_month_expecting_results() {
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
-				'relation' => 'OR',
 				array(
-					'year'  => 2005,
-					'month' => 12,
-				),
-				array(
-					'year'  => 2008,
-					'month' => 12,
-				),
-				array(
-					'year'  => 2009,
-					'month' => 12,
-				),
-				array(
-					'year'  => 2011,
 					'month' => 12,
 				),
 			),
@@ -321,21 +307,7 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	public function test_date_query_month_expecting_noresults() {
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
-				'relation' => 'OR',
 				array(
-					'year'  => 2005,
-					'month' => 8,
-				),
-				array(
-					'year'  => 2008,
-					'month' => 8,
-				),
-				array(
-					'year'  => 2009,
-					'month' => 8,
-				),
-				array(
-					'year'  => 2011,
 					'month' => 8,
 				),
 			),
@@ -344,7 +316,6 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 		$this->assertCount( 0, $posts );
 	}
 
-	/*
 	public function test_date_query_week_expecting_results() {
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
@@ -372,21 +343,12 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 
 		$this->assertCount( 0, $posts );
 	}
-	*/
 
 	public function test_date_query_day_expecting_results() {
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
-				'relation' => 'OR',
 				array(
-					'year'  => 2005,
-					'month' => 2,
-					'day'   => 17,
-				),
-				array(
-					'year'  => 2010,
-					'month' => 6,
-					'day'   => 17,
+					'day' => 17,
 				),
 			),
 		) );
@@ -402,16 +364,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	public function test_date_query_day_expecting_noresults() {
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
-				'relation' => 'OR',
 				array(
-					'year'  => 2005,
-					'month' => 2,
-					'day'   => 19,
-				),
-				array(
-					'year'  => 2010,
-					'month' => 6,
-					'day'   => 19,
+					'day' => 19,
 				),
 			),
 		) );
@@ -419,14 +373,31 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 		$this->assertCount( 0, $posts );
 	}
 
+	public function test_date_query_dayofweek_expecting_results() {
+		$posts = $this->_get_query_result( array(
+			'date_query' => array(
+				array(
+					'dayofweek' => 7,
+				),
+			),
+		) );
+
+		$expected_dates = array(
+			'1984-07-28 19:28:56',
+			'2004-01-03 08:54:10',
+			'2004-05-22 12:34:12',
+			'2005-12-31 23:59:20',
+			'2008-03-29 09:04:25',
+		);
+
+		$this->assertEquals( $expected_dates, wp_list_pluck( $posts, 'post_date' ) );
+	}
+
 	public function test_date_query_hour_expecting_results() {
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
-					'year'  => 2008,
-					'month' => 12,
-					'day'   => 10,
-					'hour'  => 13,
+					'hour' => 13,
 				),
 			),
 		) );
@@ -442,10 +413,7 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
-					'year'  => 2008,
-					'month' => 12,
-					'day'   => 10,
-					'hour'  => 2,
+					'hour' => 2,
 				),
 			),
 		) );
@@ -457,10 +425,6 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
-					'year'   => 2011,
-					'month'  => 7,
-					'day'    => 4,
-					'hour'   => 1,
 					'minute' => 56,
 				),
 			),
@@ -477,10 +441,6 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
-					'year'   => 2011,
-					'month'  => 7,
-					'day'    => 4,
-					'hour'   => 1,
 					'minute' => 2,
 				),
 			),
@@ -493,11 +453,6 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
-					'year'   => 2007,
-					'month'  => 1,
-					'day'    => 22,
-					'hour'   => 3,
-					'minute' => 49,
 					'second' => 21,
 				),
 			),
@@ -514,11 +469,6 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
-					'year'   => 2007,
-					'month'  => 1,
-					'day'    => 22,
-					'hour'   => 3,
-					'minute' => 49,
 					'second' => 2,
 				),
 			),
@@ -527,56 +477,19 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 		$this->assertCount( 0, $posts );
 	}
 
+	/* This can't be done at this time with ES
 	public function test_date_query_between_two_times() {
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
-					'year'    => 2025,
-					'month'   => 4,
-					'day'     => 20,
-					'hour'    => 10,
-					'minute'  => 13,
+					'hour'    => 9,
+					'minute'  => 0,
 					'compare' => '>=',
 				),
 				array(
-					'year'    => '2025',
-					'month'   => '04',
-					'day'     => '20',
-					'hour'    => '10',
-					'minute'  => '13',
-					'second'  => '01',
+					'hour'    => '17',
+					'minute'  => '0',
 					'compare' => '<=',
-				),
-			),
-		) );
-
-		$expected_dates = array(
-			'2025-04-20 10:13:00',
-			'2025-04-20 10:13:01',
-		);
-
-		$this->assertEquals( $expected_dates, wp_list_pluck( $posts, 'post_date' ) );
-	}
-
-	public function test_date_query_relation_or() {
-		$posts = $this->_get_query_result( array(
-			'date_query' => array(
-				'relation' => 'OR',
-				array(
-					'year'   => 1972,
-					'month'  => 5,
-					'day'    => 24,
-					'hour'   => 14,
-					'minute' => 53,
-					'second' => 45
-				),
-				array(
-					'year'   => 2004,
-					'month'  => 5,
-					'day'    => 22,
-					'hour'   => 12,
-					'minute' => 34,
-					'second' => 12
 				),
 			),
 		) );
@@ -584,33 +497,11 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 		$expected_dates = array(
 			'1972-05-24 14:53:45',
 			'2004-05-22 12:34:12',
-		);
-
-		$this->assertEquals( $expected_dates, wp_list_pluck( $posts, 'post_date' ) );
-	}
-
-	public function test_date_query_compare_greater_than_or_equal_to() {
-		$posts = $this->_get_query_result( array(
-			'date_query' => array(
-				array(
-					'year' => 2007,
-				),
-				'compare' => '>=',
-			),
-		) );
-
-		$expected_dates = array(
-			'2007-01-22 03:49:21',
-			'2007-05-16 17:32:22',
-			'2007-09-24 07:17:23',
 			'2008-03-29 09:04:25',
 			'2008-07-15 11:32:26',
 			'2008-12-10 13:06:27',
-			'2009-06-11 21:30:28',
 			'2009-12-18 10:42:29',
-			'2010-06-17 17:09:30',
 			'2011-02-23 12:12:31',
-			'2011-07-04 01:56:32',
 			'2011-12-12 16:39:33',
 			'2012-06-13 14:03:34',
 			'2025-04-20 10:13:00',
@@ -620,4 +511,54 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 
 		$this->assertEquals( $expected_dates, wp_list_pluck( $posts, 'post_date' ) );
 	}
+	*/
+
+	public function test_date_query_relation_or() {
+		$posts = $this->_get_query_result( array(
+			'date_query' => array(
+				array(
+					'hour' => 14,
+				),
+				array(
+					'minute' => 34,
+				),
+				'relation' => 'OR',
+			),
+		) );
+
+		$expected_dates = array(
+			'1972-05-24 14:53:45',
+			'2004-05-22 12:34:12',
+			'2012-06-13 14:03:34',
+		);
+
+		$this->assertEquals( $expected_dates, wp_list_pluck( $posts, 'post_date' ) );
+	}
+
+	/* This can't be done at this time with ES
+	public function test_date_query_compare_greater_than_or_equal_to() {
+		$posts = $this->_get_query_result( array(
+			'date_query' => array(
+				array(
+					'hour' => 14,
+					'minute' => 34,
+				),
+				'compare' => '>=',
+			),
+		) );
+
+		$expected_dates = array(
+			'1972-05-24 14:53:45',
+			'1984-07-28 19:28:56',
+			'2003-05-27 22:45:07',
+			'2005-12-31 23:59:20',
+			'2007-05-16 17:32:22',
+			'2009-06-11 21:30:28',
+			'2010-06-17 17:09:30',
+			'2011-12-12 16:39:33',
+		);
+
+		$this->assertEquals( $expected_dates, wp_list_pluck( $posts, 'post_date' ) );
+	}
+	*/
 }

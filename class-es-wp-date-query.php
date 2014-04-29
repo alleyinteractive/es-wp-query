@@ -104,12 +104,34 @@ class ES_WP_Date_Query extends WP_Date_Query {
 			$query['day_of_year'] = $query['dayofyear'];
 		}
 		if ( isset( $query['dayofweek'] ) ) {
-			$query['day_of_week'] = $query['dayofweek'];
+			// We encourage you to store the day_of_week according to ISO-8601 standards.
+			$day_of_week = $query['dayofweek'] === 1 ? 7 : $query['dayofweek'] - 1;
+
+			// This is, of course, optional. Use this filter to manipualte the value however you'd like.
+			$query['day_of_week'] = apply_filters( 'es_date_query_dayofweek', $day_of_week, $query['dayofweek'] );
 		}
 
-		foreach ( array( 'year', 'month', 'week', 'day', 'day_of_year', 'day_of_week', 'hour', 'minute', 'second' ) as $date_token ) {
+		foreach ( array( 'year', 'month', 'week', 'day', 'day_of_year', 'day_of_week' ) as $date_token ) {
 			if ( isset( $query[ $date_token ] ) && $part = $this->build_dsl_part( $es_query->es_map( "{$field}.{$date_token}" ), $query[ $date_token ], $compare ) ) {
 				$filter_parts[] = $part;
+			}
+		}
+
+		// Avoid notices
+		$query = wp_parse_args( $query, array( 'hour' => null, 'minute' => null, 'second' => null ) );
+
+		$time = $this->build_es_time( $compare, $query['hour'], $query['minute'], $query['second'] );
+		if ( false === $time ) {
+			foreach ( array( 'hour', 'minute', 'second' ) as $date_token ) {
+				if ( isset( $query[ $date_token ] ) && $part = $this->build_dsl_part( $es_query->es_map( "{$field}.{$date_token}" ), $query[ $date_token ], $compare ) ) {
+					$filter_parts[] = $part;
+				}
+			}
+		} else {
+			if ( $time < 1 ) {
+				$filter_parts[] = $this->build_dsl_part( $es_query->es_map( "{$field}.seconds_from_hour" ), $time, $compare, 'floatval' );
+			} else {
+				$filter_parts[] = $this->build_dsl_part( $es_query->es_map( "{$field}.seconds_from_day" ), $time, $compare, 'floatval' );
 			}
 		}
 
@@ -203,7 +225,7 @@ class ES_WP_Date_Query extends WP_Date_Query {
 	 * @param string|array $value The value
 	 * @return string|int|false The value to be used in DSL or false on error.
 	 */
-	public function build_dsl_part( $field, $value, $compare ) {
+	public function build_dsl_part( $field, $value, $compare, $sanitize = 'intval' ) {
 		if ( ! isset( $value ) )
 			return false;
 
@@ -212,7 +234,7 @@ class ES_WP_Date_Query extends WP_Date_Query {
 			// '=', '!=', '>', '>=', '<', '<=', 'IN', 'NOT IN', 'BETWEEN', 'NOT BETWEEN'
 			case 'IN':
 			case 'NOT IN':
-				$part = ES_WP_Query_Wrapper::dsl_terms( $field, array_map( 'intval', (array) $value ) );
+				$part = ES_WP_Query_Wrapper::dsl_terms( $field, array_map( $sanitize, (array) $value ) );
 				break;
 
 			case 'BETWEEN':
@@ -230,7 +252,7 @@ class ES_WP_Date_Query extends WP_Date_Query {
 					return false;
 				}
 
-				$value = array_map( 'intval', $value );
+				$value = array_map( $sanitize, $value );
 				sort( $value );
 
 				$part = ES_WP_Query_Wrapper::dsl_range( $field, array( 'gte' => $value[0], 'lte' => $value[1] ) );
@@ -246,11 +268,11 @@ class ES_WP_Date_Query extends WP_Date_Query {
 					case '<' :   $operator = 'lt';   break;
 					case '<=' :  $operator = 'lte';  break;
 				}
-				$part = ES_WP_Query_Wrapper::dsl_range( $field, array( $operator => intval( $value ) ) );
+				$part = ES_WP_Query_Wrapper::dsl_range( $field, array( $operator => $sanitize( $value ) ) );
 				break;
 
 			default:
-				$part = ES_WP_Query_Wrapper::dsl_terms( $field, intval( $value ) );
+				$part = ES_WP_Query_Wrapper::dsl_terms( $field, $sanitize( $value ) );
 				break;
 		}
 
@@ -259,5 +281,40 @@ class ES_WP_Date_Query extends WP_Date_Query {
 		} else {
 			return $part;
 		}
+	}
+
+	/**
+	 * Builds a query string for comparing time values (hour, minute, second).
+	 *
+	 * If just hour, minute, or second is set than a normal comparison will be done.
+	 * However if multiple values are passed, a pseudo-decimal time will be created
+	 * in order to be able to accurately compare against.
+	 *
+	 * @access public
+	 *
+	 * @param string $column The column to query against. Needs to be pre-validated!
+	 * @param string $compare The comparison operator. Needs to be pre-validated!
+	 * @param int|null $hour Optional. An hour value (0-23).
+	 * @param int|null $minute Optional. A minute value (0-59).
+	 * @param int|null $second Optional. A second value (0-59).
+	 * @return string|false A query part or false on failure.
+	 */
+	public function build_es_time( $compare, $hour = null, $minute = null, $second = null ) {
+		// Complex combined queries aren't supported for multi-value queries
+		if ( in_array( $compare, array( 'IN', 'NOT IN', 'BETWEEN', 'NOT BETWEEN' ) ) ) {
+			return false;
+		}
+
+		// Lastly, ignore cases where just one unit is set or $minute is null
+		if ( count( array_filter( array( $hour, $minute, $second ), 'is_null' ) ) > 1 || is_null( $minute ) ) {
+			return false;
+		}
+
+		// Hour
+		if ( ! $hour ) {
+			$hour = 0;
+		}
+
+		return mktime( $hour, $minute, $second, 1, 1, 1970 );
 	}
 }

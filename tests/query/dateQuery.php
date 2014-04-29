@@ -477,7 +477,6 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 		$this->assertCount( 0, $posts );
 	}
 
-	/* This can't be done at this time with ES
 	public function test_date_query_between_two_times() {
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
@@ -511,7 +510,6 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 
 		$this->assertEquals( $expected_dates, wp_list_pluck( $posts, 'post_date' ) );
 	}
-	*/
 
 	public function test_date_query_relation_or() {
 		$posts = $this->_get_query_result( array(
@@ -535,7 +533,6 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 		$this->assertEquals( $expected_dates, wp_list_pluck( $posts, 'post_date' ) );
 	}
 
-	/* This can't be done at this time with ES
 	public function test_date_query_compare_greater_than_or_equal_to() {
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
@@ -560,5 +557,4 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 
 		$this->assertEquals( $expected_dates, wp_list_pluck( $posts, 'post_date' ) );
 	}
-	*/
 }

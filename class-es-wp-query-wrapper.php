@@ -168,6 +168,10 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 		$this->parse_query();
 
+		if ( isset( $this->query_vars['es'] ) ) {
+			unset( $this->query_vars['es'] );
+		}
+
 		do_action_ref_array( 'pre_get_posts', array( &$this ) );
 		do_action_ref_array( 'es_pre_get_posts', array( &$this ) );
 

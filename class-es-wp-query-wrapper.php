@@ -493,10 +493,8 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		/**
 		 * Filter the search query.
 		 *
-		 * @since 3.0.0
-		 *
-		 * @param string   $search Search SQL for WHERE clause.
-		 * @param WP_Query $this   The current WP_Query object.
+		 * @param string      $search Search filter for ES query.
+		 * @param ES_WP_Query $this   The current ES_WP_Query object.
 		 */
 		if ( ! empty( $search ) ) {
 			$query[] = apply_filters_ref_array( 'es_posts_search', array( $search, &$this ) );
@@ -719,12 +717,10 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			}
 
 			/**
-			 * Filter the ORDER BY used when ordering search results.
+			 * Filter the order used when ordering search results.
 			 *
-			 * @since 3.7.0
-			 *
-			 * @param string   $search_orderby The ORDER BY clause.
-			 * @param WP_Query $this           The current WP_Query instance.
+			 * @param array       $search_orderby The order clause.
+			 * @param ES_WP_Query $this           The current ES_WP_Query instance.
 			 */
 			$search_orderby = apply_filters( 'es_posts_search_orderby', $search_orderby, $this );
 			if ( $search_orderby )
@@ -968,7 +964,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$from	= apply_filters_ref_array( 'es_posts_from',			array( $from, &$this ) );
 
 			// Filter all clauses at once, for convenience
-			$clauses = (array) apply_filters_ref_array( 'posts_clauses', array( compact( $pieces ), &$this ) );
+			$clauses = (array) apply_filters_ref_array( 'es_posts_clauses', array( compact( $pieces ), &$this ) );
 			foreach ( $pieces as $piece )
 				$$piece = isset( $clauses[ $piece ] ) ? $clauses[ $piece ] : '';
 		}
@@ -1039,7 +1035,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 		// Raw results filter. Prior to status checks.
 		if ( !$q['suppress_filters'] )
-			$this->posts = apply_filters_ref_array('posts_results', array( $this->posts, &$this ) );
+			$this->posts = apply_filters_ref_array( 'es_posts_results', array( $this->posts, &$this ) );
 
 		// @todo: address this
 		if ( 0 && !empty($this->posts) && $this->is_comment_feed && $this->is_singular ) {
@@ -1084,7 +1080,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			}
 
 			if ( $this->is_preview && $this->posts && current_user_can( $edit_cap, $this->posts[0]->ID ) )
-				$this->posts[0] = get_post( apply_filters_ref_array( 'the_preview', array( $this->posts[0], &$this ) ) );
+				$this->posts[0] = get_post( apply_filters_ref_array( 'es_the_preview', array( $this->posts[0], &$this ) ) );
 		}
 
 		// @todo: address this
@@ -1130,7 +1126,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		}
 
 		if ( !$q['suppress_filters'] )
-			$this->posts = apply_filters_ref_array('the_posts', array( $this->posts, &$this ) );
+			$this->posts = apply_filters_ref_array( 'es_the_posts', array( $this->posts, &$this ) );
 
 		// Ensure that any posts added/modified via one of the filters above are
 		// of the type WP_Post and are filtered.

@@ -55,7 +55,8 @@ function es_wp_query_shoehorn( &$query ) {
 			$conditionals[ $key ] = $query->$key;
 		}
 
-		$query_vars = $es_query_vars = $query->query_vars;
+		$es_query_vars = $query->query_vars;
+		$query_args = $query->query;
 		$es_query_vars['fields'] = 'ids';
 		$es_query = new ES_WP_Query( $es_query_vars );
 
@@ -72,7 +73,7 @@ function es_wp_query_shoehorn( &$query ) {
 		foreach ( $conditionals as $key => $value ) {
 			$query->$key = $value;
 		}
-		$shoehorn = new ES_WP_Query_Shoehorn( $query, $es_query, $query_vars );
+		$shoehorn = new ES_WP_Query_Shoehorn( $query, $es_query, $query_args );
 	}
 }
 add_action( 'pre_get_posts', 'es_wp_query_shoehorn' );
@@ -96,11 +97,9 @@ class ES_WP_Query_Shoehorn {
 
 	private $found_posts;
 
-	private $original_query_vars;
+	private $original_query_args;
 
-	private $shoehorn_query_vars;
-
-	public function __construct( &$query, &$es_query, $query_vars ) {
+	public function __construct( &$query, &$es_query, $query_args ) {
 		$this->hash = spl_object_hash( $query );
 
 		if ( $query->get( 'no_found_rows' ) || -1 == $query->get( 'posts_per_page' ) || true == $query->get( 'nopaging' ) ) {
@@ -110,8 +109,7 @@ class ES_WP_Query_Shoehorn {
 			$this->found_posts = $es_query->found_posts;
 		}
 		$this->post_count = $es_query->post_count;
-		$this->original_query_vars = $query_vars;
-		$this->shoehorn_query_vars = $query->query_vars;
+		$this->original_query_args = $query_args;
 		$this->add_query_hooks();
 	}
 
@@ -177,13 +175,48 @@ class ES_WP_Query_Shoehorn {
 	public function filter__posts_request( $sql, &$query ) {
 		if ( spl_object_hash( $query ) == $this->hash ) {
 			remove_filter( 'posts_request', array( $this, 'filter__posts_request' ), 1000, 2 );
+			$this->reboot_query_vars( $query );
+
 			if ( ! $this->post_count ) {
-				$query->query_vars = array_merge( $query->query_vars, $this->original_query_vars );
 				global $wpdb;
 				return "SELECT * FROM {$wpdb->posts} WHERE 1=0 /* ES_WP_Query Shoehorn */";
+			} else {
+				return $sql . ' /* ES_WP_Query Shoehorn */';
 			}
 		}
 		return $sql;
 	}
 
+	/**
+	 * Restore query args/vars to their original glory. This allows us to run
+	 * $query->get_posts() multiple times.
+	 *
+	 * @access private
+	 *
+	 * @param  object $query WP_Query object, passed by reference.
+	 * @return void
+	 */
+	private function reboot_query_vars( &$query ) {
+		$q =& $query->query_vars;
+
+		$current_query_vars = $q;
+		unset(
+			$current_query_vars['post_type'],
+			$current_query_vars['post_status'],
+			$current_query_vars['post__in'],
+			$current_query_vars['posts_per_page'],
+			$current_query_vars['fields'],
+			$current_query_vars['orderby'],
+			$current_query_vars['order']
+		);
+
+		$q = $query->query = $this->original_query_args;
+		$query->parse_query();
+		$q = array_merge( $current_query_vars, $q );
+
+		// Restore some necessary defaults if we zapped 'em
+		if ( empty( $q['posts_per_page'] ) ) {
+			$q['posts_per_page'] = get_option( 'posts_per_page' );
+		}
+	}
 }

@@ -319,8 +319,8 @@ class Tests_Query_Shoehorn extends WP_UnitTestCase {
 		$this->assertEquals( 1, substr_count( $this->q->request, 'ES_WP_Query Shoehorn' ) );
 	}
 
-	function _run_another_query( &$query ) {
 		if ( true == $query->get( 'es' ) ) {
+	function _run_another_basic_query( &$query ) {
 			$another_query = new WP_Query;
 			$posts = $another_query->query( 'category_name=cat-a' );
 			$expected = array(
@@ -336,7 +336,7 @@ class Tests_Query_Shoehorn extends WP_UnitTestCase {
 	}
 
 	function test_wp_query_mixed_queries() {
-		add_action( 'pre_get_posts', array( $this, '_run_another_query' ), 99 );
+		add_action( 'pre_get_posts', array( $this, '_run_another_basic_query' ), 1001 );
 
 		$posts = $this->q->query( 'category_name=cat-b&es=true' );
 		$expected = array(
@@ -350,7 +350,7 @@ class Tests_Query_Shoehorn extends WP_UnitTestCase {
 		$this->assertEquals( $expected, wp_list_pluck( $posts, 'post_name' ) );
 		$this->assertEquals( 1, substr_count( $this->q->request, 'ES_WP_Query Shoehorn' ) );
 
-		remove_action( 'pre_get_posts', array( $this, '_run_another_query' ), 99 );
+		remove_action( 'pre_get_posts', array( $this, '_run_another_basic_query' ), 1001 );
 	}
 
 	function test_wp_query_data_changes_between_queries() {

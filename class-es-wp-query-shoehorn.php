@@ -76,7 +76,7 @@ function es_wp_query_shoehorn( &$query ) {
 		$shoehorn = new ES_WP_Query_Shoehorn( $query, $es_query, $query_args );
 	}
 }
-add_action( 'pre_get_posts', 'es_wp_query_shoehorn' );
+add_action( 'pre_get_posts', 'es_wp_query_shoehorn', 1000 );
 
 
 /**

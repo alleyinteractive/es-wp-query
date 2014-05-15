@@ -44,13 +44,16 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			switch ( $q['fields'] ) {
 				case 'ids' :
 					foreach ( $es_response['hits']['hits'] as $hit ) {
-						$this->posts[] = $hit['fields'][ $this->es_map( 'post_id' ) ];
+						$post_id = (array) $hit['fields'][ $this->es_map( 'post_id' ) ];
+						$this->posts[] = reset( $post_id );
 					}
 					return;
 
 				case 'id=>parent' :
 					foreach ( $es_response['hits']['hits'] as $hit ) {
-						$this->posts[ $hit['fields'][ $this->es_map( 'post_id' ) ] ] = $hit['fields'][ $this->es_map( 'post_parent' ) ];
+						$post_id = (array) $hit['fields'][ $this->es_map( 'post_id' ) ];
+						$post_parent = (array) $hit['fields'][ $this->es_map( 'post_parent' ) ];
+						$this->posts[ reset( $post_id ) ] = reset( $post_parent );
 					}
 					return;
 
@@ -61,7 +64,8 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 					} else {
 						$post_ids = array();
 						foreach ( $es_response['hits']['hits'] as $hit ) {
-							$post_ids[] = absint( $hit['fields'][ $this->es_map( 'post_id' ) ] );
+							$post_id = (array) $hit['fields'][ $this->es_map( 'post_id' ) ];
+							$post_ids[] = absint( reset( $post_id ) );
 						}
 						$post_ids = array_filter( $post_ids );
 						if ( ! empty( $post_ids ) ) {

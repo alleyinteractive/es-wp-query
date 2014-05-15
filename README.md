@@ -27,14 +27,76 @@ If your Elasticsearch implementation doesn't have an included adapter, you need 
 See the [included adapters](https://github.com/alleyinteractive/es-wp-query/tree/master/adapters) for examples and inspiration.
 
 
-Once you have an adapter setup, you can use this library the same way you'd use `WP_Query`, except that you'll instantiate `ES_WP_Query` instead of `WP_Query`. For instance:
+Once you have an adapter setup, there are two ways you can use this library.
+
+The first, and preferred, way to use this library is to instantiate `ES_WP_Query` instead of `WP_Query`. For instance:
 
 	$q = new ES_WP_Query( array( 'post_type' => 'event', 'posts_per_page' => 20 ) );
-	while ( $q->have_posts() ) {
-		$q->the_post();
-		printf( '<li><a href="%s">%s</a></li>', get_permalink(), get_the_title() );
-	}
 
+This will guarantee that your query will be run using Elasticsearch (assuming that the request can and should use Elasticsearch) and you should have no conflicts with themes or plugins. The resulting object (`$q` in this example) works just like WP_Query outside of how it gets the posts.
+
+The second way to use this library is to add `'es' => true` to your WP_Query arguments. Here's an example:
+
+	$q = new WP_Query( array( 'post_type' => 'event', 'posts_per_page' => 20, 'es' => true ) );
+
+In one regard, this is a safer way to use this library, because it will fall back on good 'ole `WP_Query` if the library ever goes missing. However, because it depends on the normal processing of WP_Query, it's possible for a plugin or theme to create conflicts, where that plugin or theme is trying to modify WP_Query through one of its provided filters (see below for additional details). In that regard, this can be a very unsafe way to use this library.
+
+Regardless of which way you use the library, everything else about the object should work as per usual.
+
+## A note about WP_Query filters
+
+Since this library removes MySQL from most of the equation, the typical WP_Query filters (`posts_where`, `posts_join`, etc.) become irrelevant or -- in some extreme situations -- conflicting.
+
+The gist of what happens whn you use `WP_Query( 'es=true' )` is that on `pre_get_posts`, the query vars are sent to a new instance of `ES_WP_Query`. The query vars are then replaced with a simple `post__in` query using the IDs which Elasticsearch found. Because the generated SQL query is far simpler than the query vars would suggest, a plugin or theme might try to manipualte the SQL and break it.
+
+| Action/Filter              | Using `ES_WP_Query` | `ES_WP_Query` Equivalent                            | Using `WP_Query` with `'es' => true` |
+| -------------------------- | ------------------- | --------------------------------------------------- | ------------------------------------ |
+| `pre_get_posts`            | No issues           | `es_pre_get_posts`                                  | Potential conflicts                  |
+| `posts_search`             | N/A                 | `es_posts_search`                                   | Should be N/A                        |
+| `posts_search_orderby`     | N/A                 | `es_posts_search_orderby`                           | Should be N/A                        |
+| `posts_where`              | N/A                 | `es_query_filter`                                   | Potential conflicts                  |
+| `posts_join`               | N/A                 |                                                     | Potential conflicts                  |
+| `comment_feed_join`        | N/A                 |                                                     | Potential conflicts                  |
+| `comment_feed_where`       | N/A                 |                                                     | Potential conflicts                  |
+| `comment_feed_groupby`     | N/A                 |                                                     | Potential conflicts                  |
+| `comment_feed_orderby`     | N/A                 |                                                     | Potential conflicts                  |
+| `comment_feed_limits`      | N/A                 |                                                     | Potential conflicts                  |
+| `posts_where_paged`        | N/A                 | `es_posts_filter_paged`, `es_posts_query_paged`     | Potential conflicts                  |
+| `posts_groupby`            | N/A                 |                                                     | Potential conflicts                  |
+| `posts_join_paged`         | N/A                 |                                                     | Potential conflicts                  |
+| `posts_orderby`            | N/A                 | `es_posts_sort`                                     | Potential conflicts                  |
+| `posts_distinct`           | N/A                 |                                                     | Potential conflicts                  |
+| `post_limits`              | N/A                 | `es_posts_size`, `es_posts_from`                    | Potential conflicts                  |
+| `posts_fields`             | N/A                 | `es_posts_fields`                                   | No issues                            |
+| `posts_clauses`            | N/A                 | `es_posts_clauses`                                  | Potential conflicts                  |
+| `posts_selection`          | N/A                 | `es_posts_selection`                                | Potential conflicts                  |
+| `posts_where_request`      | N/A                 | `es_posts_filter_request`, `es_posts_query_request` | Potential conflicts                  |
+| `posts_groupby_request`    | N/A                 |                                                     | Potential conflicts                  |
+| `posts_join_request`       | N/A                 |                                                     | Potential conflicts                  |
+| `posts_orderby_request`    | N/A                 | `es_posts_sort_request`                             | Potential conflicts                  |
+| `posts_distinct_request`   | N/A                 |                                                     | Potential conflicts                  |
+| `posts_fields_request`     | N/A                 | `es_posts_fields_request`                           | No issues                            |
+| `post_limits_request`      | N/A                 | `es_posts_size_request`, `es_posts_from_request`    | Potential conflicts                  |
+| `posts_clauses_request`    | N/A                 | `es_posts_clauses_request`                          | Potential conflicts                  |
+| `posts_request`            | N/A                 | `es_posts_request`                                  | Potential conflicts                  |
+| `split_the_query`          | N/A                 |                                                     | Potential conflicts                  |
+| `posts_request_ids`        | N/A                 |                                                     | Potential conflicts                  |
+| `posts_results`            | N/A                 | `es_posts_results`                                  | No issues                            |
+| `comment_feed_join`        | N/A                 |                                                     | Potential conflicts                  |
+| `comment_feed_where`       | N/A                 |                                                     | Potential conflicts                  |
+| `comment_feed_groupby`     | N/A                 |                                                     | Potential conflicts                  |
+| `comment_feed_orderby`     | N/A                 |                                                     | Potential conflicts                  |
+| `comment_feed_limits`      | N/A                 |                                                     | Potential conflicts                  |
+| `the_preview`              | N/A                 | `es_the_preview`                                    | Potential conflicts                  |
+| `the_posts`                | N/A                 | `es_the_posts`                                      | No issues                            |
+| `found_posts_query`        | N/A                 |                                                     | Potential conflicts                  |
+| `found_posts`              | N/A                 | `es_found_posts`                                    | Potential conflicts                  |
+| `wp_search_stopwords`      | N/A                 |                                                     | N/A                                  |
+| `get_meta_sql`             | N/A                 | `get_meta_dsl`                                      | N/A                                  |
+| `date_query_valid_columns` | No issues           |                                                     | No issues                            |
+| `get_date_sql`             | N/A                 | `get_date_dsl`                                      | N/A                                  |
+
+Note that in the "Using `WP_Query` with `'es' => true`" column, "no issues" and "N/A" are not guaranteed. For instance, in almost every filter, the `WP_Query` object is passed by reference. If a plugin or theme modified that object, it could create a conflict. The "no issues" and "N/A" notes assume that filters are being used as intended. Lastly, everything is dependant on `pre_get_posts`. If a plugin or theme were to hook in at a priority > 1000, it could render everything a potential conflict.
 
 ## Contributing
 

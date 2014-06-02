@@ -123,8 +123,8 @@ function sp_es_field_map( $es_map ) {
 		'menu_order'                    => 'menu_order',     // this isn't indexed on vip
 		'post_mime_type'                => 'post_mime_type', // this isn't indexed on vip
 		'comment_count'                 => 'comment_count',  // this isn't indexed on vip
-		'post_meta'                     => 'meta.%s.raw',
-		'post_meta.analyzed'            => 'meta.%s',
+		'post_meta'                     => 'meta.%s.value.raw',
+		'post_meta.analyzed'            => 'meta.%s.value',
 		'term_id'                       => 'taxonomy.%s.term_id',
 		'term_slug'                     => 'taxonomy.%s.slug',
 		'term_name'                     => 'taxonomy.%s.name.raw',

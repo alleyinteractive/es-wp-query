@@ -12,7 +12,7 @@ function _manually_load_plugin() {
 
 	if ( file_exists( dirname( __FILE__ ) . '/es.php' ) ) {
 		require_once( dirname( __FILE__ ) . '/es.php' );
-	} elseif ( ! empty( $_ENV['TRAVIS'] ) ) {
+	} elseif ( getenv( 'TRAVIS' ) ) {
 		es_wp_query_load_adapter( 'travis' );
 	} else {
 		echo "\n\nSetup Required\n"

@@ -30,9 +30,9 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		return sprintf( $this->es_map( $field ), $taxonomy );
 	}
 
-	public function meta_map( $meta_key, $analyzed = false ) {
-		if ( $analyzed ) {
-			return sprintf( $this->es_map( 'post_meta.analyzed' ), $meta_key );
+	public function meta_map( $meta_key, $type = '' ) {
+		if ( ! empty( $type ) ) {
+			return sprintf( $this->es_map( 'post_meta.' . $type ), $meta_key );
 		} else {
 			return sprintf( $this->es_map( 'post_meta' ), $meta_key );
 		}
@@ -156,6 +156,14 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		$this->es_map = apply_filters( 'es_field_map', array(
 			'post_meta'          => 'post_meta.%s',
 			'post_meta.analyzed' => 'post_meta.%s.analyzed',
+			'post_meta.long'     => 'post_meta.%s.long',
+			'post_meta.double'   => 'post_meta.%s.double',
+			'post_meta.binary'   => 'post_meta.%s.boolean',
+			'post_meta.date'     => 'post_meta.%s.date',
+			'post_meta.datetime' => 'post_meta.%s.datetime',
+			'post_meta.time'     => 'post_meta.%s.time',
+			'post_meta.signed'   => 'post_meta.%s.signed',
+			'post_meta.unsigned' => 'post_meta.%s.unsigned',
 			'term_id'            => 'terms.%s.term_id',
 			'term_slug'          => 'terms.%s.slug',
 			'term_name'          => 'terms.%s.name',
@@ -690,14 +698,16 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 						$sort[] = array( $this->es_map( 'post_id' ) => $q['order'] );
 						break;
 					case 'rand':
-						// There's no simple solution to this in ES
+						// @todo: There's no simple solution to this in ES
 						$orderby = 'RAND() ';
 						break;
 					case $q['meta_key']:
 					case 'meta_value':
+						$meta_type = ! empty( $q['meta_type'] ) ? $this->meta_query->get_cast_for_type( $q['meta_type'] ) : '';
+						$sort[] = array( $this->meta_map( $q['meta_key'], $meta_type ) => $q['order'] );
+						break;
 					case 'meta_value_num':
-						// casting doesn't work here, there's no ES equivalent
-						$sort[] = array( $this->meta_map( $q['meta_key'] ) => $q['order'] );
+						$sort[] = array( $this->meta_map( $q['meta_key'], 'decimal' ) => $q['order'] );
 						break;
 					case 'comment_count':
 						$sort[] = array( $this->es_map( 'comment_count' ) => $q['order'] );

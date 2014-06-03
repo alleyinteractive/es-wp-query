@@ -78,6 +78,8 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 				continue;
 			}
 
+			$meta_type = $this->get_cast_for_type( isset( $q['type'] ) ? $q['type'] : '' );
+
 			switch ( $meta_compare ) {
 				case '>' :
 				case '>=' :
@@ -89,35 +91,33 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 						case '<' :   $operator = 'lt';   break;
 						case '<=' :  $operator = 'lte';  break;
 					}
-					$this_filter = $es_query->dsl_range( $es_query->meta_map( $meta_key ), array( $operator => $meta_value ) );
+					$this_filter = $es_query->dsl_range( $es_query->meta_map( $meta_key, $meta_type ), array( $operator => $meta_value ) );
 					break;
 
 				case 'LIKE' :
 				case 'NOT LIKE' :
 					if ( '*' == $meta_key ) {
-						$this_filter = array( 'query' => $es_query->dsl_multi_match( $es_query->meta_map( $meta_key, true ), $meta_value ) );
+						$this_filter = array( 'query' => $es_query->dsl_multi_match( $es_query->meta_map( $meta_key, 'analyzed' ), $meta_value ) );
 					} else {
-						$this_filter = array( 'query' => $es_query->dsl_match( $es_query->meta_map( $meta_key, true ), $meta_value ) );
+						$this_filter = array( 'query' => $es_query->dsl_match( $es_query->meta_map( $meta_key, 'analyzed' ), $meta_value ) );
 					}
 					break;
 
 				case 'BETWEEN' :
 				case 'NOT BETWEEN' :
-					$meta_type = $this->get_cast_for_type( isset( $q['type'] ) ? $q['type'] : '' );
-
 					// These may produce unexpected results depending on how your data is indexed.
 					$meta_value = array_slice( $meta_value, 0, 2 );
 					if ( 'DATETIME' == $meta_type && $date1 = strtotime( $meta_value[0] ) && $date2 = strtotime( $meta_value[1] ) ) {
 						$meta_value = array( $date1, $date2 );
 						sort( $meta_value );
 						$this_filter = $es_query->dsl_range(
-							$es_query->meta_map( $meta_key, true ),
+							$es_query->meta_map( $meta_key, $meta_type ),
 							ES_WP_Date_Query::build_date_range( $meta_value[0], '>=', $meta_value[1], '<=' )
 						);
 					} else {
 						natcasesort( $meta_value );
 						$this_filter = $es_query->dsl_range(
-							$es_query->meta_map( $meta_key ),
+							$es_query->meta_map( $meta_key, $meta_type ),
 							array( 'gte' => $meta_value[0], 'lte' => $meta_value[1] )
 						);
 					}
@@ -125,9 +125,9 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 
 				default :
 					if ( '*' == $meta_key ) {
-						$this_filter = array( 'query' => $es_query->dsl_multi_match( $es_query->meta_map( $meta_key ), $meta_value ) );
+						$this_filter = array( 'query' => $es_query->dsl_multi_match( $es_query->meta_map( $meta_key, $meta_type ), $meta_value ) );
 					} else {
-						$this_filter = $es_query->dsl_terms( $es_query->meta_map( $meta_key ), $meta_value );
+						$this_filter = $es_query->dsl_terms( $es_query->meta_map( $meta_key, $meta_type ), $meta_value );
 					}
 					break;
 
@@ -154,4 +154,25 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 		return apply_filters_ref_array( 'get_meta_dsl', array( $filter, $this->queries, $type, $es_query ) );
 	}
 
+
+	/**
+	 * Get the ES mapping suffix for the given type.
+	 *
+	 * @param  string $type Meta_Query type. See Meta_Query docs.
+	 * @return string
+	 */
+	public function get_cast_for_type( $type ) {
+		$type = preg_replace( '/^([A-Z]+).*$/', '$1', strtoupper( $type ) );
+		switch ( $type ) {
+			case 'NUMERIC'  : return 'long';
+			case 'SIGNED'   : return 'long';
+			case 'UNSIGNED' : return 'long';
+			case 'BINARY'   : return 'boolean';
+			case 'DECIMAL'  : return 'double';
+			case 'DATE'     : return 'date';
+			case 'DATETIME' : return 'datetime';
+			case 'TIME'     : return 'time';
+		}
+		return '';
+	}
 }

@@ -205,6 +205,140 @@ class Tests_Query_Post extends WP_UnitTestCase {
 		$this->assertEquals( 0, count( $posts ) );
 	}
 
+	function test_meta_query_decimal_results() {
+		$post_1 = $this->factory->post->create();
+		$post_2 = $this->factory->post->create();
+		$post_3 = $this->factory->post->create();
+		$post_4 = $this->factory->post->create();
+		$post_5 = $this->factory->post->create();
+
+		update_post_meta( $post_1, 'decimal_value', '-0.3' );
+		update_post_meta( $post_2, 'decimal_value', '0.23409844' );
+		update_post_meta( $post_3, 'decimal_value', '0.3' );
+		update_post_meta( $post_4, 'decimal_value', '0.4' );
+		update_post_meta( $post_5, 'decimal_value', '0.1' );
+
+		es_wp_query_index_test_data();
+
+		$query = new ES_WP_Query( array(
+			'meta_query' => array(
+					array(
+						'key' => 'decimal_value',
+						'value' => '.300',
+						'compare' => '=',
+						'type' => 'DECIMAL(10,2)'
+					)
+				),
+		) );
+		$this->assertEqualSets( array( $post_3 ), wp_list_pluck( $query->posts, 'ID' ) );
+
+		$query = new ES_WP_Query( array(
+			'meta_query' => array(
+					array(
+						'key' => 'decimal_value',
+						'value' => '0.35',
+						'compare' => '>',
+						'type' => 'DECIMAL(10,2)'
+					)
+				),
+		) );
+		$this->assertEqualSets( array( $post_4 ), wp_list_pluck( $query->posts, 'ID' ) );
+
+		$query = new ES_WP_Query( array(
+			'meta_query' => array(
+					array(
+						'key' => 'decimal_value',
+						'value' => '0.3',
+						'compare' => '>=',
+						'type' => 'DECIMAL(10,2)'
+					)
+				),
+		) );
+		$this->assertEqualSets( array( $post_3, $post_4 ), wp_list_pluck( $query->posts, 'ID' ) );
+
+		$query = new ES_WP_Query( array(
+			'meta_query' => array(
+					array(
+						'key' => 'decimal_value',
+						'value' => '0',
+						'compare' => '<',
+						'type' => 'DECIMAL(10,2)'
+					)
+				),
+		) );
+		$this->assertEqualSets( array( $post_1 ), wp_list_pluck( $query->posts, 'ID' ) );
+
+		$query = new ES_WP_Query( array(
+			'meta_query' => array(
+					array(
+						'key' => 'decimal_value',
+						'value' => '0.3',
+						'compare' => '<=',
+						'type' => 'DECIMAL(10,2)'
+					)
+				),
+
+		) );
+		$this->assertEqualSets( array( $post_1, $post_2, $post_3, $post_5 ), wp_list_pluck( $query->posts, 'ID' ) );
+
+		$query = new ES_WP_Query( array(
+			'meta_query' => array(
+					array(
+						'key' => 'decimal_value',
+						'value' => array( 0.23409845, .31 ),
+						'compare' => 'BETWEEN',
+						'type' => 'DECIMAL(10, 10)'
+					)
+				),
+		) );
+		$this->assertEqualSets( array( $post_3 ), wp_list_pluck( $query->posts, 'ID' ) );
+
+		$query = new ES_WP_Query( array(
+			'meta_query' => array(
+					array(
+						'key' => 'decimal_value',
+						'value' => array( 0.23409845, .31 ),
+						'compare' => 'NOT BETWEEN',
+						'type' => 'DECIMAL(10,10)'
+					)
+				),
+		) );
+		$this->assertEqualSets( array( $post_1, $post_2, $post_4, $post_5 ), wp_list_pluck( $query->posts, 'ID' ) );
+
+		$query = new ES_WP_Query( array(
+			'meta_query' => array(
+					array(
+						'key' => 'decimal_value',
+						'value' => '.3',
+						'compare' => 'LIKE',
+						'type' => 'DECIMAL(10,2)'
+					)
+				),
+		) );
+		$this->assertEqualSets( array( $post_1, $post_3 ), wp_list_pluck( $query->posts, 'ID' ) );
+
+		$query = new ES_WP_Query( array(
+			'meta_query' => array(
+					array(
+						'key' => 'decimal_value',
+						'value' => '.3',
+						'compare' => 'NOT LIKE',
+						'type' => 'DECIMAL(10,2)'
+					)
+				),
+		) );
+		$this->assertEqualSets( array( $post_2, $post_4, $post_5 ), wp_list_pluck( $query->posts, 'ID' ) );
+
+		$query = new ES_WP_Query( array(
+			'orderby' => 'meta_value',
+			'order' => 'DESC',
+			'meta_key' => 'decimal_value',
+			'meta_type' => 'DECIMAL(10, 2)'
+		) );
+		$this->assertEqualSets( array( $post_4, $post_3, $post_2, $post_5, $post_1 ), wp_list_pluck( $query->posts, 'ID' ) );
+
+	}
+
 	/**
 	 * @ticket 20604
 	 */
@@ -236,6 +370,53 @@ class Tests_Query_Post extends WP_UnitTestCase {
 
 		$posts = $query->get_posts();
 		$this->assertEquals( 0 , count( $posts ) );
+	}
+
+	function test_meta_between_not_between() {
+		$post_id = $this->factory->post->create();
+		add_post_meta( $post_id, 'time', 500 );
+		$post_id2 = $this->factory->post->create();
+		add_post_meta( $post_id2, 'time', 1001 );
+		$post_id3 = $this->factory->post->create();
+		add_post_meta( $post_id3, 'time', 0 );
+		$post_id4 = $this->factory->post->create();
+		add_post_meta( $post_id4, 'time', 1 );
+		$post_id5 = $this->factory->post->create();
+		add_post_meta( $post_id5, 'time', 1000 );
+
+		es_wp_query_index_test_data();
+
+		$args = array(
+			'meta_key' => 'time',
+			'meta_value' => array( 1, 1000 ),
+			'meta_type' => 'numeric',
+			'meta_compare' => 'NOT BETWEEN'
+			);
+
+		$query = new ES_WP_Query( $args );
+		$this->assertEquals( 2, count ( $query->posts ) );
+		foreach ( $query->posts as $post ) {
+			$this->assertInstanceOf( 'WP_Post', $post );
+			$this->assertEquals( 'raw', $post->filter );
+		}
+		$posts = wp_list_pluck( $query->posts, 'ID' );
+		$this->assertEqualSets( array( $post_id2, $post_id3 ), $posts );
+
+		$args = array(
+			'meta_key' => 'time',
+			'meta_value' => array( 1, 1000 ),
+			'meta_type' => 'numeric',
+			'meta_compare' => 'BETWEEN'
+			);
+
+		$query = new ES_WP_Query( $args );
+		$this->assertEquals( 3, count ( $query->posts ) );
+		foreach ( $query->posts as $post ) {
+			$this->assertInstanceOf( 'WP_Post', $post );
+			$this->assertEquals( 'raw', $post->filter );
+		}
+		$posts = wp_list_pluck( $query->posts, 'ID' );
+		$this->assertEqualSets( array( $post_id, $post_id4, $post_id5 ), $posts );
 	}
 
 	/**

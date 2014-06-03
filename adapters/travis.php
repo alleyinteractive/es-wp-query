@@ -29,12 +29,44 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 								"template_meta": {
 									"path_match": "post_meta.*",
 									"mapping": {
-										"type": "multi_field",
 										"path": "full",
-										"fields": {
-											"{name}": { "type": "string", "index": "not_analyzed" },
-											"analyzed": { "type": "string", "index": "analyzed" }
-										}
+										"type": "object",
+										"properties": {
+											"value": {
+												"type": "multi_field",
+												"fields": {
+													"raw": {
+														"index": "not_analyzed",
+														"include_in_all": false,
+														"type": "string"
+													},
+													"value": {
+														"type": "string"
+													}
+												}
+											},
+											"boolean": {
+												"type": "boolean"
+											},
+											"long": {
+												"type": "long"
+											},
+											"double": {
+												"type": "double"
+											},
+											"date": {
+												"format": "YYYY-MM-dd",
+												"type": "date"
+											},
+											"datetime": {
+												"format": "YYYY-MM-dd HH:mm:ss",
+												"type": "date"
+											},
+											"time": {
+												"format": "HH:mm:ss",
+												"type": "date"
+											}
+										},
 									}
 								}
 							},
@@ -231,7 +263,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		 * @param int $post_id
 		 * @return array 'meta_key' => array( value 1, value 2... )
 		 */
-		public static function get_meta( $post_id ) {
+		public function get_meta( $post_id ) {
 			$meta = (array) get_post_meta( $post_id );
 
 			# Remove a filtered set of meta that we don't want indexed
@@ -249,7 +281,46 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 				unset( $meta[ $key ] );
 			}
 
+			foreach ( $meta as &$values ) {
+				$values = array_map( array( $this, 'cast_meta_types' ), $values );
+			}
+
 			return $meta;
+		}
+
+		/**
+		 * Split the meta values into different types for meta query casting.
+		 *
+		 * @param  string $value Meta value.
+		 * @return array
+		 */
+		public function cast_meta_types( $value ) {
+			$return = array(
+				'value'   => $value,
+				'boolean' => (bool) $value,
+			);
+
+			if ( is_numeric( $value ) ) {
+				$return['long']   = intval( $value );
+				$return['double'] = floatval( $value );
+			}
+
+			// correct boolean values
+			if ( ( "false" === $value ) || ( "FALSE" === $value ) ) {
+				$return['boolean'] = false;
+			} elseif ( ( 'true' === $value ) || ( 'TRUE' === $value ) ) {
+				$return['boolean'] = true;
+			}
+
+			// add date/time if we have it.
+			$time = strtotime( $value );
+			if ( false !== $time ) {
+				$return['date']     = date( 'Y-m-d', $time );
+				$return['datetime'] = date( 'Y-m-d H:i:s', $time );
+				$return['time']     = date( 'H:i:s', $time );
+			}
+
+			return $return;
 		}
 
 		/**
@@ -258,7 +329,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		 * @param object $post
 		 * @return array
 		 */
-		public static function get_terms( $post ) {
+		public function get_terms( $post ) {
 			$object_terms = array();
 			$taxonomies = get_object_taxonomies( $post->post_type );
 			foreach ( $taxonomies as $taxonomy ) {

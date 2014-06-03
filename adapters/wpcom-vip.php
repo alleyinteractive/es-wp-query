@@ -71,7 +71,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 	}
 }
 
-function sp_es_field_map( $es_map ) {
+function vip_es_field_map( $es_map ) {
 	return wp_parse_args( array(
 		'post_author'                   => 'author_id',
 		'post_date'                     => 'date',
@@ -125,6 +125,9 @@ function sp_es_field_map( $es_map ) {
 		'comment_count'                 => 'comment_count',  // this isn't indexed on vip
 		'post_meta'                     => 'meta.%s.value.raw',
 		'post_meta.analyzed'            => 'meta.%s.value',
+		'post_meta.intval'              => 'meta.%s.long',
+		'post_meta.floatval'            => 'meta.%s.double',
+		'post_meta.binary'              => 'meta.%s.boolean',
 		'term_id'                       => 'taxonomy.%s.term_id',
 		'term_slug'                     => 'taxonomy.%s.slug',
 		'term_name'                     => 'taxonomy.%s.name.raw',
@@ -136,4 +139,4 @@ function sp_es_field_map( $es_map ) {
 		'tag_name'                      => 'tag.name.raw',
 	), $es_map );
 }
-add_filter( 'es_field_map', 'sp_es_field_map' );
+add_filter( 'es_field_map', 'vip_es_field_map' );

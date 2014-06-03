@@ -13,8 +13,8 @@ function sp_es_field_map( $es_map ) {
 	return wp_parse_args( array(
 		'post_name'          => 'post_name.raw',
 		'post_type'          => 'post_type.raw',
-		'post_meta'          => 'post_meta.%s.raw',
-		'post_meta.analyzed' => 'post_meta.%s',
+		'post_meta'          => 'post_meta.%s.value.raw',
+		'post_meta.analyzed' => 'post_meta.%s.value',
 		'term_name'          => 'terms.%s.name.raw',
 		'category_name'      => 'terms.%s.name.raw',
 		'tag_name'           => 'terms.%s.name.raw',

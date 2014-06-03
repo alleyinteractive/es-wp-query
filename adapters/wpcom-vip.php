@@ -125,8 +125,8 @@ function vip_es_field_map( $es_map ) {
 		'comment_count'                 => 'comment_count',  // this isn't indexed on vip
 		'post_meta'                     => 'meta.%s.value.raw',
 		'post_meta.analyzed'            => 'meta.%s.value',
-		'post_meta.intval'              => 'meta.%s.long',
-		'post_meta.floatval'            => 'meta.%s.double',
+		'post_meta.long'                => 'meta.%s.long',
+		'post_meta.double'              => 'meta.%s.double',
 		'post_meta.binary'              => 'meta.%s.boolean',
 		'term_id'                       => 'taxonomy.%s.term_id',
 		'term_slug'                     => 'taxonomy.%s.slug',

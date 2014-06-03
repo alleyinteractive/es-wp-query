@@ -707,7 +707,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 						$sort[] = array( $this->meta_map( $q['meta_key'], $meta_type ) => $q['order'] );
 						break;
 					case 'meta_value_num':
-						$sort[] = array( $this->meta_map( $q['meta_key'], 'decimal' ) => $q['order'] );
+						$sort[] = array( $this->meta_map( $q['meta_key'], 'double' ) => $q['order'] );
 						break;
 					case 'comment_count':
 						$sort[] = array( $this->es_map( 'comment_count' ) => $q['order'] );

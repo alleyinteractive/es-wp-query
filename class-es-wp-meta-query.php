@@ -161,7 +161,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 	 * @param  string $type Meta_Query type. See Meta_Query docs.
 	 * @return string
 	 */
-	public function get_cast_for_type( $type ) {
+	public function get_cast_for_type( $type = '' ) {
 		$type = preg_replace( '/^([A-Z]+).*$/', '$1', strtoupper( $type ) );
 		switch ( $type ) {
 			case 'NUMERIC'  : return 'long';

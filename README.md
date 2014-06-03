@@ -1,3 +1,5 @@
+<div><img align="right" src="https://travis-ci.org/alleyinteractive/es-wp-query.svg?branch=master" /></div>
+
 # Elasticsearch Wrapper for WP_Query
 
 A drop-in replacement for WP_Query to leverage Elasticsearch for complex queries.

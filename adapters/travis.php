@@ -21,6 +21,22 @@ add_filter( 'es_field_map', 'travis_es_field_map' );
 if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 
 	function es_wp_query_index_test_data() {
+		// Make sure ES is running and responding
+		$tries = 5;
+		$sleep = 3;
+		do {
+			$response = wp_remote_get( 'http://localhost:9200/' );
+			if ( '200' == wp_remote_retrieve_response_code( $response ) ) {
+				// Looks good!
+				break;
+			} else {
+				printf( "\nInvalid response from ES (%s), sleeping %d seconds and trying again...\n", wp_remote_retrieve_response_code( $response ), $sleep );
+				sleep( $sleep );
+			}
+		} while ( --$tries );
+
+		// If we didn't end with a 200 status code, exit
+		travis_es_verify_response_code( $response );
 
 		// Ensure the index is empty
 		wp_remote_request( 'http://localhost:9200/es-wp-query-unit-tests/', array( 'method' => 'DELETE' ) );
@@ -237,6 +253,9 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 	function travis_es_verify_response_code( $response ) {
 		if ( '200' != wp_remote_retrieve_response_code( $response ) ) {
 			printf( "Could not index posts!\nResponse code %s\n", wp_remote_retrieve_response_code( $response ) );
+			if ( is_wp_error( $response ) ) {
+				printf( "Message: %s\n", $response->get_error_message() );
+			}
 			exit( 1 );
 		}
 	}

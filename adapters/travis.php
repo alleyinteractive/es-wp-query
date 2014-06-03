@@ -6,20 +6,55 @@
 
 class ES_WP_Query extends ES_WP_Query_Wrapper {
 	protected function query_es( $es_args ) {
-		return wp_remote_post( 'http://localhost:9200/wordpress/post/_search', array( 'body' => json_encode( $es_args ) ) );
+		$response = wp_remote_post( 'http://localhost:9200/es-wp-query-unit-tests/post/_search', array( 'body' => json_encode( $es_args ) ) );
+		return json_decode( wp_remote_retrieve_body( $response ), true );
 	}
 }
+
+function travis_es_field_map( $es_map ) {
+	return wp_parse_args( array(
+		'post_meta' => 'post_meta.%s.value',
+	), $es_map );
+}
+add_filter( 'es_field_map', 'travis_es_field_map' );
 
 if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 
 	function es_wp_query_index_test_data() {
 
 		// Ensure the index is empty
-		wp_remote_request( 'http://localhost:9200/wordpress/', array( 'method' => 'DELETE' ) );
+		wp_remote_request( 'http://localhost:9200/es-wp-query-unit-tests/', array( 'method' => 'DELETE' ) );
 
 		// Add the mapping
-		$response = wp_remote_request( 'http://localhost:9200/wordpress/', array( 'method' => 'PUT', 'body' => '
+		$response = wp_remote_request( 'http://localhost:9200/es-wp-query-unit-tests/', array( 'method' => 'PUT', 'body' => '
 			{
+				"settings": {
+					"analysis": {
+						"analyzer": {
+							"default": {
+								"tokenizer": "standard",
+								"filter": [
+									"standard",
+									"travis_word_delimiter",
+									"lowercase",
+									"stop",
+									"travis_snowball"
+								],
+								"language": "English"
+							}
+						},
+						"filter": {
+							"travis_word_delimiter": {
+								"type": "word_delimiter",
+								"preserve_original": true
+							},
+							"travis_snowball": {
+								"type": "snowball",
+								"language": "English"
+							}
+						}
+					}
+				},
 				"mappings": {
 					"post": {
 						"_all" : { "enabled" : false },
@@ -33,17 +68,11 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 										"type": "object",
 										"properties": {
 											"value": {
-												"type": "multi_field",
-												"fields": {
-													"raw": {
-														"index": "not_analyzed",
-														"include_in_all": false,
-														"type": "string"
-													},
-													"value": {
-														"type": "string"
-													}
-												}
+												"type": "string",
+												"index": "not_analyzed"
+											},
+											"analyzed": {
+												"type": "string"
 											},
 											"boolean": {
 												"type": "boolean"
@@ -66,7 +95,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 												"format": "HH:mm:ss",
 												"type": "date"
 											}
-										},
+										}
 									}
 								}
 							},
@@ -193,7 +222,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		}
 
 		$response = wp_remote_request(
-			'http://localhost:9200/wordpress/post/_bulk',
+			'http://localhost:9200/es-wp-query-unit-tests/post/_bulk',
 			array(
 				'method' => 'PUT',
 				'body' => wp_check_invalid_utf8( implode( "\n", $body ), true ) . "\n"
@@ -201,13 +230,13 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		);
 		travis_es_verify_response_code( $response );
 
-		$resposne = wp_remote_post( 'http://localhost:9200/wordpress/_refresh' );
+		$resposne = wp_remote_post( 'http://localhost:9200/es-wp-query-unit-tests/_refresh' );
 		travis_es_verify_response_code( $response );
 	}
 
 	function travis_es_verify_response_code( $response ) {
 		if ( '200' != wp_remote_retrieve_response_code( $response ) ) {
-			echo "Could not index posts!\n";
+			printf( "Could not index posts!\nResponse code %s\n", wp_remote_retrieve_response_code( $response ) );
 			exit( 1 );
 		}
 	}
@@ -296,8 +325,9 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		 */
 		public function cast_meta_types( $value ) {
 			$return = array(
-				'value'   => $value,
-				'boolean' => (bool) $value,
+				'value'    => $value,
+				'analyzed' => $value,
+				'boolean'  => (bool) $value,
 			);
 
 			if ( is_numeric( $value ) ) {

@@ -1,5 +1,3 @@
-# Note: this isn't functional at this time. We need to tie in an ES adapter.
-
 language: php
 
 php:

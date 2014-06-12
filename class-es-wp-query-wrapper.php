@@ -127,6 +127,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		 * In addition to what's below, other fields include:
 		 * 		post_id
 		 *      post_author
+		 *      	post_author.user_nicename
 		 * 		post_date
 		 * 			post_date.year
 		 * 			post_date.month
@@ -639,11 +640,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				}
 			}
 			$q['author_name'] = sanitize_title_for_query( $q['author_name'] );
-			$q['author'] = get_user_by( 'slug', $q['author_name'] );
-			if ( $q['author'] ) {
-				$q['author'] = $q['author']->ID;
-			}
-			$filter[] = $this->dsl_terms( $this->es_map( 'post_author' ), absint( $q['author'] ) );
+			$filter[] = $this->dsl_terms( $this->es_map( 'post_author.user_nicename' ), $q['author_name'] );
 		}
 
 		// MIME-Type stuff for attachment browsing

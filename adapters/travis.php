@@ -14,6 +14,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 function travis_es_field_map( $es_map ) {
 	return wp_parse_args( array(
 		'post_meta'         => 'post_meta.%s.value',
+		'post_author'       => 'post_author.user_id',
 		'post_date'         => 'post_date.date',
 		'post_date_gmt'     => 'post_date_gmt.date',
 		'post_modified'     => 'post_modified.date',
@@ -136,7 +137,14 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 						],
 						"properties": {
 							"post_id": { "type": "long" },
-							"post_author": { "type": "long" },
+							"post_author": {
+								"type": "object",
+								"path": "full",
+								"properties": {
+									"user_id": { "type": "long" },
+									"user_nicename": { "type": "string", "index": "not_analyzed" }
+								}
+							},
 							"post_title": { "type": "string" },
 							"post_excerpt": { "type": "string" },
 							"post_content": { "type": "string" },
@@ -271,6 +279,8 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		# This stores what will eventually become our JSON
 		public $data = array();
 
+		protected static $users = array();
+
 		function __construct( $post ) {
 			if ( is_numeric( $post ) && 0 != intval( $post ) )
 				$post = get_post( intval( $post ) );
@@ -289,7 +299,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		public function fill( $post ) {
 			$this->data = array(
 				'post_id'           => $post->ID,
-				'post_author'       => $post->post_author,
+				'post_author'       => $this->get_user( $post->post_author ),
 				'post_date'         => $this->get_date( $post->post_date, 'post_date' ),
 				'post_date_gmt'     => $this->get_date( $post->post_date_gmt, 'post_date_gmt' ),
 				'post_modified'     => $this->get_date( $post->post_modified, 'post_modified' ),
@@ -433,6 +443,29 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 				'seconds_from_hour' => mktime( 0, date( 'i', $ts ), date( 's', $ts ), 1, 1, 1970 ),
 			);
 		}
+
+
+		/**
+		 * Get information about a post author
+		 *
+		 * @param int $user_id
+		 * @return array
+		 */
+		public function get_user( $user_id ) {
+			if ( empty( self::$users[ $user_id ] ) ) {
+				$user = get_userdata( $user_id );
+				$data = array( 'user_id' => absint( $user_id ) );
+				if ( $user instanceof WP_User ) {
+					$data['user_nicename'] = strval( $user->user_nicename );
+				} else {
+					$data['user_nicename'] = '';
+				}
+				self::$users[ $user_id ] = $data;
+			}
+
+			return self::$users[ $user_id ];
+		}
+
 
 		/**
 		 * Return this object as JSON

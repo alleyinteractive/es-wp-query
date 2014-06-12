@@ -13,7 +13,11 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 
 function travis_es_field_map( $es_map ) {
 	return wp_parse_args( array(
-		'post_meta' => 'post_meta.%s.value',
+		'post_meta'         => 'post_meta.%s.value',
+		'post_date'         => 'post_date.date',
+		'post_date_gmt'     => 'post_date_gmt.date',
+		'post_modified'     => 'post_modified.date',
+		'post_modified_gmt' => 'post_modified_gmt.date',
 	), $es_map );
 }
 add_filter( 'es_field_map', 'travis_es_field_map' );
@@ -146,7 +150,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 								"type": "object",
 								"path": "full",
 								"properties": {
-									"post_date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
+									"date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
 									"year": { "type": "short" },
 									"month": { "type": "byte" },
 									"day": { "type": "byte" },
@@ -164,7 +168,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 								"type": "object",
 								"path": "full",
 								"properties": {
-									"post_date_gmt": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
+									"date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
 									"year": { "type": "short" },
 									"month": { "type": "byte" },
 									"day": { "type": "byte" },
@@ -182,7 +186,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 								"type": "object",
 								"path": "full",
 								"properties": {
-									"post_modified": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
+									"date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
 									"year": { "type": "short" },
 									"month": { "type": "byte" },
 									"day": { "type": "byte" },
@@ -200,7 +204,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 								"type": "object",
 								"path": "full",
 								"properties": {
-									"post_modified_gmt": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
+									"date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
 									"year": { "type": "short" },
 									"month": { "type": "byte" },
 									"day": { "type": "byte" },
@@ -415,7 +419,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		public function get_date( $date, $field ) {
 			$ts = strtotime( $date );
 			return array(
-				$field              => $date,
+				'date'              => $date,
 				'year'              => date( 'Y', $ts ),
 				'month'             => date( 'm', $ts ),
 				'day'               => date( 'd', $ts ),

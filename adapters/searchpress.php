@@ -12,6 +12,10 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 function sp_es_field_map( $es_map ) {
 	return wp_parse_args( array(
 		'post_name'          => 'post_name.raw',
+		'post_date'          => 'post_date.date',
+		'post_date_gmt'      => 'post_date_gmt.date',
+		'post_modified'      => 'post_modified.date',
+		'post_modified_gmt'  => 'post_modified_gmt.date',
 		'post_type'          => 'post_type.raw',
 		'post_meta'          => 'post_meta.%s.raw',
 		'post_meta.analyzed' => 'post_meta.%s.value',

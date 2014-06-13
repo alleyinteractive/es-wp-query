@@ -339,6 +339,30 @@ class Tests_Query_Post extends WP_UnitTestCase {
 
 	}
 
+	function test_meta_query_decimal_ordering() {
+		$post_1 = $this->factory->post->create();
+		$post_2 = $this->factory->post->create();
+		$post_3 = $this->factory->post->create();
+		$post_4 = $this->factory->post->create();
+		$post_5 = $this->factory->post->create();
+
+		update_post_meta( $post_1, 'numeric_value', '1' );
+		update_post_meta( $post_2, 'numeric_value', '200' );
+		update_post_meta( $post_3, 'numeric_value', '30' );
+		update_post_meta( $post_4, 'numeric_value', '400.5' );
+		update_post_meta( $post_5, 'numeric_value', '400.499' );
+
+		es_wp_query_index_test_data();
+
+		$query = new ES_WP_Query( array(
+			'orderby'   => 'meta_value',
+			'order'     => 'DESC',
+			'meta_key'  => 'numeric_value',
+			'meta_type' => 'DECIMAL'
+		) );
+		$this->assertEquals( array( $post_4, $post_5, $post_2, $post_3, $post_1 ), wp_list_pluck( $query->posts, 'ID' ) );
+	}
+
 	/**
 	 * @ticket 20604
 	 */

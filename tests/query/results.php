@@ -371,6 +371,14 @@ class Tests_Query_Results extends WP_UnitTestCase {
 		$this->assertNotEmpty( $posts2 );
 	}
 
+	function test_query_search() {
+		$posts = $this->q->query( array( 's' => 'foobar' ) );
+		$this->assertEmpty( $posts );
+
+		$posts2 = $this->q->query( array( 's' => 'lorem ipsum' ) );
+		$this->assertEquals( array( 'lorem-ipsum' ), wp_list_pluck( $posts2, 'post_title' ) );
+	}
+
 	function test_query_author_vars() {
 		$author_1 = $this->factory->user->create( array( 'user_login' => 'admin1', 'user_pass' => rand_str(), 'role' => 'author' ) );
 		$post_1 = $this->factory->post->create( array( 'post_title' => rand_str(), 'post_author' => $author_1, 'post_date' => '2007-01-01 00:00:00' ) );

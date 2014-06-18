@@ -145,9 +145,21 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 									"user_nicename": { "type": "string", "index": "not_analyzed" }
 								}
 							},
-							"post_title": { "type": "string" },
+							"post_title": {
+								"type": "multi_field",
+								"fields": {
+									"post_title": { "type": "string", "index": "not_analyzed" },
+									"analyzed": { "type": "string" }
+								}
+							},
 							"post_excerpt": { "type": "string" },
-							"post_content": { "type": "string" },
+							"post_content": {
+								"type": "multi_field",
+								"fields": {
+									"post_content": { "type": "string", "index": "not_analyzed" },
+									"analyzed": { "type": "string" }
+								}
+							},
 							"post_status": { "type": "string", "index": "not_analyzed" },
 							"post_name": { "type": "string", "index": "not_analyzed" },
 							"post_parent": { "type": "long" },
@@ -226,6 +238,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 									"seconds_from_hour": { "type": "short" }
 								}
 							},
+							"menu_order" : { "type" : "integer" },
 							"terms": { "type": "object" },
 							"post_meta": { "type": "object" }
 						}

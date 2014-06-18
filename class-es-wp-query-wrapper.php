@@ -140,7 +140,9 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		 * 			post_date.second
 		 * 		post_date_gmt (plus all the same tokens as post_date)
 		 * 		post_content
+		 * 			post_content.analyzed
 		 * 		post_title
+		 * 			post_title.analyzed
 		 * 		post_excerpt
 		 * 		post_status
 		 * 		ping_status
@@ -510,7 +512,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		 * @param ES_WP_Query $this   The current ES_WP_Query object.
 		 */
 		if ( ! empty( $search ) ) {
-			$query[] = apply_filters_ref_array( 'es_posts_search', array( $search, &$this ) );
+			$query['must'] = apply_filters_ref_array( 'es_posts_search', array( $search, &$this ) );
 			if ( ! is_user_logged_in() ) {
 				$filter[] = array( 'or' => array(
 					$this->dsl_terms( $this->es_map( 'post_password' ), '' ),
@@ -650,7 +652,11 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				$filter[] = $es_mime['filters'];
 			}
 			if ( ! empty( $es_mime['query'] ) ) {
-				$query[] = array( 'or' => $es_mime['query'] );
+				if ( empty( $query['should'] ) ) {
+					$query['should'] = $es_mime['query'];
+				} else {
+					$query['should'] = array_merge( $query['should'], $es_mime['query'] );
+				}
 			}
 		}
 
@@ -959,7 +965,14 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 		$query = array_filter( $query );
 		if ( ! empty( $query ) ) {
-			$query = array( 'and' => $query );
+			if ( 1 == count( $query ) && ! empty( $query['must'] ) && 1 == count( $query['must'] ) ) {
+				$query = $query['must'];
+			} else {
+				$query = array( 'bool' => $query );
+				if ( ! empty( $query['bool']['should'] ) ) {
+					$query['bool']['minimum_should_match'] = 1;
+				}
+			}
 		}
 
 		$pieces = array( 'filter', 'query', 'sort', 'fields', 'size', 'from' );
@@ -1183,10 +1196,14 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		// @todo: add a wildcard match here, I guess...
 		// $n = ! empty( $q['exact'] ) ? '' : '%';
 
+		$fields = array( $this->es_map( 'post_title.analyzed' ) . '^3', $this->es_map( 'post_content.analyzed' ) );
+		$fields = apply_filters( 'es_searchable_fields', $fields );
+
 		$search = array( 'multi_match' => array(
 			'query'    => $q['s'],
-			'fields'   => array( 'title', 'content', 'author', 'tag', 'category' ),
-			'operator' => 'and'
+			'fields'   => $fields,
+			'operator' => 'and',
+			'type'     => 'cross_fields'
 		) );
 
 		return $search;

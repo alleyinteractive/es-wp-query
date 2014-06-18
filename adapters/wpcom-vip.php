@@ -95,7 +95,9 @@ function vip_es_field_map( $es_map ) {
 		'post_date_gmt.minute'          => 'date_gmt_token.minute',
 		'post_date_gmt.second'          => 'date_gmt_token.second',
 		'post_content'                  => 'content',
+		'post_content.analyzed'         => 'content',
 		'post_title'                    => 'title',
+		'post_title.analyzed'           => 'title',
 		'post_excerpt'                  => 'excerpt',
 		'post_password'                 => 'post_password',  // this isn't indexed on vip
 		'post_name'                     => 'post_name',      // this isn't indexed on vip

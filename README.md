@@ -1,4 +1,4 @@
-<div><img align="right" src="https://travis-ci.org/alleyinteractive/es-wp-query.svg?branch=master" /></div>
+<div><a href="https://travis-ci.org/alleyinteractive/es-wp-query"><img align="right" src="https://travis-ci.org/alleyinteractive/es-wp-query.svg?branch=master" /></a></div>
 
 # Elasticsearch Wrapper for WP_Query
 

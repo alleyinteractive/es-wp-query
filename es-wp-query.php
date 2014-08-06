@@ -31,3 +31,5 @@ require_once( ES_WP_QUERY_PATH . '/class-es-wp-date-query.php' );
 require_once( ES_WP_QUERY_PATH . '/class-es-wp-meta-query.php' );
 require_once( ES_WP_QUERY_PATH . '/class-es-wp-query-shoehorn.php' );
 require_once( ES_WP_QUERY_PATH . '/functions.php' );
+
+class ES_WP_Query_Exception extends Exception { }

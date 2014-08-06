@@ -1,5 +1,33 @@
 <?php
 
+if ( ! function_exists( 'es_wp_query' ) ) {
+
+	/**
+	 * Get a query object with the given args. This is like instantiating
+	 * ES_WP_Query or WP_Query, except that it fails more gracefully. That is,
+	 * If the query cannot be performed in Elasticsearch (as determined by the
+	 * current adapter), a WP_Query object will be returned instead of an
+	 * ES_WP_Query object.
+	 *
+	 * @param array $args WP_Query args. @see WP_Query.
+	 * @return object ES_WP_Query or WP_Query
+	 */
+	function es_wp_query( $args = array() ) {
+		if ( ! class_exists( 'ES_WP_Query' ) ) {
+			return new WP_Query( $args );
+		}
+
+		try {
+			$query = new ES_WP_Query( $args );
+		} catch ( ES_WP_Query_Exception $e ) {
+			do_action( 'es_query_failed', $e->getMessage() );
+			return new WP_Query( $args );
+		}
+
+	}
+
+}
+
 if ( ! function_exists( 'es_get_posts' ) ) {
 
 	/**

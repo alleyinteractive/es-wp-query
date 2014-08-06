@@ -196,6 +196,11 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		// Fill again in case pre_get_posts unset some vars.
 		$q = $this->fill_query_vars( $q );
 
+		// Allow the adapter to bail if it can't handle the query args
+		if ( ! apply_filters( 'es_adapter_can_process_query', true, $q ) ) {
+			throw new ES_WP_Query_Exception( __( 'Elasticsearch adapter cannot handle the current request', 'es-wp-query' ) );
+		}
+
 		// Parse meta query
 		$this->meta_query = new ES_WP_Meta_Query();
 		$this->meta_query->parse_query_vars( $q );

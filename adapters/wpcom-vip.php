@@ -13,7 +13,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 
 	protected function set_posts( $q, $es_response ) {
 		$this->posts = array();
-		if ( isset( $es_response['results']['hits'] ) ) {
+		if ( ! is_wp_error( $es_response ) && isset( $es_response['results']['hits'] ) ) {
 			switch ( $q['fields'] ) {
 				case 'ids' :
 					foreach ( $es_response['results']['hits'] as $hit ) {
@@ -61,7 +61,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 	 * @access public
 	 */
 	public function set_found_posts( $q, $es_response ) {
-		if ( isset( $es_response['results']['total'] ) ) {
+		if ( ! is_wp_error( $es_response ) && isset( $es_response['results']['total'] ) ) {
 			$this->found_posts = absint( $es_response['results']['total'] );
 		} else {
 			$this->found_posts = 0;

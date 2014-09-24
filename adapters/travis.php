@@ -249,7 +249,13 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		travis_es_verify_response_code( $response );
 
 		// Index the content
-		$posts = get_posts( 'posts_per_page=-1&post_type=any&post_status=any&orderby=ID&order=ASC' );
+		$posts = get_posts( array(
+			'posts_per_page' => -1,
+			'post_type' => 'any',
+			'post_status' => array_values( get_post_stati() ),
+			'orderby' => 'ID',
+			'order' => 'ASC',
+		) );
 
 		$es_posts = array();
 		foreach ( $posts as $post ) {
@@ -270,6 +276,18 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 			)
 		);
 		travis_es_verify_response_code( $response );
+
+		$itemized_response = json_decode( wp_remote_retrieve_body( $response ) );
+		foreach ( (array) $itemized_response->items as $post ) {
+			// Status should be 200 or 201, depending on if we're updating or creating respectively
+			if ( ! isset( $post->index->status ) || ! in_array( $post->index->status, array( 200, 201 ) ) ) {
+				echo "Error indexing post {$post->index->_id}; HTTP response code: {$post->index->status}";
+				if ( ! empty( $post->index->error ) ) {
+					echo "\n" . $post->index->error;
+				}
+				exit( 1 );
+			}
+		}
 
 		$resposne = wp_remote_post( 'http://localhost:9200/es-wp-query-unit-tests/_refresh' );
 		travis_es_verify_response_code( $response );
@@ -313,10 +331,6 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 			$this->data = array(
 				'post_id'           => $post->ID,
 				'post_author'       => $this->get_user( $post->post_author ),
-				'post_date'         => $this->get_date( $post->post_date, 'post_date' ),
-				'post_date_gmt'     => $this->get_date( $post->post_date_gmt, 'post_date_gmt' ),
-				'post_modified'     => $this->get_date( $post->post_modified, 'post_modified' ),
-				'post_modified_gmt' => $this->get_date( $post->post_modified_gmt, 'post_modified_gmt' ),
 				'post_title'        => $post->post_title,
 				'post_excerpt'      => $post->post_excerpt,
 				'post_content'      => $post->post_content,
@@ -329,6 +343,11 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 				'terms'             => $this->get_terms( $post ),
 				'post_meta'         => $this->get_meta( $post->ID ),
 			);
+			foreach ( array( 'post_date', 'post_date_gmt', 'post_modified', 'post_modified_gmt' ) as $field ) {
+				if ( $value = $this->get_date( $post->$field, $field ) ) {
+					$this->data[ $field ] = $value;
+				}
+			}
 		}
 
 		/**
@@ -441,6 +460,10 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		 */
 		public function get_date( $date, $field ) {
 			$ts = strtotime( $date );
+			if ( $ts <= 0 ) {
+				return false;
+			}
+
 			return array(
 				'date'              => $date,
 				'year'              => date( 'Y', $ts ),

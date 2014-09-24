@@ -49,7 +49,13 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		SP_Config()->flush();
 		SP_Config()->create_mapping();
 
-		$posts = get_posts( 'posts_per_page=-1&post_type=any&post_status=any&orderby=ID&order=ASC' );
+		$posts = get_posts( array(
+			'posts_per_page' => -1,
+			'post_type' => 'any',
+			'post_status' => array_values( get_post_stati() ),
+			'orderby' => 'ID',
+			'order' => 'ASC',
+		) );
 
 		$sp_posts = array();
 		foreach ( $posts as $post ) {

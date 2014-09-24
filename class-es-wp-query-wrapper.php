@@ -885,7 +885,8 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$singular_states = array_values( array_unique( $singular_states ) );
 			$singular_states_filter = $this->dsl_terms( $this->es_map( 'post_status' ), $singular_states );
 			if ( ! empty( $singular_states_ors ) ) {
-				$filter[] = array( 'or' => array_merge( $singular_states_filter, $singular_states_ors ) );
+				$singular_states_ors[] = $singular_states_filter;
+				$filter[] = array( 'or' => $singular_states_ors );
 			} else {
 				$filter[] = $singular_states_filter;
 			}

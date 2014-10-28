@@ -7,7 +7,7 @@
 class ES_WP_Query extends ES_WP_Query_Wrapper {
 	protected function query_es( $es_args ) {
 		if ( function_exists( 'es_api_search_index' ) ) {
-			return es_api_search_index( $es_args );
+			return es_api_search_index( $es_args, 'es-wp-query' );
 		}
 	}
 

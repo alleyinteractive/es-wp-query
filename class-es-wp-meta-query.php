@@ -80,6 +80,9 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 
 			$meta_type = $this->get_cast_for_type( isset( $q['type'] ) ? $q['type'] : '' );
 
+			// Allow adapters to normalize meta values (like `strtolower` if mapping to `raw_lc`)
+			$meta_value = apply_filters( 'es_meta_query_meta_value', $meta_value, $meta_key, $meta_compare, $meta_type );
+
 			switch ( $meta_compare ) {
 				case '>' :
 				case '>=' :

@@ -125,7 +125,7 @@ function vip_es_field_map( $es_map ) {
 		'menu_order'                    => 'menu_order',     // this isn't indexed on vip
 		'post_mime_type'                => 'post_mime_type', // this isn't indexed on vip
 		'comment_count'                 => 'comment_count',  // this isn't indexed on vip
-		'post_meta'                     => 'meta.%s.value.raw',
+		'post_meta'                     => 'meta.%s.value.raw_lc',
 		'post_meta.analyzed'            => 'meta.%s.value',
 		'post_meta.long'                => 'meta.%s.long',
 		'post_meta.double'              => 'meta.%s.double',
@@ -142,3 +142,11 @@ function vip_es_field_map( $es_map ) {
 	), $es_map );
 }
 add_filter( 'es_field_map', 'vip_es_field_map' );
+
+function vip_es_meta_value_tolower( $meta_value, $meta_key, $meta_compare, $meta_type ) {
+	if ( ! is_string( $meta_value ) || empty( $meta_value ) ) {
+		return $meta_value;
+	}
+	return strtolower( $meta_value );
+}
+add_filter( 'es_meta_query_meta_value', 'vip_es_meta_value_tolower', 10, 4 );

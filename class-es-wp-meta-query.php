@@ -27,6 +27,13 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 		// Split out 'exists' and 'not exists' queries. These may also be
 		// queries missing a value or with an empty array as the value.
 		foreach ( $this->queries as $k => $q ) {
+
+			// WordPress 4.1 introduces a new structure for WP_Meta_Query:queries to support nested queries.
+			// the following protects against PHP warnings until support for nesting is added
+			if ( 'relation' === $k ) {
+				continue;
+			}
+			
 			if ( isset( $q['compare'] ) && 'EXISTS' == strtoupper( substr( $q['compare'], -6 ) ) ) {
 				unset( $q['value'] );
 			}

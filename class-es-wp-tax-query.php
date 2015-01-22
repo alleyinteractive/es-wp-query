@@ -106,7 +106,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	 * @param array &$query The single query
 	 */
 	private function clean_query( &$query ) {
-		if ( ! taxonomy_exists( $query['taxonomy'] ) ) {
+		if ( empty( $query['taxonomy'] ) || ! taxonomy_exists( $query['taxonomy'] ) ) {
 			$query = new WP_Error( 'Invalid taxonomy' );
 			return;
 		}

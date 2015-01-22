@@ -146,17 +146,17 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 								}
 							},
 							"post_title": {
-								"type": "multi_field",
+								"type": "string",
+								"index": "not_analyzed",
 								"fields": {
-									"post_title": { "type": "string", "index": "not_analyzed" },
 									"analyzed": { "type": "string" }
 								}
 							},
 							"post_excerpt": { "type": "string" },
 							"post_content": {
-								"type": "multi_field",
+								"type": "string",
+								"index": "not_analyzed",
 								"fields": {
-									"post_content": { "type": "string", "index": "not_analyzed" },
 									"analyzed": { "type": "string" }
 								}
 							},

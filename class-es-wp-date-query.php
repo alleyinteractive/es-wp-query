@@ -60,6 +60,9 @@ class ES_WP_Date_Query extends WP_Date_Query {
 		$field = ( ! empty( $query['column'] ) ) ? esc_sql( $query['column'] ) : $this->column;
 		$field = $this->validate_column( $field );
 
+		// We don't actually want the mysql column here, so we'll remove it
+		$field = preg_replace( '/^.*\./', '', $field );
+
 		$compare = $this->get_compare( $query );
 
 		// Range queries, we like range queries

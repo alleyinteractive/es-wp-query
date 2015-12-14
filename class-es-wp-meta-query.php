@@ -33,7 +33,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 			if ( 'relation' === $k ) {
 				continue;
 			}
-			
+
 			if ( isset( $q['compare'] ) && 'EXISTS' == strtoupper( substr( $q['compare'], -6 ) ) ) {
 				unset( $q['value'] );
 			}

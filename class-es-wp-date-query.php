@@ -317,4 +317,33 @@ class ES_WP_Date_Query extends WP_Date_Query {
 
 		return mktime( $hour, $minute, $second, 1, 1, 1970 );
 	}
+
+	/**
+	 * Validates a column name parameter.
+	 *
+	 * @since 3.7.0
+	 * @access public
+	 *
+	 * @param string $column The user-supplied column name.
+	 * @return string A validated column name value.
+	 */
+	public function validate_column( $column ) {
+       $valid_columns = array(
+           'post_date', 'post_date_gmt', 'post_modified',
+           'post_modified_gmt', 'comment_date', 'comment_date_gmt'
+       );
+       /**
+        * Filter the list of valid date query columns.
+        *
+        * @since 3.7.0
+        *
+        * @param array $valid_columns An array of valid date query columns. Defaults are 'post_date', 'post_date_gmt',
+        *                             'post_modified', 'post_modified_gmt', 'comment_date', 'comment_date_gmt'
+        */
+       if ( ! in_array( $column, apply_filters( 'date_query_valid_columns', $valid_columns ) ) )
+           $column = 'post_date';
+       
+       return $column;
+   }
+
 }

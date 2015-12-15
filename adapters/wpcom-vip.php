@@ -132,7 +132,7 @@ function vip_es_field_map( $es_map ) {
 		'post_meta.binary'              => 'meta.%s.boolean',
 		'term_id'                       => 'taxonomy.%s.term_id',
 		'term_slug'                     => 'taxonomy.%s.slug',
-		'term_name'                     => 'taxonomy.%s.name.raw',
+		'term_name'                     => 'taxonomy.%s.name.raw_lc',
 		'category_id'                   => 'category.term_id',
 		'category_slug'                 => 'category.slug',
 		'category_name'                 => 'category.name.raw',

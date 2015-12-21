@@ -52,13 +52,19 @@ class ES_WP_Date_Query extends WP_Date_Query {
 	 * @return array
 	 */
 	protected function get_es_subquery( $query, $es_query ) {
-		global $wpdb;
+		// Ensure $query is an array before proceeding
+		if ( ! is_array( $query ) ) {
+			return array();
+		}
 
 		// The sub-parts of a $where part
 		$filter_parts = array();
 
 		$field = ( ! empty( $query['column'] ) ) ? esc_sql( $query['column'] ) : $this->column;
 		$field = $this->validate_column( $field );
+
+		// We don't actually want the mysql column here, so we'll remove it
+		$field = preg_replace( '/^.*\./', '', $field );
 
 		$compare = $this->get_compare( $query );
 

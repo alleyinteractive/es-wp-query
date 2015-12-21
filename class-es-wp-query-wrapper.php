@@ -465,7 +465,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		}
 
 
-		if ( intval($q['comments_popup']) )
+		if ( isset( $q['comments_popup'] ) && intval( $q['comments_popup'] ) )
 			$q['p'] = absint($q['comments_popup']);
 
 		// If an attachment is requested by number, let it supersede any post number.

@@ -17,7 +17,7 @@ env:
 matrix:
     include:
         - php: 7.0
-          env: WP_VERSION=master
+          env: WP_VERSION=latest WP_MULTISITE=0
     allow_failures:
         - php: 7.0
     fast_finish: true

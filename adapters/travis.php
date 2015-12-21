@@ -85,7 +85,6 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 								"template_meta": {
 									"path_match": "post_meta.*",
 									"mapping": {
-										"path": "full",
 										"type": "object",
 										"properties": {
 											"value": {
@@ -125,7 +124,6 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 									"path_match": "terms.*",
 									"mapping": {
 										"type": "object",
-										"path": "full",
 										"properties": {
 											"name": { "type": "string", "index": "not_analyzed" },
 											"term_id": { "type": "long" },
@@ -139,7 +137,6 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 							"post_id": { "type": "long" },
 							"post_author": {
 								"type": "object",
-								"path": "full",
 								"properties": {
 									"user_id": { "type": "long" },
 									"user_nicename": { "type": "string", "index": "not_analyzed" }
@@ -168,7 +165,6 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 							"post_password": { "type": "string", "index": "not_analyzed" },
 							"post_date": {
 								"type": "object",
-								"path": "full",
 								"properties": {
 									"date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
 									"year": { "type": "short" },
@@ -186,7 +182,6 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 							},
 							"post_date_gmt": {
 								"type": "object",
-								"path": "full",
 								"properties": {
 									"date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
 									"year": { "type": "short" },
@@ -204,7 +199,6 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 							},
 							"post_modified": {
 								"type": "object",
-								"path": "full",
 								"properties": {
 									"date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
 									"year": { "type": "short" },
@@ -222,7 +216,6 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 							},
 							"post_modified_gmt": {
 								"type": "object",
-								"path": "full",
 								"properties": {
 									"date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
 									"year": { "type": "short" },

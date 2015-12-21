@@ -52,7 +52,10 @@ class ES_WP_Date_Query extends WP_Date_Query {
 	 * @return array
 	 */
 	protected function get_es_subquery( $query, $es_query ) {
-		global $wpdb;
+		// Ensure $query is an array before proceeding
+		if ( ! is_array( $query ) ) {
+			return array();
+		}
 
 		// The sub-parts of a $where part
 		$filter_parts = array();

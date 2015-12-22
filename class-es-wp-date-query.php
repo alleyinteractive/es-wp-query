@@ -323,5 +323,4 @@ class ES_WP_Date_Query extends WP_Date_Query {
 
 		return mktime( $hour, $minute, $second, 1, 1, 1970 );
 	}
-
 }

@@ -1040,7 +1040,6 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		}
 
 		if ( 'ids' == $q['fields'] || 'id=>parent' == $q['fields'] ) {
-			$this->es_args['disable_cache'] = true;
 			$this->es_response = $this->query_es( $this->es_args );
 			$this->set_posts( $q, $this->es_response );
 			$this->post_count = count( $this->posts );

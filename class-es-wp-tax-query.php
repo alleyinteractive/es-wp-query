@@ -64,8 +64,8 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 			switch ( $query['field'] ) {
 				case 'slug' :
 				case 'name' :
-					$terms = array_map( 'sanitize_title_for_query', $query['terms'] );
-					$current_filter = $es_query::dsl_terms( $es_query->tax_map( $query['taxonomy'], 'term_' . $query['field'] ), $query['terms'], $filter_options );
+					$terms = array_map( 'sanitize_title_for_query', array_values( $query['terms'] ) );
+					$current_filter = $es_query::dsl_terms( $es_query->tax_map( $query['taxonomy'], 'term_' . $query['field'] ), $terms, $filter_options );
 					break;
 
 				case 'term_taxonomy_id' :
@@ -75,8 +75,8 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 					break;
 
 				default :
-					$terms = array_map( 'absint', $query['terms'] );
-					$current_filter = $es_query::dsl_terms( $es_query->tax_map( $query['taxonomy'], 'term_id' ), $query['terms'], $filter_options );
+					$terms = array_map( 'absint', array_values( $query['terms'] ) );
+					$current_filter = $es_query::dsl_terms( $es_query->tax_map( $query['taxonomy'], 'term_id' ), $terms, $filter_options );
 					break;
 			}
 

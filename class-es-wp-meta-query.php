@@ -17,7 +17,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 	public function get_dsl( $es_query, $type ) {
 		global $wpdb;
 
-		if ( ! 'post' == $type ) {
+		if ( 'post' != $type ) {
 			return false;
 		}
 
@@ -33,7 +33,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 			if ( 'relation' === $k ) {
 				continue;
 			}
-			
+
 			if ( isset( $q['compare'] ) && 'EXISTS' == strtoupper( substr( $q['compare'], -6 ) ) ) {
 				unset( $q['value'] );
 			}
@@ -44,7 +44,6 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 				} else {
 					$filter[] = $es_query->dsl_exists( $es_query->meta_map( trim( $q['key'] ) ) );
 				}
-				unset( $this->queries[ $k ] );
 			} else {
 				$queries[ $k ] = $q;
 			}
@@ -161,7 +160,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 			$filter = reset( $filter );
 		}
 
-		return apply_filters_ref_array( 'get_meta_dsl', array( $filter, $this->queries, $type, $es_query ) );
+		return apply_filters_ref_array( 'get_meta_dsl', array( $filter, $queries, $type, $es_query ) );
 	}
 
 

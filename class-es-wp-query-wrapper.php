@@ -660,15 +660,23 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			}
 		}
 
-		// @todo: hmmmmmm
-		if ( empty( $q['order'] ) || ( ( strtolower( $q['order'] ) != 'asc' ) && ( strtolower( $q['order'] ) != 'desc' ) ) ) {
+		if ( ! isset( $q['order'] ) ) {
 			$q['order'] = 'desc';
+		} else {
+			$q['order'] = $this->parse_order( $q['order'] );
 		}
-		$q['order'] = strtolower( $q['order'] );
 
 		// Order by
 		if ( empty( $q['orderby'] ) ) {
-			$sort[] = array( $this->es_map( 'post_date' ) => $q['order'] );
+			/*
+			 * Boolean false or empty array blanks out ORDER BY,
+			 * while leaving the value unset or otherwise empty sets the default.
+			 */
+			if ( isset( $q['orderby'] ) && ( is_array( $q['orderby'] ) || false === $q['orderby'] ) ) {
+				$orderby = '';
+			} else {
+				$sort[] = array( $this->es_map( 'post_date' ) => $q['order'] );
+			}
 		} elseif ( 'none' == $q['orderby'] ) {
 			// nothing to see here
 		} elseif ( $q['orderby'] == 'post__in' && ! empty( $post__in ) ) {
@@ -678,51 +686,34 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			// (see above)
 			// $orderby = "FIELD( {$wpdb->posts}.post_parent, $post_parent__in )";
 		} else {
-			// Used to filter values
-			$allowed_keys = array( 'name', 'author', 'date', 'title', 'modified', 'menu_order', 'parent', 'ID', 'rand', 'comment_count' );
-			if ( !empty($q['meta_key']) ) {
-				$allowed_keys[] = $q['meta_key'];
-				$allowed_keys[] = 'meta_value';
-				$allowed_keys[] = 'meta_value_num';
-			}
-			$q['orderby'] = urldecode( $q['orderby'] );
-			$q['orderby'] = addslashes_gpc( $q['orderby'] );
+			if ( is_array( $q['orderby'] ) ) {
+				foreach ( $q['orderby'] as $_orderby => $order ) {
+					$orderby = addslashes_gpc( urldecode( $_orderby ) );
+					$parsed  = $this->parse_orderby( $orderby );
 
-			foreach ( explode( ' ', $q['orderby'] ) as $i => $orderby ) {
-				// Only allow certain values for safety
-				if ( ! in_array( $orderby, $allowed_keys ) )
-					continue;
+					if ( ! $parsed ) {
+						continue;
+					}
 
-				switch ( $orderby ) {
-					case 'menu_order':
-						$sort[] = array( $this->es_map( 'menu_order' ) => $q['order'] );
-						break;
-					case 'ID':
-						$sort[] = array( $this->es_map( 'post_id' ) => $q['order'] );
-						break;
-					case 'rand':
-						// @todo: There's no simple solution to this in ES
-						$orderby = 'RAND() ';
-						break;
-					case $q['meta_key']:
-					case 'meta_value':
-						$meta_type = ! empty( $q['meta_type'] ) ? $this->meta_query->get_cast_for_type( $q['meta_type'] ) : '';
-						$sort[] = array( $this->meta_map( $q['meta_key'], $meta_type ) => $q['order'] );
-						break;
-					case 'meta_value_num':
-						$sort[] = array( $this->meta_map( $q['meta_key'], 'double' ) => $q['order'] );
-						break;
-					case 'comment_count':
-						$sort[] = array( $this->es_map( 'comment_count' ) => $q['order'] );
-						break;
-					default:
-						$sort[] = array( $this->es_map( 'post_' . $orderby ) => $q['order'] );
+					$sort[] = array( $parsed => $this->parse_order( $order ) );
+				}
+			} else {
+				$q['orderby'] = urldecode( $q['orderby'] );
+				$q['orderby'] = addslashes_gpc( $q['orderby'] );
+
+				foreach ( explode( ' ', $q['orderby'] ) as $i => $orderby ) {
+					$parsed = $this->parse_orderby( $orderby );
+					// Only allow certain values for safety.
+					if ( ! $parsed ) {
+						continue;
+					}
+
+					$sort[] = array( $parsed => $q['order'] );
 				}
 
-			}
-
-			if ( empty( $sort ) ) {
-				$sort[] = array( $this->es_map( 'post_date' ) => $q['order'] );
+				if ( empty( $sort ) ) {
+					$sort[] = array( $this->es_map( 'post_date' ) => $q['order'] );
+				}
 			}
 		}
 
@@ -1210,6 +1201,92 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		return $search;
 	}
 
+	/**
+	 * If the passed orderby value is allowed, convert the alias to a
+	 * properly-prefixed orderby value.
+	 *
+	 * @access protected
+	 *
+	 * @param string $orderby Alias for the field to order by.
+	 * @return string|false Field to use in the sort clause. False otherwise.
+	 */
+	protected function parse_orderby( $orderby ) {
+		// Meta values get special treatment
+		$meta_keys = array();
+		$meta_clauses = $this->meta_query->queries;
+		if ( ! empty( $meta_clauses ) ) {
+			if ( 'meta_value' == $orderby ) {
+				return $this->parse_orderby_for_meta( reset( $meta_clauses ) );
+			} elseif ( 'meta_value_num' == $orderby ) {
+				return $this->parse_orderby_for_meta( reset( $meta_clauses ), 'double' );
+			} elseif ( array_key_exists( $orderby, $meta_clauses ) ) {
+				return $this->parse_orderby_for_meta( $meta_clauses[ $orderby ] );
+			}
+		}
+
+		if ( 'rand' == $orderby ) {
+			// @todo: implement `random_score`
+			return false;
+		}
+
+		$field = parent::parse_orderby( $orderby );
+
+		// We don't actually want the mysql column here, so we'll remove it
+		$field = preg_replace( '/^.*\./', '', $field );
+
+		if ( 'ID' == $field ) {
+			return $this->es_map( 'post_id' );
+		} elseif ( ! preg_match( '/[^a-z_]/i', $field ) ) {
+			// Return it if the field only contains letters and underscores
+			return $this->es_map( $field );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Determine the orderby field for a meta clause.
+	 *
+	 * @access protected
+	 *
+	 * @param array $clause A meta query clause.
+	 * @return string|false Field to use in the sort clause. False otherwise.
+	 */
+	protected function parse_orderby_for_meta( $clause, $cast = '' ) {
+		// Key is required for ordering
+		if ( empty( $clause['key'] ) ) {
+			return false;
+		}
+
+		if ( ! $cast ) {
+			if ( ! empty( $clause['type'] ) ) {
+				$cast = $clause['type'];
+			}
+			$cast = $this->meta_query->get_cast_for_type( $cast );
+		}
+
+		return $this->meta_map( $clause['key'], $cast );
+	}
+
+	/**
+	 * Parse an 'order' query variable and cast it to asc or desc as necessary.
+	 *
+	 * @access protected
+	 *
+	 * @param string $order The 'order' query variable.
+	 * @return string The sanitized 'order' query variable.
+	 */
+	protected function parse_order( $order ) {
+		if ( ! is_string( $order ) || empty( $order ) ) {
+			return 'desc';
+		}
+
+		if ( 'asc' === strtolower( $order ) ) {
+			return 'asc';
+		} else {
+			return 'desc';
+		}
+	}
 
 	/**
 	 * Convert MIME types into SQL.

@@ -685,14 +685,8 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				$allowed_keys[] = 'meta_value';
 				$allowed_keys[] = 'meta_value_num';
 			}
-			if ( is_array( $q['orderby'] ) ){
-				$q['orderby'] = array_map( 'urldecode', $q['orderby'] );
-				$q['orderby'] = array_map( 'addslashes_gpc', $q['orderby'] );
-				$q['orderby'] = implode( ' ', $q['orderby'] );
-			} else {
-				$q['orderby'] = urldecode( $q['orderby'] );
-				$q['orderby'] = addslashes_gpc( $q['orderby'] );
-			}
+			$q['orderby'] = urldecode( $q['orderby'] );
+			$q['orderby'] = addslashes_gpc( $q['orderby'] );
 
 			foreach ( explode( ' ', $q['orderby'] ) as $i => $orderby ) {
 				// Only allow certain values for safety

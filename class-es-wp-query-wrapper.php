@@ -762,7 +762,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			else
 				$filter[] = $this->dsl_terms( $this->es_map( 'post_type' ), array_values( $in_search_post_types ) );
 		} elseif ( ! empty( $post_type ) ) {
-			$filter[] = $this->dsl_terms( $this->es_map( 'post_type' ), $post_type );
+			$filter[] = $this->dsl_terms( $this->es_map( 'post_type' ), array_values( (array) $post_type ) );
 			if ( ! is_array( $post_type ) ) {
 				$post_type_object = get_post_type_object ( $post_type );
 			}

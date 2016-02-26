@@ -34,8 +34,12 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 				continue;
 			}
 
-			if ( isset( $q['compare'] ) && 'EXISTS' == strtoupper( substr( $q['compare'], -6 ) ) ) {
-				unset( $q['value'] );
+			if ( isset( $q['compare'] ) && ! empty( $q['value'] ) ) {
+				if ( 'EXISTS' == strtoupper( $q['compare'] ) ) {
+					$q['compare'] = is_array( $q['value'] ) ? 'IN' : '=';
+				} elseif ( 'NOT EXISTS' == strtoupper( $q['compare'] ) ) {
+					unset( $q['value'] );
+				}
 			}
 
 			if ( ( isset( $q['value'] ) && is_array( $q['value'] ) && empty( $q['value'] ) ) || ( ! array_key_exists( 'value', $q ) && ! empty( $q['key'] ) ) ) {

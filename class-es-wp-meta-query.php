@@ -129,6 +129,12 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 					}
 					break;
 
+				case 'REGEXP' :
+				case 'NOT REGEXP' :
+				case 'RLIKE' :
+					_doing_it_wrong( 'ES_WP_Query', __( 'ES_WP_Query does not support regular expression meta queries.', 'es-wp-query' ), '0.1' );
+					break;
+
 				default :
 					if ( '*' == $meta_key ) {
 						$this_filter = array( 'query' => $es_query->dsl_multi_match( $es_query->meta_map( $meta_key, $meta_type ), $meta_value ) );

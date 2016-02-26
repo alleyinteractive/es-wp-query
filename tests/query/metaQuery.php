@@ -302,7 +302,10 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 		$this->assertEqualSets( $expected, $query->posts );
 	}
 
-	public function test_meta_query_single_query_compare_regexp_rlike() {
+	/**
+	 * @expectedIncorrectUsage ES_WP_Query
+	 */
+	public function test_meta_query_single_query_compare_regexp() {
 		$p1 = self::factory()->post->create();
 		$p2 = self::factory()->post->create();
 
@@ -322,9 +325,18 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 				),
 			),
 		) );
+	}
 
-		$expected = array( $p2 );
-		$this->assertEqualSets( $expected, $query->posts );
+	/**
+	 * @expectedIncorrectUsage ES_WP_Query
+	 */
+	public function test_meta_query_single_query_compare_rlike() {
+		$p1 = self::factory()->post->create();
+		$p2 = self::factory()->post->create();
+
+		add_post_meta( $p1, 'foo', 'bar' );
+		add_post_meta( $p2, 'foo', 'baz' );
+		es_wp_query_index_test_data();
 
 		// RLIKE is a synonym for REGEXP.
 		$query = new ES_WP_Query( array(
@@ -339,11 +351,11 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 				),
 			),
 		) );
-
-		$expected = array( $p2 );
-		$this->assertEqualSets( $expected, $query->posts );
 	}
 
+	/**
+	 * @expectedIncorrectUsage ES_WP_Query
+	 */
 	public function test_meta_query_single_query_compare_not_regexp() {
 		$p1 = self::factory()->post->create();
 		$p2 = self::factory()->post->create();
@@ -364,9 +376,6 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 				),
 			),
 		) );
-
-		$expected = array( $p1 );
-		$this->assertEqualSets( $expected, $query->posts );
 	}
 
 	public function test_meta_query_relation_default() {

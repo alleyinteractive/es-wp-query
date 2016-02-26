@@ -144,7 +144,12 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 
 			if ( ! empty( $this_filter ) ) {
 				if ( in_array( $meta_compare, array( 'NOT IN', '!=', 'NOT BETWEEN', 'NOT LIKE' ) ) ) {
-					$filter[] = array( 'not' => $this_filter );
+					$filter[] = array(
+						'and' => array(
+							$es_query->dsl_exists( $es_query->meta_map( trim( $q['key'] ) ) ),
+							array( 'not' => $this_filter ),
+						),
+					);
 				} else {
 					$filter[] = $this_filter;
 				}

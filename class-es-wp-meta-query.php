@@ -105,11 +105,8 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 
 				case 'LIKE' :
 				case 'NOT LIKE' :
-					if ( '*' == $meta_key ) {
-						$this_filter = array( 'query' => $es_query->dsl_multi_match( $es_query->meta_map( $meta_key, 'analyzed' ), $meta_value ) );
-					} else {
-						$this_filter = array( 'query' => $es_query->dsl_match( $es_query->meta_map( $meta_key, 'analyzed' ), $meta_value ) );
-					}
+					// The only problem here is that this is a case-sensitive search
+					$this_filter = array( 'query' => array( 'wildcard' => array( $es_query->meta_map( $meta_key ) => '*' . $meta_value . '*' ) ) );
 					break;
 
 				case 'BETWEEN' :

@@ -207,11 +207,16 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 		$this->assertEqualSets( $expected, $query->posts );
 	}
 
+	/**
+	 * This has been altered from the core unit test. We're upcasing the meta
+	 * value "BAR" and instead of searching LIKE "ba", we're searching LIKE
+	 * "bar". See the README for more information about LIKE queries.
+	 */
 	public function test_meta_query_single_query_compare_like() {
 		$p1 = self::factory()->post->create();
 		$p2 = self::factory()->post->create();
 
-		add_post_meta( $p1, 'foo', 'bar' );
+		add_post_meta( $p1, 'foo', 'BAR' );
 		es_wp_query_index_test_data();
 
 		$query = new ES_WP_Query( array(
@@ -221,7 +226,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 			'meta_query' => array(
 				array(
 					'key' => 'foo',
-					'value' => 'ba',
+					'value' => 'bar',
 					'compare' => 'LIKE',
 				),
 			),
@@ -231,13 +236,19 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 		$this->assertEqualSets( $expected, $query->posts );
 	}
 
+	/**
+	 * This has been altered from the core unit test. We're upcasing the meta
+	 * values "BAR" and "RAB" and instead of searching NOT LIKE "ba", we're
+	 * searching NOT LIKE "bar". See the README for more information about LIKE
+	 * queries.
+	 */
 	public function test_meta_query_single_query_compare_not_like() {
 		$p1 = self::factory()->post->create();
 		$p2 = self::factory()->post->create();
 		$p3 = self::factory()->post->create();
 
-		add_post_meta( $p1, 'foo', 'bar' );
-		add_post_meta( $p2, 'foo', 'rab' );
+		add_post_meta( $p1, 'foo', 'BAR' );
+		add_post_meta( $p2, 'foo', 'RAB' );
 		es_wp_query_index_test_data();
 
 		$query = new ES_WP_Query( array(
@@ -247,7 +258,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 			'meta_query' => array(
 				array(
 					'key' => 'foo',
-					'value' => 'ba',
+					'value' => 'bar',
 					'compare' => 'NOT LIKE',
 				),
 			),
@@ -799,6 +810,10 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	}
 
 	/**
+	 * This has been altered from the core unit test. We're pluralizing the meta
+	 * value "shallots" and instead of searching LIKE "hall", we're searching
+	 * LIKE shallot. See the README for more information about LIKE queries.
+	 *
 	 * @ticket 24093
 	 */
 	public function test_meta_query_relation_or_compare_equals_and_like() {
@@ -806,7 +821,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 		add_post_meta( $posts[0], 'color', 'orange' );
 		add_post_meta( $posts[1], 'color', 'blue' );
 		add_post_meta( $posts[1], 'vegetable', 'onion' );
-		add_post_meta( $posts[2], 'vegetable', 'shallot' );
+		add_post_meta( $posts[2], 'vegetable', 'shallots' );
 		es_wp_query_index_test_data();
 
 		$query = new ES_WP_Query( array(
@@ -819,7 +834,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 				),
 				array(
 					'key' => 'vegetable',
-					'value' => 'hall',
+					'value' => 'shallot',
 					'compare' => 'LIKE',
 				),
 			),
@@ -1053,6 +1068,11 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	}
 
 	/**
+	 * This has been altered from the core unit test. We're pluralizing the meta
+	 * value "shallots" and instead of searching NOT LIKE "hall", we're
+	 * searching NOT LIKE shallot. See the README for more information about
+	 * LIKE queries.
+	 *
 	 * @ticket 24093
 	 */
 	public function test_meta_query_relation_and_compare_not_equals_and_not_like() {
@@ -1060,7 +1080,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 		add_post_meta( $posts[0], 'color', 'orange' );
 		add_post_meta( $posts[1], 'color', 'blue' );
 		add_post_meta( $posts[1], 'vegetable', 'onion' );
-		add_post_meta( $posts[2], 'vegetable', 'shallot' );
+		add_post_meta( $posts[2], 'vegetable', 'shallots' );
 		add_post_meta( $posts[3], 'vegetable', 'banana' );
 		es_wp_query_index_test_data();
 
@@ -1074,7 +1094,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 				),
 				array(
 					'key' => 'vegetable',
-					'value' => 'hall',
+					'value' => 'shallot',
 					'compare' => 'NOT LIKE',
 				),
 			),

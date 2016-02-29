@@ -131,8 +131,15 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 		switch ( $clause['field'] ) {
 			case 'slug' :
 			case 'name' :
-				$terms = array_map( 'sanitize_title_for_query', array_values( $clause['terms'] ) );
-				$current_filter = $this->es_query->dsl_terms( $this->es_query->tax_map( $clause['taxonomy'], 'term_' . $clause['field'] ), $terms, $filter_options );
+				foreach ( $clause['terms'] as &$term ) {
+					/*
+					 * 0 is the $term_id parameter. We don't have a term ID yet, but it doesn't
+					 * matter because `sanitize_term_field()` ignores the $term_id param when the
+					 * context is 'db'.
+					 */
+					$term = sanitize_term_field( $clause['field'], $term, 0, $clause['taxonomy'], 'db' );
+				}
+				$current_filter = $this->es_query->dsl_terms( $this->es_query->tax_map( $clause['taxonomy'], 'term_' . $clause['field'] ), $clause['terms'], $filter_options );
 				break;
 
 			case 'term_taxonomy_id' :

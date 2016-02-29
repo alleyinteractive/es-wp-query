@@ -6,9 +6,9 @@
  */
 class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	public function test_meta_query_no_key() {
-		$p1 = self::factory()->post->create();
-		$p2 = self::factory()->post->create();
-		$p3 = self::factory()->post->create();
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
 
 		add_post_meta( $p1, 'foo', 'bar' );
 		add_post_meta( $p2, 'oof', 'bar' );
@@ -31,9 +31,9 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	}
 
 	public function test_meta_query_no_value() {
-		$p1 = self::factory()->post->create();
-		$p2 = self::factory()->post->create();
-		$p3 = self::factory()->post->create();
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
 
 		add_post_meta( $p1, 'foo', 'bar' );
 		add_post_meta( $p2, 'oof', 'bar' );
@@ -56,8 +56,8 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	}
 
 	public function test_meta_query_single_query_compare_default() {
-		$p1 = self::factory()->post->create();
-		$p2 = self::factory()->post->create();
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
 
 		add_post_meta( $p1, 'foo', 'bar' );
 		es_wp_query_index_test_data();
@@ -79,8 +79,8 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	}
 
 	public function test_meta_query_single_query_compare_equals() {
-		$p1 = self::factory()->post->create();
-		$p2 = self::factory()->post->create();
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
 
 		add_post_meta( $p1, 'foo', 'bar' );
 		es_wp_query_index_test_data();
@@ -103,9 +103,9 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	}
 
 	public function test_meta_query_single_query_compare_not_equals() {
-		$p1 = self::factory()->post->create();
-		$p2 = self::factory()->post->create();
-		$p3 = self::factory()->post->create();
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
 
 		add_post_meta( $p1, 'foo', 'bar' );
 		add_post_meta( $p2, 'foo', 'baz' );
@@ -129,9 +129,9 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	}
 
 	public function test_meta_query_single_query_compare_arithmetic_comparisons() {
-		$p1 = self::factory()->post->create();
-		$p2 = self::factory()->post->create();
-		$p3 = self::factory()->post->create();
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
 
 		add_post_meta( $p1, 'foo', '1' );
 		add_post_meta( $p2, 'foo', '2' );
@@ -213,8 +213,8 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * "bar". See the README for more information about LIKE queries.
 	 */
 	public function test_meta_query_single_query_compare_like() {
-		$p1 = self::factory()->post->create();
-		$p2 = self::factory()->post->create();
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
 
 		add_post_meta( $p1, 'foo', 'BAR' );
 		es_wp_query_index_test_data();
@@ -243,9 +243,9 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * queries.
 	 */
 	public function test_meta_query_single_query_compare_not_like() {
-		$p1 = self::factory()->post->create();
-		$p2 = self::factory()->post->create();
-		$p3 = self::factory()->post->create();
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
 
 		add_post_meta( $p1, 'foo', 'BAR' );
 		add_post_meta( $p2, 'foo', 'RAB' );
@@ -269,9 +269,9 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	}
 
 	public function test_meta_query_single_query_compare_between_not_between() {
-		$p1 = self::factory()->post->create();
-		$p2 = self::factory()->post->create();
-		$p3 = self::factory()->post->create();
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
 
 		add_post_meta( $p1, 'foo', '1' );
 		add_post_meta( $p2, 'foo', '10' );
@@ -317,8 +317,8 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @expectedIncorrectUsage ES_WP_Query
 	 */
 	public function test_meta_query_single_query_compare_regexp() {
-		$p1 = self::factory()->post->create();
-		$p2 = self::factory()->post->create();
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
 
 		add_post_meta( $p1, 'foo', 'bar' );
 		add_post_meta( $p2, 'foo', 'baz' );
@@ -342,8 +342,8 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @expectedIncorrectUsage ES_WP_Query
 	 */
 	public function test_meta_query_single_query_compare_rlike() {
-		$p1 = self::factory()->post->create();
-		$p2 = self::factory()->post->create();
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
 
 		add_post_meta( $p1, 'foo', 'bar' );
 		add_post_meta( $p2, 'foo', 'baz' );
@@ -368,8 +368,8 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @expectedIncorrectUsage ES_WP_Query
 	 */
 	public function test_meta_query_single_query_compare_not_regexp() {
-		$p1 = self::factory()->post->create();
-		$p2 = self::factory()->post->create();
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
 
 		add_post_meta( $p1, 'foo', 'bar' );
 		add_post_meta( $p2, 'foo', 'baz' );
@@ -390,9 +390,9 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	}
 
 	public function test_meta_query_relation_default() {
-		$p1 = self::factory()->post->create();
-		$p2 = self::factory()->post->create();
-		$p3 = self::factory()->post->create();
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
 
 		add_post_meta( $p1, 'foo', 'foo value 1' );
 		add_post_meta( $p1, 'bar', 'bar value 1' );
@@ -421,18 +421,18 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	}
 
 	public function test_meta_query_relation_or() {
-		$post_id = self::factory()->post->create();
+		$post_id = $this->factory->post->create();
 		add_post_meta( $post_id, 'foo', rand_str() );
 		add_post_meta( $post_id, 'foo', rand_str() );
-		$post_id2 = self::factory()->post->create();
+		$post_id2 = $this->factory->post->create();
 		add_post_meta( $post_id2, 'bar', 'val2' );
-		$post_id3 = self::factory()->post->create();
+		$post_id3 = $this->factory->post->create();
 		add_post_meta( $post_id3, 'baz', rand_str() );
-		$post_id4 = self::factory()->post->create();
+		$post_id4 = $this->factory->post->create();
 		add_post_meta( $post_id4, 'froo', rand_str() );
-		$post_id5 = self::factory()->post->create();
+		$post_id5 = $this->factory->post->create();
 		add_post_meta( $post_id5, 'tango', 'val2' );
-		$post_id6 = self::factory()->post->create();
+		$post_id6 = $this->factory->post->create();
 		add_post_meta( $post_id6, 'bar', 'val1' );
 		es_wp_query_index_test_data();
 
@@ -463,22 +463,22 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	}
 
 	public function test_meta_query_relation_and() {
-		$post_id = self::factory()->post->create();
+		$post_id = $this->factory->post->create();
 		add_post_meta( $post_id, 'foo', rand_str() );
 		add_post_meta( $post_id, 'foo', rand_str() );
-		$post_id2 = self::factory()->post->create();
+		$post_id2 = $this->factory->post->create();
 		add_post_meta( $post_id2, 'bar', 'val2' );
 		add_post_meta( $post_id2, 'foo', rand_str() );
-		$post_id3 = self::factory()->post->create();
+		$post_id3 = $this->factory->post->create();
 		add_post_meta( $post_id3, 'baz', rand_str() );
-		$post_id4 = self::factory()->post->create();
+		$post_id4 = $this->factory->post->create();
 		add_post_meta( $post_id4, 'froo', rand_str() );
-		$post_id5 = self::factory()->post->create();
+		$post_id5 = $this->factory->post->create();
 		add_post_meta( $post_id5, 'tango', 'val2' );
-		$post_id6 = self::factory()->post->create();
+		$post_id6 = $this->factory->post->create();
 		add_post_meta( $post_id6, 'bar', 'val1' );
 		add_post_meta( $post_id6, 'foo', rand_str() );
-		$post_id7 = self::factory()->post->create();
+		$post_id7 = $this->factory->post->create();
 		add_post_meta( $post_id7, 'foo', rand_str() );
 		add_post_meta( $post_id7, 'froo', rand_str() );
 		add_post_meta( $post_id7, 'baz', rand_str() );
@@ -533,7 +533,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 30681
 	 */
 	public function test_meta_query_compare_exists() {
-		$posts = self::factory()->post->create_many( 3 );
+		$posts = $this->factory->post->create_many( 3 );
 		add_post_meta( $posts[0], 'foo', 'bar' );
 		add_post_meta( $posts[2], 'foo', 'baz' );
 		es_wp_query_index_test_data();
@@ -555,7 +555,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 30681
 	 */
 	public function test_meta_query_compare_exists_with_value_should_convert_to_equals() {
-		$posts = self::factory()->post->create_many( 3 );
+		$posts = $this->factory->post->create_many( 3 );
 		add_post_meta( $posts[0], 'foo', 'bar' );
 		add_post_meta( $posts[2], 'foo', 'baz' );
 		es_wp_query_index_test_data();
@@ -578,7 +578,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 30681
 	 */
 	public function test_meta_query_compare_not_exists_should_ignore_value() {
-		$posts = self::factory()->post->create_many( 3 );
+		$posts = $this->factory->post->create_many( 3 );
 		add_post_meta( $posts[0], 'foo', 'bar' );
 		add_post_meta( $posts[2], 'foo', 'baz' );
 		es_wp_query_index_test_data();
@@ -601,15 +601,15 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 18158
 	 */
 	public function test_meta_query_compare_not_exists() {
-		$post_id = self::factory()->post->create();
+		$post_id = $this->factory->post->create();
 		add_post_meta( $post_id, 'foo', rand_str() );
-		$post_id2 = self::factory()->post->create();
+		$post_id2 = $this->factory->post->create();
 		add_post_meta( $post_id2, 'bar', rand_str() );
-		$post_id3 = self::factory()->post->create();
+		$post_id3 = $this->factory->post->create();
 		add_post_meta( $post_id3, 'bar', rand_str() );
-		$post_id4 = self::factory()->post->create();
+		$post_id4 = $this->factory->post->create();
 		add_post_meta( $post_id4, 'baz', rand_str() );
-		$post_id5 = self::factory()->post->create();
+		$post_id5 = $this->factory->post->create();
 		add_post_meta( $post_id5, 'foo', rand_str() );
 		es_wp_query_index_test_data();
 
@@ -674,7 +674,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 29062
 	 */
 	public function test_meta_query_compare_not_exists_with_another_condition_relation_or() {
-		$posts = self::factory()->post->create_many( 4 );
+		$posts = $this->factory->post->create_many( 4 );
 		update_post_meta( $posts[0], 'color', 'orange' );
 		update_post_meta( $posts[1], 'color', 'blue' );
 		update_post_meta( $posts[1], 'vegetable', 'onion' );
@@ -711,7 +711,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 24093
 	 */
 	public function test_meta_query_relation_or_compare_equals() {
-		$posts = self::factory()->post->create_many( 4 );
+		$posts = $this->factory->post->create_many( 4 );
 		add_post_meta( $posts[0], 'color', 'orange' );
 		add_post_meta( $posts[1], 'color', 'blue' );
 		add_post_meta( $posts[1], 'vegetable', 'onion' );
@@ -745,7 +745,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 24093
 	 */
 	public function test_meta_query_relation_or_compare_equals_different_keys() {
-		$posts = self::factory()->post->create_many( 4 );
+		$posts = $this->factory->post->create_many( 4 );
 		add_post_meta( $posts[0], 'color', 'orange' );
 		add_post_meta( $posts[1], 'color', 'blue' );
 		add_post_meta( $posts[1], 'vegetable', 'onion' );
@@ -779,7 +779,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 24093
 	 */
 	public function test_meta_query_relation_or_compare_equals_and_in() {
-		$posts = self::factory()->post->create_many( 4 );
+		$posts = $this->factory->post->create_many( 4 );
 		add_post_meta( $posts[0], 'color', 'orange' );
 		add_post_meta( $posts[1], 'color', 'blue' );
 		add_post_meta( $posts[1], 'vegetable', 'onion' );
@@ -817,7 +817,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 24093
 	 */
 	public function test_meta_query_relation_or_compare_equals_and_like() {
-		$posts = self::factory()->post->create_many( 4 );
+		$posts = $this->factory->post->create_many( 4 );
 		add_post_meta( $posts[0], 'color', 'orange' );
 		add_post_meta( $posts[1], 'color', 'blue' );
 		add_post_meta( $posts[1], 'vegetable', 'onion' );
@@ -851,7 +851,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 24093
 	 */
 	public function test_meta_query_relation_or_compare_equals_and_between() {
-		$posts = self::factory()->post->create_many( 4 );
+		$posts = $this->factory->post->create_many( 4 );
 		add_post_meta( $posts[0], 'number_of_colors', '2' );
 		add_post_meta( $posts[1], 'number_of_colors', '5' );
 		add_post_meta( $posts[1], 'vegetable', 'onion' );
@@ -886,7 +886,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 24093
 	 */
 	public function test_meta_query_relation_and_compare_in_same_keys() {
-		$posts = self::factory()->post->create_many( 4 );
+		$posts = $this->factory->post->create_many( 4 );
 		add_post_meta( $posts[0], 'color', 'orange' );
 		add_post_meta( $posts[1], 'color', 'blue' );
 		add_post_meta( $posts[1], 'vegetable', 'onion' );
@@ -922,7 +922,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 24093
 	 */
 	public function test_meta_query_relation_and_compare_in_different_keys() {
-		$posts = self::factory()->post->create_many( 4 );
+		$posts = $this->factory->post->create_many( 4 );
 		add_post_meta( $posts[0], 'color', 'orange' );
 		add_post_meta( $posts[1], 'color', 'blue' );
 		add_post_meta( $posts[1], 'vegetable', 'onion' );
@@ -958,7 +958,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 24093
 	 */
 	public function test_meta_query_relation_and_compare_not_equals() {
-		$posts = self::factory()->post->create_many( 4 );
+		$posts = $this->factory->post->create_many( 4 );
 		add_post_meta( $posts[0], 'color', 'orange' );
 		add_post_meta( $posts[1], 'color', 'blue' );
 		add_post_meta( $posts[1], 'vegetable', 'onion' );
@@ -993,7 +993,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 24093
 	 */
 	public function test_meta_query_relation_and_compare_not_equals_different_keys() {
-		$posts = self::factory()->post->create_many( 4 );
+		$posts = $this->factory->post->create_many( 4 );
 
 		// !shallot, but orange.
 		add_post_meta( $posts[0], 'color', 'orange' );
@@ -1036,7 +1036,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 24093
 	 */
 	public function test_meta_query_relation_and_compare_not_equals_not_in() {
-		$posts = self::factory()->post->create_many( 4 );
+		$posts = $this->factory->post->create_many( 4 );
 		add_post_meta( $posts[0], 'color', 'orange' );
 		add_post_meta( $posts[1], 'color', 'blue' );
 		add_post_meta( $posts[1], 'vegetable', 'onion' );
@@ -1076,7 +1076,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 24093
 	 */
 	public function test_meta_query_relation_and_compare_not_equals_and_not_like() {
-		$posts = self::factory()->post->create_many( 4 );
+		$posts = $this->factory->post->create_many( 4 );
 		add_post_meta( $posts[0], 'color', 'orange' );
 		add_post_meta( $posts[1], 'color', 'blue' );
 		add_post_meta( $posts[1], 'vegetable', 'onion' );
@@ -1111,10 +1111,10 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 23033
 	 */
 	public function test_meta_query_decimal_results() {
-		$post_1 = self::factory()->post->create();
-		$post_2 = self::factory()->post->create();
-		$post_3 = self::factory()->post->create();
-		$post_4 = self::factory()->post->create();
+		$post_1 = $this->factory->post->create();
+		$post_2 = $this->factory->post->create();
+		$post_3 = $this->factory->post->create();
+		$post_4 = $this->factory->post->create();
 
 		update_post_meta( $post_1, 'decimal_value', '-0.3' );
 		update_post_meta( $post_2, 'decimal_value', '0.23409844' );
@@ -1287,7 +1287,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 29604
 	 */
 	public function test_meta_query_with_orderby_meta_value_relation_or() {
-		$posts = self::factory()->post->create_many( 4 );
+		$posts = $this->factory->post->create_many( 4 );
 		update_post_meta( $posts[0], 'foo', 5 );
 		update_post_meta( $posts[1], 'foo', 6 );
 		update_post_meta( $posts[2], 'foo', 4 );
@@ -1327,7 +1327,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 29604
 	 */
 	public function test_meta_query_with_orderby_meta_value_relation_and() {
-		$posts = self::factory()->post->create_many( 4 );
+		$posts = $this->factory->post->create_many( 4 );
 		update_post_meta( $posts[0], 'foo', 5 );
 		update_post_meta( $posts[1], 'foo', 6 );
 		update_post_meta( $posts[2], 'foo', 4 );
@@ -1371,9 +1371,9 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 29642
 	 */
 	public function test_meta_query_nested() {
-		$p1 = self::factory()->post->create();
-		$p2 = self::factory()->post->create();
-		$p3 = self::factory()->post->create();
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
 
 		add_post_meta( $p1, 'foo', 'bar' );
 		add_post_meta( $p2, 'foo2', 'bar' );
@@ -1413,9 +1413,9 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 29642
 	 */
 	public function test_meta_query_nested_two_levels_deep() {
-		$p1 = self::factory()->post->create();
-		$p2 = self::factory()->post->create();
-		$p3 = self::factory()->post->create();
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
 
 		add_post_meta( $p1, 'foo', 'bar' );
 		add_post_meta( $p3, 'foo2', 'bar' );
@@ -1459,15 +1459,15 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	}
 
 	public function test_meta_between_not_between() {
-		$post_id = self::factory()->post->create();
+		$post_id = $this->factory->post->create();
 		add_post_meta( $post_id, 'time', 500 );
-		$post_id2 = self::factory()->post->create();
+		$post_id2 = $this->factory->post->create();
 		add_post_meta( $post_id2, 'time', 1001 );
-		$post_id3 = self::factory()->post->create();
+		$post_id3 = $this->factory->post->create();
 		add_post_meta( $post_id3, 'time', 0 );
-		$post_id4 = self::factory()->post->create();
+		$post_id4 = $this->factory->post->create();
 		add_post_meta( $post_id4, 'time', 1 );
-		$post_id5 = self::factory()->post->create();
+		$post_id5 = $this->factory->post->create();
 		add_post_meta( $post_id5, 'time', 1000 );
 		es_wp_query_index_test_data();
 
@@ -1509,15 +1509,15 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 */
 	public function test_meta_default_compare() {
 		// compare should default to IN when meta_value is an array
-		$post_id = self::factory()->post->create();
+		$post_id = $this->factory->post->create();
 		add_post_meta( $post_id, 'foo', 'bar' );
-		$post_id2 = self::factory()->post->create();
+		$post_id2 = $this->factory->post->create();
 		add_post_meta( $post_id2, 'bar', 'baz' );
-		$post_id3 = self::factory()->post->create();
+		$post_id3 = $this->factory->post->create();
 		add_post_meta( $post_id3, 'foo', 'baz' );
-		$post_id4 = self::factory()->post->create();
+		$post_id4 = $this->factory->post->create();
 		add_post_meta( $post_id4, 'baz', 'bar' );
-		$post_id5 = self::factory()->post->create();
+		$post_id5 = $this->factory->post->create();
 		add_post_meta( $post_id5, 'foo', rand_str() );
 		es_wp_query_index_test_data();
 
@@ -1549,12 +1549,12 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 17264
 	 */
 	public function test_duplicate_posts_when_no_key() {
-		$post_id = self::factory()->post->create();
+		$post_id = $this->factory->post->create();
 		add_post_meta( $post_id, 'city', 'Lorem' );
 		add_post_meta( $post_id, 'address', '123 Lorem St.' );
-		$post_id2 = self::factory()->post->create();
+		$post_id2 = $this->factory->post->create();
 		add_post_meta( $post_id2, 'city', 'Lorem' );
-		$post_id3 = self::factory()->post->create();
+		$post_id3 = $this->factory->post->create();
 		add_post_meta( $post_id3, 'city', 'Loren' );
 		es_wp_query_index_test_data();
 
@@ -1581,19 +1581,19 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 15292
 	 */
 	public function test_empty_meta_value() {
-		$post_id = self::factory()->post->create();
+		$post_id = $this->factory->post->create();
 		add_post_meta( $post_id, 'foo', '0' );
 		add_post_meta( $post_id, 'bar', 0 );
-		$post_id2 = self::factory()->post->create();
+		$post_id2 = $this->factory->post->create();
 		add_post_meta( $post_id2, 'foo', 1 );
-		$post_id3 = self::factory()->post->create();
+		$post_id3 = $this->factory->post->create();
 		add_post_meta( $post_id3, 'baz', 0 );
-		$post_id4 = self::factory()->post->create();
+		$post_id4 = $this->factory->post->create();
 		add_post_meta( $post_id4, 'baz', 0 );
-		$post_id5 = self::factory()->post->create();
+		$post_id5 = $this->factory->post->create();
 		add_post_meta( $post_id5, 'baz', 0 );
 		add_post_meta( $post_id5, 'bar', '0' );
-		$post_id6 = self::factory()->post->create();
+		$post_id6 = $this->factory->post->create();
 		add_post_meta( $post_id6, 'baz', 0 );
 		es_wp_query_index_test_data();
 
@@ -1646,7 +1646,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 31045
 	 */
 	public function test_orderby_clause_key() {
-		$posts = self::factory()->post->create_many( 3 );
+		$posts = $this->factory->post->create_many( 3 );
 		add_post_meta( $posts[0], 'foo', 'aaa' );
 		add_post_meta( $posts[1], 'foo', 'zzz' );
 		add_post_meta( $posts[2], 'foo', 'jjj' );
@@ -1671,13 +1671,13 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 31045
 	 */
 	public function test_orderby_clause_key_as_secondary_sort() {
-		$p1 = self::factory()->post->create( array(
+		$p1 = $this->factory->post->create( array(
 			'post_date' => '2015-01-28 03:00:00',
 		) );
-		$p2 = self::factory()->post->create( array(
+		$p2 = $this->factory->post->create( array(
 			'post_date' => '2015-01-28 05:00:00',
 		) );
-		$p3 = self::factory()->post->create( array(
+		$p3 = $this->factory->post->create( array(
 			'post_date' => '2015-01-28 03:00:00',
 		) );
 
@@ -1707,7 +1707,7 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	 * @ticket 31045
 	 */
 	public function test_orderby_more_than_one_clause_key() {
-		$posts = self::factory()->post->create_many( 3 );
+		$posts = $this->factory->post->create_many( 3 );
 
 		add_post_meta( $posts[0], 'foo', 'jjj' );
 		add_post_meta( $posts[1], 'foo', 'zzz' );

@@ -111,7 +111,6 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	 * @return array ES filter clause component.
 	 */
 	public function get_dsl_for_clause( &$clause, $query ) {
-		$filter_options = array();
 		$current_filter = null;
 
 		$this->clean_query( $clause );
@@ -121,7 +120,9 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 		}
 
 		if ( 'AND' == $clause['operator'] ) {
-			$filter_options = array( 'execution' => 'and' );
+			$terms_method = array( $this->es_query, 'dsl_all_terms' );
+		} else {
+			$terms_method = array( $this->es_query, 'dsl_terms' );
 		}
 
 		if ( empty( $clause['terms'] ) && in_array( $clause['operator'], array( 'IN', 'NOT IN', 'AND' ) ) ) {
@@ -139,18 +140,18 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 					 */
 					$term = sanitize_term_field( $clause['field'], $term, 0, $clause['taxonomy'], 'db' );
 				}
-				$current_filter = $this->es_query->dsl_terms( $this->es_query->tax_map( $clause['taxonomy'], 'term_' . $clause['field'] ), $clause['terms'], $filter_options );
+				$current_filter = call_user_func( $terms_method, $this->es_query->tax_map( $clause['taxonomy'], 'term_' . $clause['field'] ), $clause['terms'] );
 				break;
 
 			case 'term_taxonomy_id' :
 				// This will likely not be hit, as these were probably turned into term_ids. However, by
 				// returning false to the 'es_use_mysql_for_term_taxonomy_id' filter, you disable that.
-				$current_filter = $this->es_query->dsl_terms( $this->es_query->tax_map( $clause['taxonomy'], 'term_tt_id' ), $clause['terms'], $filter_options );
+				$current_filter = call_user_func( $terms_method, $this->es_query->tax_map( $clause['taxonomy'], 'term_tt_id' ), $clause['terms'] );
 				break;
 
 			default :
 				$terms = array_map( 'absint', array_values( $clause['terms'] ) );
-				$current_filter = $this->es_query->dsl_terms( $this->es_query->tax_map( $clause['taxonomy'], 'term_id' ), $terms, $filter_options );
+				$current_filter = call_user_func( $terms_method, $this->es_query->tax_map( $clause['taxonomy'], 'term_id' ), $terms );
 				break;
 		}
 

@@ -5,94 +5,152 @@
  */
 class ES_WP_Tax_Query extends WP_Tax_Query {
 
-	public function __construct( $tax_query ) {
-		$this->relation = $tax_query->relation;
-		$this->queries = $tax_query->queries;
+	public static function get_from_tax_query( $tax_query ) {
+		$q = new ES_WP_Tax_Query( $tax_query->queries );
+		$q->relation = $tax_query->relation;
+		return $q;
 	}
+
+	/**
+	 * Some object which extends ES_WP_Query_Wrapper.
+	 *
+	 * @var ES_WP_Query_Wrapper
+	 */
+	protected $es_query;
 
 	/**
 	 * Turns an array of tax query parameters into ES Query DSL
 	 *
 	 * @access public
 	 *
-	 * @return array
+	 * @param object $es_query Any object which extends ES_WP_Query_Wrapper.
+	 * @param string $type Type of meta. Currently, only 'post' is supported.
+	 * @return array ES filters
 	 */
 	public function get_dsl( $es_query ) {
-		global $wpdb;
+		$this->es_query = $es_query;
 
-		$join = '';
-		$filter = array();
-		$count = count( $this->queries );
+		$filters = $this->get_dsl_clauses();
 
-		foreach ( $this->queries as $index => $query ) {
-			$filter_options = array();
-			$current_filter = null;
+		return apply_filters_ref_array( 'es_wp_tax_query_dsl', array( $filters, $this->queries, $this->es_query ) );
+	}
 
-			$this->clean_query( $query );
+	/**
+	 * Generate ES Filter clauses to be appended to a main query.
+	 *
+	 * Called by the public {@see ES_WP_Meta_Query::get_dsl()}, this method
+	 * is abstracted out to maintain parity with the other Query classes.
+	 *
+	 * @access protected
+	 *
+	 * @return array
+	 */
+	protected function get_dsl_clauses() {
+		/*
+		 * $queries are passed by reference to
+		 * `ES_WP_Meta_Query::get_dsl_for_query()` for recursion. To keep
+		 * $this->queries unaltered, pass a copy.
+		 */
+		$queries = $this->queries;
+		return $this->get_dsl_for_query( $queries );
+	}
 
-			if ( is_wp_error( $query ) )
-				return false;
+	/**
+	 * Generate ES filters for a single query array.
+	 *
+	 * If nested subqueries are found, this method recurses the tree to produce
+	 * the properly nested DSL.
+	 *
+	 * @access protected
+	 *
+	 * @param array $query Query to parse, passed by reference.
+	 * @return array Array containing nested ES filter clauses.
+	 */
+	protected function get_dsl_for_query( &$query ) {
+		$filters = array();
 
-			if ( 'AND' == $query['operator'] ) {
-				$filter_options = array( 'execution' => 'and' );
-			}
-
-			if ( 'IN' == $query['operator'] ) {
-
-				if ( empty( $query['terms'] ) ) {
-					if ( 'OR' == $this->relation ) {
-						if ( ( $index + 1 === $count ) && empty( $filter ) )
-							return false;
-						continue;
-					} else {
-						return false;
-					}
+		foreach ( $query as $key => &$clause ) {
+			if ( 'relation' === $key ) {
+				$relation = $query['relation'];
+			} elseif ( is_array( $clause ) ) {
+				if ( $this->is_first_order_clause( $clause ) ) {
+					// This is a first-order clause.
+					$filters[] = $this->get_dsl_for_clause( $clause, $query );
+				} else {
+					// This is a subquery, so we recurse.
+					$filters[] = $this->get_dsl_for_query( $clause );
 				}
-
-			} elseif ( 'NOT IN' == $query['operator'] ) {
-
-				if ( empty( $query['terms'] ) )
-					continue;
-
-			} elseif ( 'AND' == $query['operator'] ) {
-
-				if ( empty( $query['terms'] ) )
-					continue;
-
-			}
-
-			switch ( $query['field'] ) {
-				case 'slug' :
-				case 'name' :
-					$terms = array_map( 'sanitize_title_for_query', array_values( $query['terms'] ) );
-					$current_filter = $es_query::dsl_terms( $es_query->tax_map( $query['taxonomy'], 'term_' . $query['field'] ), $terms, $filter_options );
-					break;
-
-				case 'term_taxonomy_id' :
-					// This will likely not be hit, as these were probably turned into term_ids. However, by
-					// returning false to the 'es_use_mysql_for_term_taxonomy_id' filter, you disable that.
-					$current_filter = $es_query::dsl_terms( $es_query->tax_map( $query['taxonomy'], 'term_tt_id' ), $query['terms'], $filter_options );
-					break;
-
-				default :
-					$terms = array_map( 'absint', array_values( $query['terms'] ) );
-					$current_filter = $es_query::dsl_terms( $es_query->tax_map( $query['taxonomy'], 'term_id' ), $terms, $filter_options );
-					break;
-			}
-
-			if ( 'NOT IN' == $query['operator'] ) {
-				$filter[] = array( 'not' => $current_filter );
-			} else {
-				$filter[] = $current_filter;
 			}
 		}
 
-		if ( 1 == count( $filter ) ) {
-			return reset( $filter );
-		} elseif ( ! empty( $filter ) ) {
-			return array( strtolower( $this->relation ) => $filter );
-		} else {
+		// Filter to remove empties.
+		$filters = array_filter( $filters );
+
+		if ( empty( $relation ) ) {
+			$relation = 'and';
+		}
+
+		if ( count( $filters ) > 1 ) {
+			$filters = array( strtolower( $relation ) => $filters );
+		} elseif ( ! empty( $filters ) ) {
+			$filters = reset( $filters );
+		}
+
+		return $filters;
+	}
+
+	/**
+	 * Generate ES filter clauses for a first-order query clause.
+	 *
+	 * "First-order" means that it's an array with a 'key' or 'value'.
+	 *
+	 * @access public
+	 *
+	 * @param array  $clause       Query clause, passed by reference.
+	 * @param array  $query        Parent query array.
+	 * @return array ES filter clause component.
+	 */
+	public function get_dsl_for_clause( &$clause, $query ) {
+		$filter_options = array();
+		$current_filter = null;
+
+		$this->clean_query( $clause );
+
+		if ( is_wp_error( $clause ) ) {
+			return false;
+		}
+
+		if ( 'AND' == $clause['operator'] ) {
+			$filter_options = array( 'execution' => 'and' );
+		}
+
+		if ( empty( $clause['terms'] ) && in_array( $clause['operator'], array( 'IN', 'NOT IN', 'AND' ) ) ) {
 			return array();
+		}
+
+		switch ( $clause['field'] ) {
+			case 'slug' :
+			case 'name' :
+				$terms = array_map( 'sanitize_title_for_query', array_values( $clause['terms'] ) );
+				$current_filter = $this->es_query->dsl_terms( $this->es_query->tax_map( $clause['taxonomy'], 'term_' . $clause['field'] ), $terms, $filter_options );
+				break;
+
+			case 'term_taxonomy_id' :
+				// This will likely not be hit, as these were probably turned into term_ids. However, by
+				// returning false to the 'es_use_mysql_for_term_taxonomy_id' filter, you disable that.
+				$current_filter = $this->es_query->dsl_terms( $this->es_query->tax_map( $clause['taxonomy'], 'term_tt_id' ), $clause['terms'], $filter_options );
+				break;
+
+			default :
+				$terms = array_map( 'absint', array_values( $clause['terms'] ) );
+				$current_filter = $this->es_query->dsl_terms( $this->es_query->tax_map( $clause['taxonomy'], 'term_id' ), $terms, $filter_options );
+				break;
+		}
+
+		if ( 'NOT IN' == $clause['operator'] ) {
+			return array( 'not' => $current_filter );
+		} else {
+			return $current_filter;
 		}
 	}
 

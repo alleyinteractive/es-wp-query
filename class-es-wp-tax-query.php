@@ -5,6 +5,13 @@
  */
 class ES_WP_Tax_Query extends WP_Tax_Query {
 
+	/**
+	 * Some object which extends ES_WP_Query_Wrapper.
+	 *
+	 * @var ES_WP_Query_Wrapper
+	 */
+	protected $es_query;
+
 	public static function get_from_tax_query( $tax_query ) {
 		$q = new ES_WP_Tax_Query( $tax_query->queries );
 		$q->relation = $tax_query->relation;
@@ -12,11 +19,14 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	}
 
 	/**
-	 * Some object which extends ES_WP_Query_Wrapper.
+	 * Get a (light) ES filter that will always produce no results. This allows
+	 * individual tax query clauses to fail without breaking the rest of them.
 	 *
-	 * @var ES_WP_Query_Wrapper
+	 * @return array ES term query for post_id:0.
 	 */
-	protected $es_query;
+	protected function get_no_results_clause() {
+		return $this->es_query->dsl_terms( $this->es_query->es_map( 'post_id' ), 0 );
+	}
 
 	/**
 	 * Turns an array of tax query parameters into ES Query DSL
@@ -76,15 +86,10 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 			} elseif ( is_array( $clause ) ) {
 				if ( $this->is_first_order_clause( $clause ) ) {
 					// This is a first-order clause.
-					$filter = $this->get_dsl_for_clause( $clause, $query );
+					$filters[] = $this->get_dsl_for_clause( $clause, $query );
 				} else {
 					// This is a subquery, so we recurse.
-					$filter = $this->get_dsl_for_query( $clause );
-				}
-				if ( false === $filter ) {
-					return false;
-				} else {
-					$filters[] = $filter;
+					$filters[] = $this->get_dsl_for_query( $clause );
 				}
 			}
 		}
@@ -122,14 +127,14 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 		$this->clean_query( $clause );
 
 		if ( is_wp_error( $clause ) ) {
-			return false;
+			return $this->get_no_results_clause();
 		}
 
 		// If the comparison is EXISTS or NOT EXISTS, handle that first since
 		// it's quick and easy.
 		if ( 'EXISTS' == $clause['operator'] || 'NOT EXISTS' == $clause['operator'] ) {
 			if ( empty( $clause['taxonomy'] ) ) {
-				return false;
+				return $this->get_no_results_clause();
 			}
 
 			if ( 'EXISTS' == $clause['operator'] ) {
@@ -145,8 +150,12 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 			$terms_method = array( $this->es_query, 'dsl_terms' );
 		}
 
-		if ( empty( $clause['terms'] ) && in_array( $clause['operator'], array( 'IN', 'NOT IN', 'AND' ) ) ) {
-			return array();
+		if ( empty( $clause['terms'] ) ) {
+			if ( 'NOT IN' == $clause['operator'] || 'AND' == $clause['operator'] ) {
+				return array();
+			} elseif ( 'IN' == $clause['operator'] ) {
+				return $this->get_no_results_clause();
+			}
 		}
 
 		switch ( $clause['field'] ) {
@@ -225,8 +234,9 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 		if ( is_taxonomy_hierarchical( $query['taxonomy'] ) && $query['include_children'] ) {
 			$this->transform_query( $query, 'term_id' );
 
-			if ( is_wp_error( $query ) )
+			if ( is_wp_error( $query ) ) {
 				return;
+			}
 
 			$children = array();
 			foreach ( $query['terms'] as $term ) {
@@ -254,11 +264,13 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	public function transform_query( &$query, $resulting_field ) {
 		global $wpdb;
 
-		if ( empty( $query['terms'] ) )
+		if ( empty( $query['terms'] ) ) {
 			return;
+		}
 
-		if ( $query['field'] == $resulting_field )
+		if ( $query['field'] == $resulting_field ) {
 			return;
+		}
 
 		$resulting_field = sanitize_key( $resulting_field );
 

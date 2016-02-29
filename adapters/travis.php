@@ -127,6 +127,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 										"properties": {
 											"name": { "type": "string", "index": "not_analyzed" },
 											"term_id": { "type": "long" },
+											"term_taxonomy_id": { "type": "long" },
 											"slug": { "type": "string", "index": "not_analyzed" }
 										}
 									}
@@ -445,9 +446,10 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 			$terms = array();
 			foreach ( (array) $object_terms as $term ) {
 				$terms[ $term->taxonomy ][] = array(
-					'term_id' => $term->term_id,
-					'slug'    => $term->slug,
-					'name'    => $term->name,
+					'term_id'          => $term->term_id,
+					'term_taxonomy_id' => $term->term_taxonomy_id,
+					'slug'             => $term->slug,
+					'name'             => $term->name,
 				);
 			}
 

@@ -164,9 +164,20 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 				break;
 
 			case 'term_taxonomy_id' :
-				// This will likely not be hit, as these were probably turned into term_ids. However, by
-				// returning false to the 'es_use_mysql_for_term_taxonomy_id' filter, you disable that.
-				$current_filter = call_user_func( $terms_method, $this->es_query->tax_map( $clause['taxonomy'], 'term_tt_id' ), $clause['terms'] );
+				if ( ! empty( $clause['taxonomy'] ) ) {
+					$current_filter = call_user_func( $terms_method, $this->es_query->tax_map( $clause['taxonomy'], 'term_tt_id' ), $clause['terms'] );
+				} else {
+					$matches = array();
+					foreach ( $clause['terms'] as &$term ) {
+						$matches[] = $this->es_query->dsl_multi_match( $this->es_query->tax_map( '*', 'term_tt_id' ), $term );
+					}
+					if ( count( $matches ) > 1 ) {
+						$current_filter = array( 'bool' => array( 'must' => $matches ) );
+					} else {
+						$current_filter = reset( $matches );
+					}
+				}
+
 				break;
 
 			default :
@@ -192,7 +203,15 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	 * @param array &$query The single query
 	 */
 	private function clean_query( &$query ) {
-		if ( empty( $query['taxonomy'] ) || ! taxonomy_exists( $query['taxonomy'] ) ) {
+		if ( empty( $query['taxonomy'] ) ) {
+			if ( 'term_taxonomy_id' !== $query['field'] ) {
+				$query = new WP_Error( 'Invalid taxonomy' );
+				return;
+			}
+
+			// so long as there are shared terms, include_children requires that a taxonomy is set
+			$query['include_children'] = false;
+		} elseif ( ! taxonomy_exists( $query['taxonomy'] ) ) {
 			$query = new WP_Error( 'Invalid taxonomy' );
 			return;
 		}
@@ -215,7 +234,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 
 		// If we have a term_taxonomy_id, use mysql, as that's almost certainly not stored in ES.
 		// However, you can override this.
-		if ( 'term_taxonomy_id' == $query['field'] ) {
+		if ( 'term_taxonomy_id' == $query['field'] && ! empty( $query['taxonomy'] ) ) {
 			if ( apply_filters( 'es_use_mysql_for_term_taxonomy_id', true ) ) {
 				$this->transform_query( $query, 'term_id' );
 			}

@@ -292,8 +292,19 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 			if ( is_wp_error( $response ) ) {
 				printf( "Message: %s\n", $response->get_error_message() );
 			}
+			printf( "Backtrace: %s\n", travis_es_debug_backtrace_summary() );
 			exit( 1 );
 		}
+	}
+
+	function travis_es_debug_backtrace_summary() {
+		$backtrace = wp_debug_backtrace_summary( null, 0, false );
+		foreach ( $backtrace as $k => $call ) {
+			if ( preg_match( '/PHPUnit_(TextUI_(Command|TestRunner)|Framework_(TestSuite|TestCase|TestResult))|ReflectionMethod|travis_es_(verify_response_code|debug_backtrace_summary)/', $call ) ) {
+				unset( $backtrace[ $k ] );
+			}
+		}
+		return join( ', ', array_reverse( $backtrace ) );
 	}
 
 	/**

@@ -64,7 +64,8 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	 * @access protected
 	 *
 	 * @param array $query Query to parse, passed by reference.
-	 * @return array Array containing nested ES filter clauses.
+	 * @return boolarray Array containing nested ES filter clauses on success or
+	 *                   false on error.
 	 */
 	protected function get_dsl_for_query( &$query ) {
 		$filters = array();
@@ -75,10 +76,15 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 			} elseif ( is_array( $clause ) ) {
 				if ( $this->is_first_order_clause( $clause ) ) {
 					// This is a first-order clause.
-					$filters[] = $this->get_dsl_for_clause( $clause, $query );
+					$filter = $this->get_dsl_for_clause( $clause, $query );
 				} else {
 					// This is a subquery, so we recurse.
-					$filters[] = $this->get_dsl_for_query( $clause );
+					$filter = $this->get_dsl_for_query( $clause );
+				}
+				if ( false === $filter ) {
+					return false;
+				} else {
+					$filters[] = $filter;
 				}
 			}
 		}
@@ -106,9 +112,9 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	 *
 	 * @access public
 	 *
-	 * @param array  $clause       Query clause, passed by reference.
-	 * @param array  $query        Parent query array.
-	 * @return array ES filter clause component.
+	 * @param array $clause Query clause, passed by reference.
+	 * @param array $query Parent query array.
+	 * @return bool|array ES filter clause on success, or false on error.
 	 */
 	public function get_dsl_for_clause( &$clause, $query ) {
 		$current_filter = null;
@@ -121,10 +127,16 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 
 		// If the comparison is EXISTS or NOT EXISTS, handle that first since
 		// it's quick and easy.
-		if ( 'EXISTS' == $clause['operator'] ) {
-			return $this->es_query->dsl_exists( $this->es_query->tax_map( $clause['taxonomy'], 'term_id' ) );
-		} elseif ( 'NOT EXISTS' == $clause['operator'] ) {
-			return $this->es_query->dsl_missing( $this->es_query->tax_map( $clause['taxonomy'], 'term_id' ) );
+		if ( 'EXISTS' == $clause['operator'] || 'NOT EXISTS' == $clause['operator'] ) {
+			if ( empty( $clause['taxonomy'] ) ) {
+				return false;
+			}
+
+			if ( 'EXISTS' == $clause['operator'] ) {
+				return $this->es_query->dsl_exists( $this->es_query->tax_map( $clause['taxonomy'], 'term_id' ) );
+			} elseif ( 'NOT EXISTS' == $clause['operator'] ) {
+				return $this->es_query->dsl_missing( $this->es_query->tax_map( $clause['taxonomy'], 'term_id' ) );
+			}
 		}
 
 		if ( 'AND' == $clause['operator'] ) {

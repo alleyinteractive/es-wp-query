@@ -36,5 +36,7 @@ script:
   - |
     if [[ ! -z "$WP_VERSION" ]] ; then
       phpunit
-      phpunit -c multisite.xml
+      if [[ "$ES_VERSION" == "2.2.0" ]]; then
+        phpunit -c multisite.xml
+      fi
     fi

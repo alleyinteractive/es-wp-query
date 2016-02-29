@@ -1033,7 +1033,9 @@ class Tests_Query_TaxQuery extends WP_UnitTestCase {
 	public function test_tax_query_taxonomy_with_attachments() {
 		$q = new ES_WP_Query();
 
-		register_taxonomy_for_object_type( 'post_tag', 'attachment:image' );
+		// This line deviates from core's unit tests. See
+		// {@link https://core.trac.wordpress.org/ticket/35995}.
+		register_taxonomy_for_object_type( 'post_tag', 'attachment' );
 		$tag_id = self::factory()->term->create( array( 'slug' => rand_str(), 'name' => rand_str() ) );
 		$image_id = self::factory()->attachment->create_object( 'image.jpg', 0, array(
 			'post_mime_type' => 'image/jpeg',

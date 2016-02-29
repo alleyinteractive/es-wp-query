@@ -83,6 +83,9 @@ install_test_suite() {
 
 	cd $WP_TESTS_DIR
 
+	# Fix an error with trac referencing
+	mkdir data
+
 	if [ ! -f wp-tests-config.php ]; then
 		download https://develop.svn.wordpress.org/${WP_TESTS_TAG}/wp-tests-config-sample.php "$WP_TESTS_DIR"/wp-tests-config.php
 		sed $ioption "s:dirname( __FILE__ ) . '/src/':'$WP_CORE_DIR':" "$WP_TESTS_DIR"/wp-tests-config.php

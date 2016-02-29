@@ -172,7 +172,11 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 						$matches[] = $this->es_query->dsl_multi_match( $this->es_query->tax_map( '*', 'term_tt_id' ), $term );
 					}
 					if ( count( $matches ) > 1 ) {
-						$current_filter = array( 'bool' => array( 'must' => $matches ) );
+						$current_filter = array(
+							'bool' => array(
+								( 'AND' == $clause['operator'] ? 'must' : 'should' ) => $matches,
+							),
+						);
 					} else {
 						$current_filter = reset( $matches );
 					}

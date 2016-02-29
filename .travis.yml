@@ -1,21 +1,23 @@
 language: php
 
-env:
-    - ES_VERSION=2.2.0
-    - ES_VERSION=1.7.5
-
 matrix:
   include:
     - php: 5.3
-      env: WP_VERSION=4.3.3
+      env: WP_VERSION=4.3.3 ES_VERSION=2.2.0
     - php: 5.3
-      env: WP_VERSION=latest
+      env: WP_VERSION=latest ES_VERSION=2.2.0
     - php: 5.6
-      env: WP_VERSION=latest
+      env: WP_VERSION=latest ES_VERSION=2.2.0
     - php: 7.0
-      env: WP_VERSION=latest
+      env: WP_VERSION=latest ES_VERSION=2.2.0
     - php: 5.6
-      env: WP_VERSION=nightly
+      env: WP_VERSION=nightly ES_VERSION=2.2.0
+    - php: 5.6
+      env: WP_VERSION=latest ES_VERSION=1.4.5
+    - php: 5.6
+      env: WP_VERSION=latest ES_VERSION=1.7.5
+    - php: 5.6
+      env: WP_VERSION=latest ES_VERSION=2.0.2
   fast_finish: true
 
 branches:

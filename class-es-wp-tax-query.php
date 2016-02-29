@@ -119,6 +119,14 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 			return false;
 		}
 
+		// If the comparison is EXISTS or NOT EXISTS, handle that first since
+		// it's quick and easy.
+		if ( 'EXISTS' == $clause['operator'] ) {
+			return $this->es_query->dsl_exists( $this->es_query->tax_map( $clause['taxonomy'], 'term_id' ) );
+		} elseif ( 'NOT EXISTS' == $clause['operator'] ) {
+			return $this->es_query->dsl_missing( $this->es_query->tax_map( $clause['taxonomy'], 'term_id' ) );
+		}
+
 		if ( 'AND' == $clause['operator'] ) {
 			$terms_method = array( $this->es_query, 'dsl_all_terms' );
 		} else {

@@ -34,10 +34,5 @@ before_script:
 
 script:
   - find . -path ./vendor -prune -o -type "f" -iname "*.php" | xargs -L "1" php -l
-  - |
-    if [[ ! -z "$WP_VERSION" ]] ; then
-      phpunit
-      if [[ "$ES_VERSION" == "2.2.0" ]]; then
-        phpunit -c multisite.xml
-      fi
-    fi
+  - phpunit
+  - if [[ "$ES_VERSION" == "2.2.0" ]]; then phpunit -c multisite.xml; fi;

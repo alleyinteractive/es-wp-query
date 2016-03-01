@@ -23,6 +23,8 @@ function _manually_load_plugin() {
 			. "See the readme for more details.\n\n";
 		exit( 1 );
 	}
+
+	es_wp_query_verify_es_is_running();
 }
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 

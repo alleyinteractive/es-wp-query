@@ -1,27 +1,32 @@
-sudo: false
-
 language: php
 
 matrix:
   include:
     - php: 5.3
-      env: WP_VERSION=4.3.3
+      env: WP_VERSION=4.3.3 ES_VERSION=2.2.0
     - php: 5.3
-      env: WP_VERSION=latest
+      env: WP_VERSION=latest ES_VERSION=2.2.0
     - php: 5.6
-      env: WP_VERSION=latest
+      env: WP_VERSION=latest ES_VERSION=2.2.0
     - php: 7.0
-      env: WP_VERSION=latest
+      env: WP_VERSION=latest ES_VERSION=2.2.0
     - php: 5.6
-      env: WP_VERSION=nightly
+      env: WP_VERSION=nightly ES_VERSION=2.2.0
+    - php: 5.6
+      env: WP_VERSION=latest ES_VERSION=1.4.5
+    - php: 5.6
+      env: WP_VERSION=latest ES_VERSION=1.7.5
+    - php: 5.6
+      env: WP_VERSION=latest ES_VERSION=2.0.2
   fast_finish: true
 
 branches:
   only:
     - master
 
-services:
-    - elasticsearch
+before_install:
+    - curl -O -L https://download.elastic.co/elasticsearch/elasticsearch/elasticsearch-$ES_VERSION.deb && sudo dpkg -i --force-confnew elasticsearch-$ES_VERSION.deb
+    - sudo service elasticsearch start
 
 before_script:
     - bash bin/install-wp-tests.sh wordpress_test root '' localhost $WP_VERSION
@@ -32,5 +37,7 @@ script:
   - |
     if [[ ! -z "$WP_VERSION" ]] ; then
       phpunit
-      phpunit -c multisite.xml
+      if [[ "$ES_VERSION" == "2.2.0" ]]; then
+        phpunit -c multisite.xml
+      fi
     fi

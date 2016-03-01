@@ -3,26 +3,26 @@ language: php
 matrix:
   include:
     - php: 5.3
-      env: WP_VERSION=4.3.3 ES_VERSION=2.2.0
+      env: WP_VERSION=4.3.3 ES_VERSION=1.7.5
     - php: 5.3
-      env: WP_VERSION=latest ES_VERSION=2.2.0
+      env: WP_VERSION=latest ES_VERSION=1.7.5
     - php: 5.6
-      env: WP_VERSION=latest ES_VERSION=2.2.0
+      env: WP_VERSION=latest ES_VERSION=1.7.5
     - php: 7.0
-      env: WP_VERSION=latest ES_VERSION=2.2.0
+      env: WP_VERSION=latest ES_VERSION=1.7.5
     - php: 5.6
-      env: WP_VERSION=nightly ES_VERSION=2.2.0
+      env: WP_VERSION=nightly ES_VERSION=1.7.5
     - php: 5.6
       env: WP_VERSION=latest ES_VERSION=1.4.5
     - php: 5.6
-      env: WP_VERSION=latest ES_VERSION=1.7.5
+      env: WP_VERSION=latest ES_VERSION=1.3.9
     - php: 5.6
-      env: WP_VERSION=latest ES_VERSION=2.0.2
+      env: WP_VERSION=latest ES_VERSION=1.2.4
   fast_finish: true
 
 branches:
   only:
-    - master
+    - master-1.x
 
 before_install:
     - curl -O -L https://download.elastic.co/elasticsearch/elasticsearch/elasticsearch-$ES_VERSION.deb && sudo dpkg -i --force-confnew elasticsearch-$ES_VERSION.deb
@@ -35,4 +35,4 @@ before_script:
 script:
   - find . -path ./vendor -prune -o -type "f" -iname "*.php" | xargs -L "1" php -l
   - phpunit
-  - if [[ "$ES_VERSION" == "2.2.0" ]]; then phpunit -c multisite.xml; fi;
+  - if [[ "$ES_VERSION" == "1.7.5" ]]; then phpunit -c multisite.xml; fi;

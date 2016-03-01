@@ -13,9 +13,7 @@ matrix:
     - php: 5.6
       env: WP_VERSION=nightly ES_VERSION=2.2.0
     - php: 5.6
-      env: WP_VERSION=latest ES_VERSION=1.4.5
-    - php: 5.6
-      env: WP_VERSION=latest ES_VERSION=1.7.5
+      env: WP_VERSION=latest ES_VERSION=2.1.2
     - php: 5.6
       env: WP_VERSION=latest ES_VERSION=2.0.2
   fast_finish: true
@@ -34,10 +32,5 @@ before_script:
 
 script:
   - find . -path ./vendor -prune -o -type "f" -iname "*.php" | xargs -L "1" php -l
-  - |
-    if [[ ! -z "$WP_VERSION" ]] ; then
-      phpunit
-      if [[ "$ES_VERSION" == "2.2.0" ]]; then
-        phpunit -c multisite.xml
-      fi
-    fi
+  - phpunit
+  - if [[ "$ES_VERSION" == "2.2.0" ]]; then phpunit -c multisite.xml; fi;

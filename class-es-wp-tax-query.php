@@ -189,6 +189,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 					} else {
 						$current_filter = reset( $matches );
 					}
+					$current_filter = array( 'query' => $current_filter );
 				}
 
 				break;

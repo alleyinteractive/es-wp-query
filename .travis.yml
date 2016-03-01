@@ -13,9 +13,7 @@ matrix:
     - php: 5.6
       env: WP_VERSION=nightly ES_VERSION=2.2.0
     - php: 5.6
-      env: WP_VERSION=latest ES_VERSION=1.4.5
-    - php: 5.6
-      env: WP_VERSION=latest ES_VERSION=1.7.5
+      env: WP_VERSION=latest ES_VERSION=2.1.2
     - php: 5.6
       env: WP_VERSION=latest ES_VERSION=2.0.2
   fast_finish: true

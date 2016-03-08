@@ -5,9 +5,27 @@
  */
 class ES_WP_Tax_Query extends WP_Tax_Query {
 
-	public function __construct( $tax_query ) {
-		$this->relation = $tax_query->relation;
-		$this->queries = $tax_query->queries;
+	/**
+	 * Some object which extends ES_WP_Query_Wrapper.
+	 *
+	 * @var ES_WP_Query_Wrapper
+	 */
+	protected $es_query;
+
+	public static function get_from_tax_query( $tax_query ) {
+		$q = new ES_WP_Tax_Query( $tax_query->queries );
+		$q->relation = $tax_query->relation;
+		return $q;
+	}
+
+	/**
+	 * Get a (light) ES filter that will always produce no results. This allows
+	 * individual tax query clauses to fail without breaking the rest of them.
+	 *
+	 * @return array ES term query for post_id:0.
+	 */
+	protected function get_no_results_clause() {
+		return $this->es_query->dsl_terms( $this->es_query->es_map( 'post_id' ), 0 );
 	}
 
 	/**
@@ -15,84 +33,176 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	 *
 	 * @access public
 	 *
-	 * @return array
+	 * @param object $es_query Any object which extends ES_WP_Query_Wrapper.
+	 * @param string $type Type of meta. Currently, only 'post' is supported.
+	 * @return array ES filters
 	 */
 	public function get_dsl( $es_query ) {
-		global $wpdb;
+		$this->es_query = $es_query;
 
-		$join = '';
-		$filter = array();
-		$count = count( $this->queries );
+		$filters = $this->get_dsl_clauses();
 
-		foreach ( $this->queries as $index => $query ) {
-			$filter_options = array();
-			$current_filter = null;
+		return apply_filters_ref_array( 'es_wp_tax_query_dsl', array( $filters, $this->queries, $this->es_query ) );
+	}
 
-			$this->clean_query( $query );
+	/**
+	 * Generate ES Filter clauses to be appended to a main query.
+	 *
+	 * Called by the public {@see ES_WP_Meta_Query::get_dsl()}, this method
+	 * is abstracted out to maintain parity with the other Query classes.
+	 *
+	 * @access protected
+	 *
+	 * @return array
+	 */
+	protected function get_dsl_clauses() {
+		/*
+		 * $queries are passed by reference to
+		 * `ES_WP_Meta_Query::get_dsl_for_query()` for recursion. To keep
+		 * $this->queries unaltered, pass a copy.
+		 */
+		$queries = $this->queries;
+		return $this->get_dsl_for_query( $queries );
+	}
 
-			if ( is_wp_error( $query ) )
-				return false;
+	/**
+	 * Generate ES filters for a single query array.
+	 *
+	 * If nested subqueries are found, this method recurses the tree to produce
+	 * the properly nested DSL.
+	 *
+	 * @access protected
+	 *
+	 * @param array $query Query to parse, passed by reference.
+	 * @return boolarray Array containing nested ES filter clauses on success or
+	 *                   false on error.
+	 */
+	protected function get_dsl_for_query( &$query ) {
+		$filters = array();
 
-			if ( 'AND' == $query['operator'] ) {
-				$filter_options = array( 'execution' => 'and' );
-			}
-
-			if ( 'IN' == $query['operator'] ) {
-
-				if ( empty( $query['terms'] ) ) {
-					if ( 'OR' == $this->relation ) {
-						if ( ( $index + 1 === $count ) && empty( $filter ) )
-							return false;
-						continue;
-					} else {
-						return false;
-					}
+		foreach ( $query as $key => &$clause ) {
+			if ( 'relation' === $key ) {
+				$relation = $query['relation'];
+			} elseif ( is_array( $clause ) ) {
+				if ( $this->is_first_order_clause( $clause ) ) {
+					// This is a first-order clause.
+					$filters[] = $this->get_dsl_for_clause( $clause, $query );
+				} else {
+					// This is a subquery, so we recurse.
+					$filters[] = $this->get_dsl_for_query( $clause );
 				}
-
-			} elseif ( 'NOT IN' == $query['operator'] ) {
-
-				if ( empty( $query['terms'] ) )
-					continue;
-
-			} elseif ( 'AND' == $query['operator'] ) {
-
-				if ( empty( $query['terms'] ) )
-					continue;
-
-			}
-
-			switch ( $query['field'] ) {
-				case 'slug' :
-				case 'name' :
-					$terms = array_map( 'sanitize_title_for_query', array_values( $query['terms'] ) );
-					$current_filter = $es_query::dsl_terms( $es_query->tax_map( $query['taxonomy'], 'term_' . $query['field'] ), $terms, $filter_options );
-					break;
-
-				case 'term_taxonomy_id' :
-					// This will likely not be hit, as these were probably turned into term_ids. However, by
-					// returning false to the 'es_use_mysql_for_term_taxonomy_id' filter, you disable that.
-					$current_filter = $es_query::dsl_terms( $es_query->tax_map( $query['taxonomy'], 'term_tt_id' ), $query['terms'], $filter_options );
-					break;
-
-				default :
-					$terms = array_map( 'absint', array_values( $query['terms'] ) );
-					$current_filter = $es_query::dsl_terms( $es_query->tax_map( $query['taxonomy'], 'term_id' ), $terms, $filter_options );
-					break;
-			}
-
-			if ( 'NOT IN' == $query['operator'] ) {
-				$filter[] = array( 'not' => $current_filter );
-			} else {
-				$filter[] = $current_filter;
 			}
 		}
 
-		if ( 1 == count( $filter ) ) {
-			return reset( $filter );
-		} elseif ( ! empty( $filter ) ) {
-			return array( strtolower( $this->relation ) => $filter );
+		// Filter to remove empties.
+		$filters = array_filter( $filters );
+
+		if ( empty( $relation ) ) {
+			$relation = 'and';
+		}
+
+		if ( count( $filters ) > 1 ) {
+			$filters = array( strtolower( $relation ) => $filters );
+		} elseif ( ! empty( $filters ) ) {
+			$filters = reset( $filters );
+		}
+
+		return $filters;
+	}
+
+	/**
+	 * Generate ES filter clauses for a first-order query clause.
+	 *
+	 * "First-order" means that it's an array with a 'key' or 'value'.
+	 *
+	 * @access public
+	 *
+	 * @param array $clause Query clause, passed by reference.
+	 * @param array $query Parent query array.
+	 * @return bool|array ES filter clause on success, or false on error.
+	 */
+	public function get_dsl_for_clause( &$clause, $query ) {
+		$current_filter = null;
+
+		$this->clean_query( $clause );
+
+		if ( is_wp_error( $clause ) ) {
+			return $this->get_no_results_clause();
+		}
+
+		// If the comparison is EXISTS or NOT EXISTS, handle that first since
+		// it's quick and easy.
+		if ( 'EXISTS' == $clause['operator'] || 'NOT EXISTS' == $clause['operator'] ) {
+			if ( empty( $clause['taxonomy'] ) ) {
+				return $this->get_no_results_clause();
+			}
+
+			if ( 'EXISTS' == $clause['operator'] ) {
+				return $this->es_query->dsl_exists( $this->es_query->tax_map( $clause['taxonomy'], 'term_id' ) );
+			} elseif ( 'NOT EXISTS' == $clause['operator'] ) {
+				return $this->es_query->dsl_missing( $this->es_query->tax_map( $clause['taxonomy'], 'term_id' ) );
+			}
+		}
+
+		if ( 'AND' == $clause['operator'] ) {
+			$terms_method = array( $this->es_query, 'dsl_all_terms' );
 		} else {
-			return array();
+			$terms_method = array( $this->es_query, 'dsl_terms' );
+		}
+
+		if ( empty( $clause['terms'] ) ) {
+			if ( 'NOT IN' == $clause['operator'] || 'AND' == $clause['operator'] ) {
+				return array();
+			} elseif ( 'IN' == $clause['operator'] ) {
+				return $this->get_no_results_clause();
+			}
+		}
+
+		switch ( $clause['field'] ) {
+			case 'slug' :
+			case 'name' :
+				foreach ( $clause['terms'] as &$term ) {
+					/*
+					 * 0 is the $term_id parameter. We don't have a term ID yet, but it doesn't
+					 * matter because `sanitize_term_field()` ignores the $term_id param when the
+					 * context is 'db'.
+					 */
+					$term = sanitize_term_field( $clause['field'], $term, 0, $clause['taxonomy'], 'db' );
+				}
+				$current_filter = call_user_func( $terms_method, $this->es_query->tax_map( $clause['taxonomy'], 'term_' . $clause['field'] ), $clause['terms'] );
+				break;
+
+			case 'term_taxonomy_id' :
+				if ( ! empty( $clause['taxonomy'] ) ) {
+					$current_filter = call_user_func( $terms_method, $this->es_query->tax_map( $clause['taxonomy'], 'term_tt_id' ), $clause['terms'] );
+				} else {
+					$matches = array();
+					foreach ( $clause['terms'] as &$term ) {
+						$matches[] = $this->es_query->dsl_multi_match( $this->es_query->tax_map( '*', 'term_tt_id' ), $term );
+					}
+					if ( count( $matches ) > 1 ) {
+						$current_filter = array(
+							'bool' => array(
+								( 'AND' == $clause['operator'] ? 'must' : 'should' ) => $matches,
+							),
+						);
+					} else {
+						$current_filter = reset( $matches );
+					}
+				}
+
+				break;
+
+			default :
+				$terms = array_map( 'absint', array_values( $clause['terms'] ) );
+				$current_filter = call_user_func( $terms_method, $this->es_query->tax_map( $clause['taxonomy'], 'term_id' ), $terms );
+				break;
+		}
+
+		if ( 'NOT IN' == $clause['operator'] ) {
+			return array( 'not' => $current_filter );
+		} else {
+			return $current_filter;
 		}
 	}
 
@@ -106,7 +216,15 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	 * @param array &$query The single query
 	 */
 	private function clean_query( &$query ) {
-		if ( empty( $query['taxonomy'] ) || ! taxonomy_exists( $query['taxonomy'] ) ) {
+		if ( empty( $query['taxonomy'] ) ) {
+			if ( 'term_taxonomy_id' !== $query['field'] ) {
+				$query = new WP_Error( 'Invalid taxonomy' );
+				return;
+			}
+
+			// so long as there are shared terms, include_children requires that a taxonomy is set
+			$query['include_children'] = false;
+		} elseif ( ! taxonomy_exists( $query['taxonomy'] ) ) {
 			$query = new WP_Error( 'Invalid taxonomy' );
 			return;
 		}
@@ -116,8 +234,9 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 		if ( is_taxonomy_hierarchical( $query['taxonomy'] ) && $query['include_children'] ) {
 			$this->transform_query( $query, 'term_id' );
 
-			if ( is_wp_error( $query ) )
+			if ( is_wp_error( $query ) ) {
 				return;
+			}
 
 			$children = array();
 			foreach ( $query['terms'] as $term ) {
@@ -129,7 +248,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 
 		// If we have a term_taxonomy_id, use mysql, as that's almost certainly not stored in ES.
 		// However, you can override this.
-		if ( 'term_taxonomy_id' == $query['field'] ) {
+		if ( 'term_taxonomy_id' == $query['field'] && ! empty( $query['taxonomy'] ) ) {
 			if ( apply_filters( 'es_use_mysql_for_term_taxonomy_id', true ) ) {
 				$this->transform_query( $query, 'term_id' );
 			}
@@ -145,11 +264,13 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	public function transform_query( &$query, $resulting_field ) {
 		global $wpdb;
 
-		if ( empty( $query['terms'] ) )
+		if ( empty( $query['terms'] ) ) {
 			return;
+		}
 
-		if ( $query['field'] == $resulting_field )
+		if ( $query['field'] == $resulting_field ) {
 			return;
+		}
 
 		$resulting_field = sanitize_key( $resulting_field );
 

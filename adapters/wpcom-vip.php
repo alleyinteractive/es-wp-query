@@ -144,9 +144,11 @@ function vip_es_field_map( $es_map ) {
 add_filter( 'es_field_map', 'vip_es_field_map' );
 
 function vip_es_meta_value_tolower( $meta_value, $meta_key, $meta_compare, $meta_type ) {
-	if ( ! is_string( $meta_value ) || empty( $meta_value ) ) {
-		return $meta_value;
+	if ( ! empty( $meta_value ) && is_string( $meta_value ) ) {
+		$meta_value = strtolower( $meta_value );
+	} else if ( ! empty( $meta_value ) && is_array( $meta_value ) ) {
+		$meta_value = array_map( 'strtolower', $meta_value );
 	}
-	return strtolower( $meta_value );
+	return $meta_value;
 }
 add_filter( 'es_meta_query_meta_value', 'vip_es_meta_value_tolower', 10, 4 );

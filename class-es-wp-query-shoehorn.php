@@ -107,6 +107,7 @@ class ES_WP_Query_Shoehorn {
 		} else {
 			$this->do_found_posts = true;
 			$this->found_posts = $es_query->found_posts;
+			$this->max_num_pages = $es_query->max_num_pages;
 		}
 		$this->post_count = $es_query->post_count;
 		$this->original_query_args = $query_args;

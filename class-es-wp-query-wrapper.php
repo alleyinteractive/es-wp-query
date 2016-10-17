@@ -1209,9 +1209,9 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		 *         return $fields.
 		 *     } );
 		 *
-		 * @see ES_WP_Query_Wrapper::es_map() To map fields.
-		 * @see ES_WP_Query_Wrapper::tax_map() To map taxonomy fields.
-		 * @see ES_WP_Query_Wrapper::meta_map() To map meta fields.
+		 * @see \ES_WP_Query_Wrapper::es_map() To map fields.
+		 * @see \ES_WP_Query_Wrapper::tax_map() To map taxonomy fields.
+		 * @see \ES_WP_Query_Wrapper::meta_map() To map meta fields.
 		 *
 		 * @param array $fields Mapped fields to search. It's extremely important
 		 *                      that you map the fields before adding them to the

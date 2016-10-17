@@ -1192,7 +1192,34 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		// $n = ! empty( $q['exact'] ) ? '' : '%';
 
 		$fields = array( $this->es_map( 'post_title.analyzed' ) . '^3', $this->es_map( 'post_content.analyzed' ) );
-		$fields = apply_filters( 'es_searchable_fields', $fields );
+
+		/**
+		 * Filter the searchable fields. Defaults to (the mapped forms of)
+		 * post_title and post_content to match core as closely as possible.
+		 *
+		 * The fields passed are mapped for the ES adapter, and it's important
+		 * that anything filtering this do the same. Use the helper methods in
+		 * this class to map the fields as appropriate.
+		 *
+		 * Example:
+		 *
+		 *     add_filter( 'es_searchable_fields', function( $fields, $query ) {
+		 *         // Add the post excerpt to the searchable fields.
+		 *         $fields[] = $query->es_map( 'post_excerpt' );
+		 *         return $fields.
+		 *     } );
+		 *
+		 * @see ES_WP_Query_Wrapper::es_map() To map fields.
+		 * @see ES_WP_Query_Wrapper::tax_map() To map taxonomy fields.
+		 * @see ES_WP_Query_Wrapper::meta_map() To map meta fields.
+		 *
+		 * @param array $fields Mapped fields to search. It's extremely important
+		 *                      that you map the fields before adding them to the
+		 *                      array. See the example in this docblock.
+		 * @param \ES_WP_Query $this This object. Passed to simplify field
+		 *                           mapping.
+		 */
+		$fields = apply_filters( 'es_searchable_fields', $fields, $this );
 
 		$search = array( 'multi_match' => array(
 			'query'    => $q['s'],

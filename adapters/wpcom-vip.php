@@ -155,3 +155,25 @@ function vip_es_meta_value_tolower( $meta_value, $meta_key, $meta_compare, $meta
 	return $meta_value;
 }
 add_filter( 'es_meta_query_meta_value', 'vip_es_meta_value_tolower', 10, 4 );
+
+/**
+ * VIP ES index doesn't have the user_nicename so we lookup the user ID.
+ * @see https://developer.wordpress.com/docs/elasticsearch/post-doc-schema/
+ */
+function vip_es_query_filter( $filter ) {
+	foreach ( $filter as $filter_no => $filter_rule ) {
+		if ( isset( $filter_rule['term']['post_author.user_nicename'] ) ) {
+			// slug is mapped to user_nicename by get_data_by() in WP_User
+			$user_by_slug = get_user_by( 'slug', $filter_rule['term']['post_author.user_nicename'] );
+
+			if ( isset( $user_by_slug->ID ) ) {
+				$filter[ $filter_no ]['term']['author_id'] = intval( $user_by_slug->ID );
+				unset( $filter[ $filter_no ]['term']['post_author.user_nicename'] );
+			} else {
+				unset( $filter[ $filter_no ] );
+			}
+		}
+	}
+	return $filter;
+}
+add_filter( 'es_query_filter', 'vip_es_query_filter' );

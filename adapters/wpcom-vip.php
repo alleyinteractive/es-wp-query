@@ -6,9 +6,25 @@
 
 class ES_WP_Query extends ES_WP_Query_Wrapper {
 	protected function query_es( $es_args ) {
-		if ( function_exists( 'es_api_search_index' ) ) {
-			return es_api_search_index( $es_args, 'es-wp-query' );
+		if ( ! function_exists( 'es_api_search_index' ) ) {
+			return new WP_Error( 'vip-es-api-missing', 'Missing es_api_search_index method' );
 		}
+
+		/**
+		 * VIP ES index doesn't have the user_nicename so we fetch the user ID.
+		 * @see https://developer.wordpress.com/docs/elasticsearch/post-doc-schema/
+		 */
+		if ( isset( $es_args['post_author.user_nicename'] ) ) {
+			// slug is mapped to user_nicename by get_data_by() in WP_User
+			$user_by_slug = get_user_by( 'slug', $es_args['post_author.user_nicename'] );
+
+			if ( isset( $user_by_slug->ID ) ) {
+				$es_args['author_id'] = $user_by_slug->ID;
+				unset( $es_args['post_author.user_nicename'] );
+			}
+		}
+
+		return es_api_search_index( $es_args, 'es-wp-query' );
 	}
 
 	protected function set_posts( $q, $es_response ) {

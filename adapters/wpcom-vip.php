@@ -74,6 +74,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 function vip_es_field_map( $es_map ) {
 	return wp_parse_args( array(
 		'post_author'                   => 'author_id',
+		'post_author.user_login'        => 'author_login',
 		'post_author.user_nicename'     => 'author_login',
 		'post_date'                     => 'date',
 		'post_date.year'                => 'date_token.year',

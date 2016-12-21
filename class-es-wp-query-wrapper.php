@@ -645,10 +645,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				}
 			}
 			$q['author_name'] = sanitize_title_for_query( $q['author_name'] );
-			$author_by_slug = get_user_by( 'slug', $q['author_name'] );
-			if ( isset( $author_by_slug->ID ) ) {
-				$filter[] = $this->dsl_terms( $this->es_map( 'post_author' ), absint( $author_by_slug->ID ) );
-			}
+			$filter[] = $this->dsl_terms( $this->es_map( 'post_author.user_nicename' ), $q['author_name'] );
 		}
 
 		// MIME-Type stuff for attachment browsing

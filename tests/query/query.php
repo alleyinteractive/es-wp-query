@@ -67,4 +67,33 @@ class Tests_Post_Query extends WP_UnitTestCase {
 		$q5 = new ES_WP_Query( array( 'orderby' => array() ) );
 		$this->assertFalse( isset( $q5->es_args['sort'] ) );
 	}
+
+	function test_post_name__in() {
+		$post_a = $this->factory->post->create( [ 'post_name' => 'post-a' ] );
+		$post_b = $this->factory->post->create( [ 'post_name' => 'post-b' ] );
+		$post_c = $this->factory->post->create( [ 'post_name' => 'post-c' ] );
+		es_wp_query_index_test_data();
+
+		$post_name__in = [
+			'post-c',
+			'post-a',
+			'post-b',
+		];
+
+		$q = new ES_WP_Query( [
+			'post_name__in' => $post_name__in,
+
+			'orderby' => 'post_name__in',
+			'order' => 'ASC',
+		] );
+
+		$this->assertNotEmpty( $q->posts );
+
+		// Unable to verify the order at this time.
+		foreach ( $q->posts as $post ) {
+			// Verify that the post name is in the proper array.
+			$this->assertTrue( in_array( $post->post_name, $post_name__in, true ) );
+		}
+
+	}
 }

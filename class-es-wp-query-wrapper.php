@@ -462,6 +462,9 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$q['attachment'] = sanitize_title_for_query( wp_basename( $q['attachment'] ) );
 			$q['name'] = $q['attachment'];
 			$filter[] = $this->dsl_terms( $this->es_map( 'post_name' ), $q['attachment'] );
+		} elseif ( ! empty( $q['post_name__in'] ) ) {
+			$post_name__in = $q['post_name__in'];
+			$filter[] = $this->dsl_terms( $this->es_map( 'post_name' ), $post_name__in );
 		}
 
 
@@ -688,6 +691,8 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		} elseif ( $q['orderby'] == 'post_parent__in' && ! empty( $post_parent__in ) ) {
 			// (see above)
 			// $orderby = "FIELD( {$wpdb->posts}.post_parent, $post_parent__in )";
+		} elseif ( $q['orderby'] === 'post_name__in' && ! empty( $post_name__in ) ) {
+			// (see above)
 		} else {
 			if ( is_array( $q['orderby'] ) ) {
 				foreach ( $q['orderby'] as $_orderby => $order ) {

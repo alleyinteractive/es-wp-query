@@ -68,6 +68,44 @@ class Tests_Post_Query extends WP_UnitTestCase {
 		$this->assertFalse( isset( $q5->es_args['sort'] ) );
 	}
 
+	function test_orderby_post__in() {
+		$p_a = $this->factory->post->create();
+		$p_b = $this->factory->post->create();
+		$p_c = $this->factory->post->create();
+		$p_d = $this->factory->post->create();
+		es_wp_query_index_test_data();
+
+		$post__in = [
+			$p_c,
+			$p_a,
+			$p_d,
+			$p_b,
+		];
+
+		$q = new ES_WP_Query( [
+			'post__in' => $post__in,
+			'orderby' => 'post__in',
+			'order' => 'ASC',
+			'posts_per_page' => 4,
+		] );
+
+		$this->assertNotEmpty( $q->posts );
+
+		// Verify that the post is in the proper array.
+		foreach ( $q->posts as $post ) {
+			$this->assertTrue( in_array( $post->ID, $post__in, true ) );
+		}
+
+		// Assert that the order matches
+		foreach ( $post__in as $i => $post_ID ) {
+			$this->assertEquals(
+				$post_ID,
+				$q->posts[ $i ]->ID,
+				'Post not in expected order from `post__in`.'
+			);
+		}
+	}
+
 	function test_post_name__in() {
 		$post_a = $this->factory->post->create( [ 'post_name' => 'post-a' ] );
 		$post_b = $this->factory->post->create( [ 'post_name' => 'post-b' ] );
@@ -95,7 +133,11 @@ class Tests_Post_Query extends WP_UnitTestCase {
 
 		// Assert that the order matches
 		foreach ( $post_name__in as $i => $post_name ) {
-			$this->assertEquals( $post_name, $q->posts[ $i ]->post_name );
+			$this->assertEquals(
+				$post_name,
+				$q->posts[ $i ]->post_name,
+				'Post not in expected order from `post_name__in`.'
+			);
 		}
 	}
 }

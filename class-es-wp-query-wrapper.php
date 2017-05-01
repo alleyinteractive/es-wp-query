@@ -49,7 +49,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 					}
 
 					$this->posts = $this->post_query_sort_handler( $this->posts, $q );
-					break;
+					return;
 
 				case 'id=>parent' :
 					foreach ( $es_response['hits']['hits'] as $hit ) {
@@ -57,7 +57,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 						$post_parent = (array) $hit['fields'][ $this->es_map( 'post_parent' ) ];
 						$this->posts[ reset( $post_id ) ] = reset( $post_parent );
 					}
-					break;
+					return;
 
 				default :
 					if ( apply_filters( 'es_query_use_source', false ) ) {
@@ -77,7 +77,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 						$this->posts = $this->post_query_sort_handler( $this->posts, $q );
 					}
-					break;
+					return;
 			}
 		} else {
 			$this->posts = array();

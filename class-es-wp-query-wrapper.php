@@ -47,7 +47,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 						$post_id = (array) $hit['fields'][ $this->es_map( 'post_id' ) ];
 						$this->posts[] = reset( $post_id );
 					}
-					return;
+					break;
 
 				case 'id=>parent' :
 					foreach ( $es_response['hits']['hits'] as $hit ) {
@@ -55,12 +55,11 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 						$post_parent = (array) $hit['fields'][ $this->es_map( 'post_parent' ) ];
 						$this->posts[ reset( $post_id ) ] = reset( $post_parent );
 					}
-					return;
+					break;
 
 				default :
 					if ( apply_filters( 'es_query_use_source', false ) ) {
 						$this->posts = wp_list_pluck( $es_response['hits']['hits'], '_source' );
-						return;
 					} else {
 						$post_ids = array();
 						foreach ( $es_response['hits']['hits'] as $hit ) {
@@ -73,12 +72,62 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 							$post__in = implode( ',', $post_ids );
 							$this->posts = $wpdb->get_results( "SELECT $wpdb->posts.* FROM $wpdb->posts WHERE ID IN ($post__in) ORDER BY FIELD( {$wpdb->posts}.ID, $post__in )" );
 						}
-						return;
 					}
+					break;
 			}
 		} else {
 			$this->posts = array();
 		}
+
+		$this->post_query_sort_handler( $q );
+	}
+
+	/**
+	 * Post query sort handler
+	 */
+	protected function post_query_sort_handler( $query ) {
+		switch ( $query['orderby'] ) {
+			case 'post__in' :
+
+				break;
+
+			case 'post_parent__in' :
+
+				break;
+
+			case 'post_name__in' :
+				$order = array_flip( $query['post_name__in'] );
+				usort( $this->posts, function( $a, $b ) use ( $order ) {
+					// Add support for a query of only post ID fields.
+					if ( ! ( $a instanceof WP_Post ) ) {
+						$a = get_post( $a );
+					}
+
+					if ( ! ( $b instanceof WP_Post ) ) {
+						$b = get_post( $b );
+					}
+
+					if ( ! isset( $order[ $a->post_name ] ) || ! isset( $order[ $b->post_name ] ) ) {
+						// If a post exists in the results but the post name doesn't exist in the query.
+						return 0;
+					}
+
+					return $order[ $a->post_name ] < $order[ $b->post_name ] ? -1 : 1;
+				} );
+				break;
+		}
+
+		// } elseif ( 'none' == $q['orderby'] ) {
+		// 	// nothing to see here
+		// } elseif ( $q['orderby'] == 'post__in' && ! empty( $post__in ) ) {
+		// 	// @todo: Figure this out... Elasticsearch doesn't have an equivalent of this
+		// 	// $orderby = "FIELD( {$wpdb->posts}.ID, $post__in )";
+		// } elseif ( $q['orderby'] == 'post_parent__in' && ! empty( $post_parent__in ) ) {
+		// 	// (see above)
+		// 	// $orderby = "FIELD( {$wpdb->posts}.post_parent, $post_parent__in )";
+		// } elseif ( $q['orderby'] === 'post_name__in' && ! empty( $post_name__in ) ) {
+		// 	// (see above)
+		// } else {
 	}
 
 	// @todo: Core queries where 1=0 here, which probably happens for good reason.

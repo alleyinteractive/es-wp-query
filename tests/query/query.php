@@ -82,18 +82,20 @@ class Tests_Post_Query extends WP_UnitTestCase {
 
 		$q = new ES_WP_Query( [
 			'post_name__in' => $post_name__in,
-
 			'orderby' => 'post_name__in',
 			'order' => 'ASC',
 		] );
 
 		$this->assertNotEmpty( $q->posts );
 
-		// Unable to verify the order at this time.
+		// Verify that the post name is in the proper array.
 		foreach ( $q->posts as $post ) {
-			// Verify that the post name is in the proper array.
 			$this->assertTrue( in_array( $post->post_name, $post_name__in, true ) );
 		}
 
+		// Assert that the order matches
+		foreach ( $post_name__in as $i => $post_name ) {
+			$this->assertEquals( $post_name, $q->posts[ $i ]->post_name );
+		}
 	}
 }

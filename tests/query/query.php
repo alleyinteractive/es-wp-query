@@ -104,6 +104,31 @@ class Tests_Post_Query extends WP_UnitTestCase {
 				'Post not in expected order from `post__in`.'
 			);
 		}
+
+		// Query only the ID field.
+		$q2 = new ES_WP_Query( [
+			'post__in' => $post__in,
+			'orderby' => 'post__in',
+			'order' => 'ASC',
+			'posts_per_page' => 4,
+			'fields' => 'ids',
+		] );
+
+		$this->assertNotEmpty( $q2->posts );
+
+		// Verify that the post is in the proper array.
+		foreach ( $q2->posts as $post ) {
+			$this->assertTrue( in_array( $post, $post__in, true ) );
+		}
+
+		// Assert that the order matches
+		foreach ( $post__in as $i => $post_ID ) {
+			$this->assertEquals(
+				$post_ID,
+				$q2->posts[ $i ],
+				'Post not in expected order from `post__in`.'
+			);
+		}
 	}
 
 	function test_post_name__in() {

@@ -141,16 +141,49 @@ class Tests_Post_Query extends WP_UnitTestCase {
 		}
 	}
 
-	public function test_orderby_post_parent__in() {
+	public function test_post_parent__in() {
 		$parent_a = $this->factory->post->create();
 		$parent_b = $this->factory->post->create();
 		$parent_c = $this->factory->post->create();
 		$children = [];
 
 		foreach( [ $parent_a, $parent_b, $parent_c ] as $parent ) {
-			for ( $i = 0; $i < 2; $i += 1 ) {
-				var_dump($i);
-			}
+			$children[ $parent ] = $this->factory->post->create( [ 'post_parent' => $parent ] );
+		}
+
+		es_wp_query_index_test_data();
+
+		$post_parent__in = [
+			$parent_b,
+			$parent_a,
+			$parent_c,
+		];
+
+		$q = new ES_WP_Query( [
+			'post_parent__in' => $post_parent__in,
+			'orderby' => 'post_parent__in',
+			'order' => 'ASC',
+			'posts_per_page' => 9, // 3 parents * 2 children each.
+		] );
+
+		$this->assertNotEmpty( $q->posts );
+
+		// Verify that the post is in the proper children array.
+		foreach ( $q->posts as $post ) {
+			$this->assertEquals(
+				$post->ID,
+				$children[ $post->post_parent ],
+				'Unexpected post returned from `post_parent__in`.'
+			);
+		}
+
+		// Verify the order of `post_parent__in`.
+		foreach ( $post_parent__in as $i => $post_parent_id ) {
+			$this->assertEquals(
+				$post_parent_id,
+				$q->posts[ $i ]->post_parent,
+				'Post not in expected order from `post_parent__in`.'
+			);
 		}
 	}
 }

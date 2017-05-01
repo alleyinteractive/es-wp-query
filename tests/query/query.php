@@ -142,6 +142,15 @@ class Tests_Post_Query extends WP_UnitTestCase {
 	}
 
 	public function test_orderby_post_parent__in() {
-		
+		$parent_a = $this->factory->post->create();
+		$parent_b = $this->factory->post->create();
+		$parent_c = $this->factory->post->create();
+		$children = [];
+
+		foreach( [ $parent_a, $parent_b, $parent_c ] as $parent ) {
+			for ( $i = 0; $i < 2; $i += 1 ) {
+				var_dump($i);
+			}
+		}
 	}
 }

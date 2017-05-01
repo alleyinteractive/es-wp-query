@@ -140,4 +140,8 @@ class Tests_Post_Query extends WP_UnitTestCase {
 			);
 		}
 	}
+
+	public function test_orderby_post_parent__in() {
+		
+	}
 }

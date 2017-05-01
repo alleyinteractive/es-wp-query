@@ -107,6 +107,10 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				$key = 'post_name';
 				break;
 
+			case 'post_parent__in' :
+				$key = 'post_parent';
+				break;
+
 			default :
 				return $posts;
 		}
@@ -128,7 +132,11 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				return 0;
 			}
 
-			return $order[ $a->$key ] < $order[ $b->$key ] ? -1 : 1;
+			if ( $order[ $a->$key ] === $order[ $b->$key ] ) {
+				return 0;
+			} else {
+				return $order[ $a->$key ] < $order[ $b->$key ] ? -1 : 1;
+			}
 		} );
 
 		return $posts;

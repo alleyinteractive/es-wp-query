@@ -188,7 +188,6 @@ class Tests_Post_Query extends WP_UnitTestCase {
 			'post_parent__in' => $post_parent__in,
 			'orderby' => 'post_parent__in',
 			'order' => 'ASC',
-			'posts_per_page' => 9, // 3 parents * 2 children each.
 		] );
 
 		$this->assertNotEmpty( $q->posts );

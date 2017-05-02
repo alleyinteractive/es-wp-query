@@ -74,10 +74,9 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 							$post__in = implode( ',', $post_ids );
 							$this->posts = $wpdb->get_results( "SELECT $wpdb->posts.* FROM $wpdb->posts WHERE ID IN ($post__in) ORDER BY FIELD( {$wpdb->posts}.ID, $post__in )" );
 						}
-
-						$this->posts = $this->post_query_sort_handler( $this->posts, $q );
 					}
-					return;
+
+					$this->posts = $this->post_query_sort_handler( $this->posts, $q );
 			}
 		} else {
 			$this->posts = array();
@@ -117,15 +116,26 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 		// Flip the order to allow retrieval by index.
 		$order = array_flip( $query[ $query['orderby'] ] );
+		$use_source = apply_filters( 'es_query_use_source', false );
 
-		usort( $posts, function( $a, $b ) use ( $order, $key ) {
-			// Add support for a query of only post ID fields.
-			if ( ! ( $a instanceof WP_Post ) ) {
-				$a = get_post( $a );
-			}
+		usort( $posts, function( $a, $b ) use ( $order, $key, $use_source ) {
+			// Add support for using the Elasticsearch _source field.
+			if ( $use_source && 'ID' === $key ) {
+				// Elasticsearch stores the `ID` field as `post_id`.
+				$key = 'post_id';
 
-			if ( ! ( $b instanceof WP_Post ) ) {
-				$b = get_post( $b );
+				// Cast the array to object to mock the `WP_Post` object.
+				$a = (object) $a;
+				$b = (object) $b;
+			} else {
+				// Add support for a query of only post ID fields.
+				if ( ! ( $a instanceof WP_Post ) ) {
+					$a = get_post( $a );
+				}
+
+				if ( ! ( $b instanceof WP_Post ) ) {
+					$b = get_post( $b );
+				}
 			}
 
 			if ( ! isset( $order[ $a->$key ] ) || ! isset( $order[ $b->$key ] ) ) {

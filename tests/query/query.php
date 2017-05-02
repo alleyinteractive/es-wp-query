@@ -104,9 +104,11 @@ class Tests_Post_Query extends WP_UnitTestCase {
 				'Post not in expected order from `post__in`.'
 			);
 		}
+	}
 
+	function test_orderby_post__in_ids() {
 		// Query only the ID field.
-		$q2 = new ES_WP_Query( [
+		$q = new ES_WP_Query( [
 			'post__in' => $post__in,
 			'orderby' => 'post__in',
 			'order' => 'ASC',
@@ -114,10 +116,10 @@ class Tests_Post_Query extends WP_UnitTestCase {
 			'fields' => 'ids',
 		] );
 
-		$this->assertNotEmpty( $q2->posts );
+		$this->assertNotEmpty( $q->posts );
 
 		// Verify that the post is in the proper array.
-		foreach ( $q2->posts as $post ) {
+		foreach ( $q->posts as $post ) {
 			$this->assertTrue( in_array( $post, $post__in, true ) );
 		}
 
@@ -125,7 +127,7 @@ class Tests_Post_Query extends WP_UnitTestCase {
 		foreach ( $post__in as $i => $post_ID ) {
 			$this->assertEquals(
 				$post_ID,
-				$q2->posts[ $i ],
+				$q->posts[ $i ],
 				'Post not in expected order from `post__in`.'
 			);
 		}

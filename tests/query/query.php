@@ -129,24 +129,6 @@ class Tests_Post_Query extends WP_UnitTestCase {
 				'Post not in expected order from `post__in`.'
 			);
 		}
-
-		// Test sorting in the inverse direction.
-		$q3 = new ES_WP_Query( [
-			'post__in' => $post__in,
-			'orderby' => 'post__in',
-			'order' => 'DESC',
-			'posts_per_page' => 4,
-		] );
-
-		// Assert the order matches the inverse direction.
-		$post__in_reverse = array_reverse( $post__in, false );
-		foreach ( $post__in_reverse as $i => $post_ID ) {
-			$this->assertEquals(
-				$post_ID,
-				$q3->posts[ $i ]->ID,
-				'Post not in expected order from `post__in` when ordered by DESC.'
-			);
-		}
 	}
 
 	function test_post_name__in() {

@@ -120,9 +120,11 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 		usort( $posts, function( $a, $b ) use ( $order, $key, $use_source ) {
 			// Add support for using the Elasticsearch _source field.
-			if ( $use_source && 'ID' === $key ) {
+			if ( $use_source ) {
 				// Elasticsearch stores the `ID` field as `post_id`.
-				$key = 'post_id';
+				if ( 'ID' === $key ) {
+					$key = 'post_id';
+				}
 
 				// Cast the array to object to mock the `WP_Post` object.
 				$a = (object) $a;

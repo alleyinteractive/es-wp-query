@@ -756,14 +756,8 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			}
 		} elseif ( 'none' == $q['orderby'] ) {
 			// nothing to see here
-		} elseif ( $q['orderby'] == 'post__in' && ! empty( $post__in ) ) {
-			// @todo: Figure this out... Elasticsearch doesn't have an equivalent of this
-			// $orderby = "FIELD( {$wpdb->posts}.ID, $post__in )";
-		} elseif ( $q['orderby'] == 'post_parent__in' && ! empty( $post_parent__in ) ) {
-			// (see above)
-			// $orderby = "FIELD( {$wpdb->posts}.post_parent, $post_parent__in )";
-		} elseif ( $q['orderby'] === 'post_name__in' && ! empty( $post_name__in ) ) {
-			// (see above)
+		} elseif ( in_array( $q['orderby'], array( 'post__in', 'post_parent__in', 'post_name__in' ) ) ) {
+			// Handled post-query by `ES_WP_Query_Wrapper::post_query_sort_handler()`.
 		} else {
 			if ( is_array( $q['orderby'] ) ) {
 				foreach ( $q['orderby'] as $_orderby => $order ) {

@@ -20,6 +20,8 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 						$post_id = (array) $hit['fields'][ $this->es_map( 'post_id' ) ];
 						$this->posts[] = reset( $post_id );
 					}
+
+					$this->posts = $this->post_query_sort_handler( $this->posts, $q );
 					return;
 
 				case 'id=>parent' :
@@ -33,7 +35,6 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 				default :
 					if ( apply_filters( 'es_query_use_source', false ) ) {
 						$this->posts = wp_list_pluck( $es_response['results']['hits'], '_source' );
-						return;
 					} else {
 						$post_ids = array();
 						foreach ( $es_response['results']['hits'] as $hit ) {
@@ -46,8 +47,9 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 							$post__in = implode( ',', $post_ids );
 							$this->posts = $wpdb->get_results( "SELECT $wpdb->posts.* FROM $wpdb->posts WHERE ID IN ($post__in) ORDER BY FIELD( {$wpdb->posts}.ID, $post__in )" );
 						}
-						return;
 					}
+
+					$this->posts = $this->post_query_sort_handler( $this->posts, $q );
 			}
 		} else {
 			$this->posts = array();

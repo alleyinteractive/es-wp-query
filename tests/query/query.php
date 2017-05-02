@@ -156,7 +156,7 @@ class Tests_Post_Query extends WP_UnitTestCase {
 			$this->assertTrue( in_array( $post->post_name, $post_name__in, true ) );
 		}
 
-		// Assert that the order matches
+		// Assert that the order matches.
 		foreach ( $post_name__in as $i => $post_name ) {
 			$this->assertEquals(
 				$post_name,

@@ -104,11 +104,9 @@ class Tests_Post_Query extends WP_UnitTestCase {
 				'Post not in expected order from `post__in`.'
 			);
 		}
-	}
 
-	function test_orderby_post__in_ids() {
 		// Query only the ID field.
-		$q = new ES_WP_Query( [
+		$q2 = new ES_WP_Query( [
 			'post__in' => $post__in,
 			'orderby' => 'post__in',
 			'order' => 'ASC',
@@ -116,10 +114,10 @@ class Tests_Post_Query extends WP_UnitTestCase {
 			'fields' => 'ids',
 		] );
 
-		$this->assertNotEmpty( $q->posts );
+		$this->assertNotEmpty( $q2->posts );
 
 		// Verify that the post is in the proper array.
-		foreach ( $q->posts as $post ) {
+		foreach ( $q2->posts as $post ) {
 			$this->assertTrue( in_array( $post, $post__in, true ) );
 		}
 
@@ -127,8 +125,26 @@ class Tests_Post_Query extends WP_UnitTestCase {
 		foreach ( $post__in as $i => $post_ID ) {
 			$this->assertEquals(
 				$post_ID,
-				$q->posts[ $i ],
+				$q2->posts[ $i ],
 				'Post not in expected order from `post__in`.'
+			);
+		}
+
+		// Test sorting in the inverse direction.
+		$q3 = new ES_WP_Query( [
+			'post__in' => $post__in,
+			'orderby' => 'post__in',
+			'order' => 'DESC',
+			'posts_per_page' => 4,
+		] );
+
+		// Assert the order matches the inverse direction.
+		$post__in_reverse = array_reverse( $post__in, false );
+		foreach ( $post__in_reverse as $i => $post_ID ) {
+			$this->assertEquals(
+				$post_ID,
+				$q3->posts[ $i ]->ID,
+				'Post not in expected order from `post__in` when ordered by DESC.'
 			);
 		}
 	}

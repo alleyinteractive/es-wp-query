@@ -116,9 +116,10 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 		// Flip the order to allow retrieval by index.
 		$order = array_flip( $query[ $query['orderby'] ] );
+		$orderby = ( ! empty( $query['order'] ) ) ? strtoupper( $query['order'] ) : 'DESC';
 		$use_source = apply_filters( 'es_query_use_source', false );
 
-		usort( $posts, function( $a, $b ) use ( $order, $key, $use_source ) {
+		usort( $posts, function( $a, $b ) use ( $order, $orderby, $key, $use_source ) {
 			// Add support for using the Elasticsearch _source field.
 			if ( $use_source && 'ID' === $key ) {
 				// Elasticsearch stores the `ID` field as `post_id`.
@@ -144,8 +145,11 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 			if ( $order[ $a->$key ] === $order[ $b->$key ] ) {
 				return 0;
-			} else {
+			} elseif ( 'ASC' === $orderby ) {
 				return $order[ $a->$key ] < $order[ $b->$key ] ? -1 : 1;
+			} else {
+				// Descending order.
+				return $order[ $a->$key ] > $order[ $b->$key ] ? -1 : 1;
 			}
 		} );
 

@@ -102,8 +102,8 @@ function vip_es_field_map( $es_map ) {
 		'post_title'                    => 'title',
 		'post_title.analyzed'           => 'title',
 		'post_excerpt'                  => 'excerpt',
-		'post_password'                 => 'post_password',  // this isn't indexed on vip
-		'post_name'                     => 'post_name',      // this isn't indexed on vip
+		'post_password'                 => 'post_password', // this isn't indexed on vip
+		'post_name'                     => 'slug',
 		'post_modified'                 => 'modified',
 		'post_modified.year'            => 'modified_token.year',
 		'post_modified.month'           => 'modified_token.month',
@@ -125,9 +125,9 @@ function vip_es_field_map( $es_map ) {
 		'post_modified_gmt.minute'      => 'modified_gmt_token.minute',
 		'post_modified_gmt.second'      => 'modified_gmt_token.second',
 		'post_parent'                   => 'parent_post_id',
-		'menu_order'                    => 'menu_order',     // this isn't indexed on vip
+		'menu_order'                    => 'menu_order',
 		'post_mime_type'                => 'post_mime_type', // this isn't indexed on vip
-		'comment_count'                 => 'comment_count',  // this isn't indexed on vip
+		'comment_count'                 => 'discussion.comment_count',
 		'post_meta'                     => 'meta.%s.value.raw_lc',
 		'post_meta.analyzed'            => 'meta.%s.value',
 		'post_meta.long'                => 'meta.%s.long',

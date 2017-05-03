@@ -13,6 +13,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 
 function travis_es_field_map( $es_map ) {
 	return wp_parse_args( array(
+		'ID'                => 'post_id',
 		'post_meta'         => 'post_meta.%s.value',
 		'post_author'       => 'post_author.user_id',
 		'post_date'         => 'post_date.date',

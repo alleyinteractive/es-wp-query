@@ -50,6 +50,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 					}
 
 					$this->posts = $this->post_query_sort_handler( $this->posts, $q );
+					return;
 			}
 		} else {
 			$this->posts = array();
@@ -75,6 +76,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 
 function vip_es_field_map( $es_map ) {
 	return wp_parse_args( array(
+		'ID'                            => 'post_id',
 		'post_author'                   => 'author_id',
 		'post_author.user_nicename'     => 'author_login',
 		'post_date'                     => 'date',

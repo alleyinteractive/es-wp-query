@@ -116,16 +116,16 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 		// Flip the order to allow retrieval by index.
 		$order = array_flip( $query[ $query['orderby'] ] );
+
+		// Support raw Elasticsearch documents.
 		$use_source = apply_filters( 'es_query_use_source', false );
+		if ( $use_source ) {
+			$key = $this->es_map( $key );
+		}
 
 		usort( $posts, function( $a, $b ) use ( $order, $key, $use_source ) {
 			// Add support for using the Elasticsearch _source field.
 			if ( $use_source ) {
-				// Elasticsearch stores the `ID` field as `post_id`.
-				if ( 'ID' === $key ) {
-					$key = 'post_id';
-				}
-
 				// Cast the array to object to mock the `WP_Post` object.
 				$a = (object) $a;
 				$b = (object) $b;
@@ -140,7 +140,9 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				}
 			}
 
-			if ( ! isset( $order[ $a->$key ] ) || ! isset( $order[ $b->$key ] ) ) {
+			if (
+				! isset( $a->$key ) || ! isset( $b->$key )
+				|| ! isset( $order[ $a->$key ] ) || ! isset( $order[ $b->$key ] ) ) {
 				return 0;
 			}
 

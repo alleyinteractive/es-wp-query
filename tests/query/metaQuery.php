@@ -1739,6 +1739,45 @@ class Tests_Query_MetaQuery extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @ticket XXXX
+	 */
+	public function test_orderby_meta_more_than_one_clause_array_defined() {
+		$posts = $this->factory->post->create_many( 3 );
+
+		add_post_meta( $posts[0], 'foo', 'jjj' );
+		add_post_meta( $posts[1], 'foo', 'zzz' );
+		add_post_meta( $posts[2], 'foo', 'jjj' );
+		add_post_meta( $posts[0], 'bar', 'aaa' );
+		add_post_meta( $posts[1], 'bar', 'ccc' );
+		add_post_meta( $posts[2], 'bar', 'bbb' );
+		es_wp_query_index_test_data();
+
+		$r = array(
+			'fields' => 'ids',
+			'meta_query' => array(
+			),
+			'orderby' => array(
+				'foo_key' => 'asc',
+				'bar_key' => 'desc',
+			),
+		 );
+
+		$r['meta_query'][]['foo_key'] = array(
+			'key' => 'foo',
+			'compare' => 'EXISTS',
+		);
+
+		$r['meta_query'][]['bar_key'] = array(
+			'key' => 'bar',
+			'compare' => 'EXISTS',
+		);
+
+		$q = new ES_WP_Query( $r );
+
+		$this->assertEquals( array( $posts[2], $posts[0], $posts[1] ), $q->posts );
+	}
+
+	/**
 	 * @ticket 31045
 	 */
 	public function test_duplicate_clause_keys_should_be_made_unique() {

@@ -13,6 +13,121 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 	protected $es_query;
 
 	/**
+	 * Initialize class .
+	 *
+	 * Call parent, and then initialize a variable
+	 * containing all meta -queries and their types .
+	 *
+	 * @access public
+	 *
+	 * @param array $meta_query array of meta query clauses .
+	 *
+	 * @return none
+	 */ 
+	public function __construct( $meta_query = false ) {
+		/*
+		 * Call parent, so $this->sanitize_query() gets called
+		 * amongst other stuff.
+		 */
+		parent::__construct( $meta_query );
+
+		$this->queries_types_all = $this->queries_types_all_get(
+			$this->queries
+		);
+	}
+
+	/**
+	 * Returns a simplified version of the meta-queries given as an argument.
+	 * The simplification pertains to returning only the key/type values of
+	 * each part of the meta-query. Also, the simplification takes care to flattern
+	 * out the result.
+	 *
+	 * If the meta-query is composed of multiple joining queries, these are
+	 * processed by recursively walking through them, and calling this
+	 * function to process each.
+	 *
+	 * @access protected
+	 *
+	 * @return array All queries, but only with key and type key/values pairs.
+	 */
+	protected function queries_types_all_get( $meta_clauses ) {
+		$queries_types = array();
+
+		if ( ! is_array( $meta_clauses ) ) {
+			return array();
+		}
+
+		if ( empty( $meta_clauses ) ) {
+			return $meta_clauses;
+		}
+
+		foreach (
+			$meta_clauses as $meta_clause_key => $meta_clause_value
+		) {
+			if ( $this->is_first_order_clause(
+				$meta_clauses[ $meta_clause_key ]
+			) ) {
+				/*
+				 * Save this part of the meta-query, but keep only
+				 * the key/type pairs.
+				 *
+				 *
+				 * Note: If there are multiple sub-queries with the same
+				 * key, this will overwrite the previous one (if any).
+				 * As a result, the last one will be the one who prevails.
+				 */
+
+               	
+				if ( isset( $meta_clauses[ $meta_clause_key ]['key'] ) ) {                 
+					$queries_types[
+						$meta_clause_key
+					] = array(
+						'key'   => $meta_clauses[ $meta_clause_key ]['key'],
+					);
+				} else {
+					$queries_types[
+						$meta_clause_key
+					] = array(
+						'key'	=> $meta_clause_key
+					);
+				}
+
+
+				if ( isset(
+					$meta_clauses[ $meta_clause_key ]['type']
+				) ) {
+					$queries_types[ $meta_clause_key ]['type'] =
+						$meta_clauses[ $meta_clause_key ]['type'];
+				}
+
+			} else {
+				/*
+				 * Recursively process the clause.
+				 */
+				$recursive_result = $this->queries_types_all_get(
+					$meta_clauses[ $meta_clause_key ]
+				);
+
+				/*
+				 * Only save the result if an array, and
+				 * it is not empty.
+				 */
+				if (
+					( is_array( $recursive_result ) ) &&
+					( ! empty( $recursive_result ) )
+				) {
+					$queries_types = array_merge(
+						$queries_types,
+						$recursive_result
+					);
+				}
+			}
+		}
+
+		return $queries_types;
+	}
+
+	/**
 	 * Turns an array of meta query parameters into ES Query DSL
 	 *
 	 * @access public

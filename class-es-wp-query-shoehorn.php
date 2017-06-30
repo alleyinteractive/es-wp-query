@@ -218,5 +218,15 @@ class ES_WP_Query_Shoehorn {
 		if ( empty( $q['posts_per_page'] ) ) {
 			$q['posts_per_page'] = get_option( 'posts_per_page' );
 		}
+
+		// Restore the author ID which is normally added during get_posts() in WP_Query.
+		// Required for handle_404() in WP class to not mark empty author archives as 404s.
+		if ( $query->is_author() && ! empty( $q['author_name'] ) ) {
+			$author = get_user_by( 'slug', sanitize_title_for_query( $q['author_name'] ) );
+
+			if ( isset( $author->ID ) ) {
+				$q['author'] = $author->ID;
+			}
+		}
 	}
 }

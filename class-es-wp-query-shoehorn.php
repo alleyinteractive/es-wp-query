@@ -55,11 +55,14 @@ function es_wp_query_shoehorn( &$query ) {
 			$conditionals[ $key ] = $query->$key;
 		}
 
-		$es_query_vars = $query->query_vars;
 		$query_args = $query->query;
+
+		// Run this query through ES.
+		$es_query_vars = $query->query_vars;
 		$es_query_vars['fields'] = 'ids';
 		$es_query = new ES_WP_Query( $es_query_vars );
 
+		// Make the post query use the post IDs from the ES results instead.
 		$query->parse_query( array(
 			'post_type'        => 'any',
 			'post_status'      => 'any',
@@ -69,10 +72,12 @@ function es_wp_query_shoehorn( &$query ) {
 			'orderby'          => 'post__in',
 			'order'            => 'ASC',
 		) );
+
 		# Reinsert all the conditionals from the original query
 		foreach ( $conditionals as $key => $value ) {
 			$query->$key = $value;
 		}
+
 		$shoehorn = new ES_WP_Query_Shoehorn( $query, $es_query, $query_args );
 	}
 }

@@ -199,6 +199,7 @@ class ES_WP_Query_Shoehorn {
 	private function reboot_query_vars( &$query ) {
 		$q =& $query->query_vars;
 
+		// Remove custom query vars used for the ES query in es_wp_query_shoehorn()
 		$current_query_vars = $q;
 		unset(
 			$current_query_vars['post_type'],

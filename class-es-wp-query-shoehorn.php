@@ -22,7 +22,7 @@ add_filter( 'query_vars', 'es_wp_query_arg' );
  */
 function es_wp_query_shoehorn( &$query ) {
 	// Prevent infinite loops!
-	if ( $query instanceof WP_ES_Query ) {
+	if ( $query instanceof ES_WP_Query ) {
 		return;	
 	}
 	

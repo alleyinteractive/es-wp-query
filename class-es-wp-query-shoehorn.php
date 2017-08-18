@@ -21,6 +21,11 @@ add_filter( 'query_vars', 'es_wp_query_arg' );
  * @return void
  */
 function es_wp_query_shoehorn( &$query ) {
+	// Prevent infinite loops!
+	if ( $query instanceof ES_WP_Query ) {
+		return;	
+	}
+	
 	if ( true == $query->get( 'es' ) ) {
 		$conditionals = array(
 			'is_single'            => false,

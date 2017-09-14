@@ -27,9 +27,7 @@ env:
 matrix:
   include:
     - php: 5.4
-      env: WP_VERSION=4.4.2 ES_VERSION=1.3.0
-    - php: 5.6
-      env: WP_VERSION=latest ES_VERSION=1.7.6
+      env: WP_VERSION=4.4.2 ES_VERSION=2.4.6
     - php: 7.0
       env: WP_VERSION=nightly ES_VERSION=5.6.0
     - php: 7.1

@@ -23,9 +23,9 @@ add_filter( 'query_vars', 'es_wp_query_arg' );
 function es_wp_query_shoehorn( &$query ) {
 	// Prevent infinite loops!
 	if ( $query instanceof ES_WP_Query ) {
-		return;	
+		return;
 	}
-	
+
 	if ( true == $query->get( 'es' ) ) {
 		$conditionals = array(
 			'is_single'            => false,
@@ -177,7 +177,7 @@ class ES_WP_Query_Shoehorn {
 	 * @param object $query WP_Query object.
 	 * @return string The SQL query to get posts.
 	 */
-	public function filter__posts_request( $sql, &$query ) {
+	public function filter__posts_request( $sql, $query ) {
 		if ( spl_object_hash( $query ) == $this->hash ) {
 			remove_filter( 'posts_request', array( $this, 'filter__posts_request' ), 1000, 2 );
 			$this->reboot_query_vars( $query );

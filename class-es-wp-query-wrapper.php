@@ -1429,7 +1429,13 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 	}
 
 	public static function dsl_missing( $field, $args = array() ) {
-		return array( 'missing' => array_merge( array( 'field' => $field ), $args ) );
+		return array(
+			'bool' => array(
+				'must_not' => array(
+					'exists' => array_merge( array( 'field' => $field ), $args ),
+				),
+			),
+		);
 	}
 
 	public static function dsl_match( $field, $value, $args = array() ) {

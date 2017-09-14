@@ -11,6 +11,9 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 	}
 }
 
+class ES_Index_Exception extends \Exception {
+}
+
 function travis_es_field_map( $es_map ) {
 	return wp_parse_args( array(
 		'post_meta'         => 'post_meta.%s.value',
@@ -43,8 +46,8 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 			}
 		} while ( --$tries );
 
-		// If we didn't end with a 200 status code, exit
-		travis_es_verify_response_code( $response );
+		// If we didn't end with a 200 status code, bail.
+		return travis_es_verify_response_code( $response );
 	}
 
 	function es_wp_query_index_test_data() {
@@ -280,11 +283,12 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		foreach ( (array) $itemized_response->items as $post ) {
 			// Status should be 200 or 201, depending on if we're updating or creating respectively
 			if ( ! isset( $post->index->status ) || ! in_array( $post->index->status, array( 200, 201 ) ) ) {
-				echo "Error indexing post {$post->index->_id}; HTTP response code: {$post->index->status}";
+				$error_message = "Error indexing post {$post->index->_id}; HTTP response code: {$post->index->status}";
 				if ( ! empty( $post->index->error ) ) {
-					echo "\n" . $post->index->error;
+					$error_message .= "\n" . $post->index->error;
 				}
-				exit( 1 );
+				$error_message .= 'Backtrace:' . travis_es_debug_backtrace_summary();
+				throw new ES_Index_Exception( $error_message );
 			}
 		}
 
@@ -294,23 +298,26 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 
 	function travis_es_verify_response_code( $response ) {
 		if ( '200' != wp_remote_retrieve_response_code( $response ) ) {
-			printf( "Could not index posts!\nResponse code %s\n", wp_remote_retrieve_response_code( $response ) );
+			$message = [ 'Failed to index posts!' ];
 			if ( is_wp_error( $response ) ) {
-				printf( "Message: %s\n", $response->get_error_message() );
+				$message[] = sprintf( 'Message: %s', $response->get_error_message() );
+			} else {
+				$message[] = sprintf( 'Response code %s', wp_remote_retrieve_response_code( $response ) );
+				$message[] = sprintf( 'Message: %s', wp_remote_retrieve_body( $response ) );
 			}
-			printf( "Backtrace: %s\n", travis_es_debug_backtrace_summary() );
-			exit( 1 );
+			$message[] = sprintf( "Backtrace:%s", travis_es_debug_backtrace_summary() );
+			throw new ES_Index_Exception( implode( "\n", $message ) );
 		}
+
+		return true;
 	}
 
 	function travis_es_debug_backtrace_summary() {
 		$backtrace = wp_debug_backtrace_summary( null, 0, false );
-		foreach ( $backtrace as $k => $call ) {
-			if ( preg_match( '/PHPUnit_(TextUI_(Command|TestRunner)|Framework_(TestSuite|TestCase|TestResult))|ReflectionMethod|travis_es_(verify_response_code|debug_backtrace_summary)/', $call ) ) {
-				unset( $backtrace[ $k ] );
-			}
-		}
-		return join( ', ', array_reverse( $backtrace ) );
+		$backtrace = array_filter( $backtrace, function( $call ) {
+			return ! preg_match( '/PHPUnit_(TextUI_(Command|TestRunner)|Framework_(TestSuite|TestCase|TestResult))|ReflectionMethod|travis_es_(verify_response_code|debug_backtrace_summary)/', $call );
+		} );
+		return "\n\t" . join( "\n\t", $backtrace );
 	}
 
 	/**

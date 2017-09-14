@@ -24,7 +24,10 @@ function _manually_load_plugin() {
 		exit( 1 );
 	}
 
-	es_wp_query_verify_es_is_running();
+	if ( ! es_wp_query_verify_es_is_running() ) {
+		echo "\n\nFatal: bootstrap check failed!\n";
+		exit( 1 );
+	}
 }
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 

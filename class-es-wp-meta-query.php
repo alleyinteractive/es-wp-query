@@ -210,9 +210,9 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 			case 'LIKE' :
 			case 'NOT LIKE' :
 				if ( '*' == $clause['key'] ) {
-					$filter = array( 'query' => $this->es_query->dsl_multi_match( $this->es_query->meta_map( $clause['key'], 'analyzed' ), $clause['value'] ) );
+					$filter = $this->es_query->dsl_multi_match( $this->es_query->meta_map( $clause['key'], 'analyzed' ), $clause['value'] );
 				} else {
-					$filter = array( 'query' => $this->es_query->dsl_match( $this->es_query->meta_map( $clause['key'], 'analyzed' ), $clause['value'] ) );
+					$filter = $this->es_query->dsl_match( $this->es_query->meta_map( $clause['key'], 'analyzed' ), $clause['value'] );
 				}
 				break;
 
@@ -247,7 +247,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 
 			default :
 				if ( '*' == $clause['key'] ) {
-					$filter = array( 'query' => $this->es_query->dsl_multi_match( $this->es_query->meta_map( $clause['key'], $clause['type'] ), $clause['value'] ) );
+					$filter = $this->es_query->dsl_multi_match( $this->es_query->meta_map( $clause['key'], $clause['type'] ), $clause['value'] );
 				} else {
 					$filter = $this->es_query->dsl_terms( $this->es_query->meta_map( $clause['key'], $clause['type'] ), $clause['value'] );
 				}

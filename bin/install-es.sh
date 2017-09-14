@@ -16,6 +16,7 @@ setup_es() {
 
 start_es() {
   echo "Starting Elasticsearch $ES_VERSION..."
+  echo "/tmp/elasticsearch/bin/elasticsearch $1 > /tmp/elasticsearch.log &"
   /tmp/elasticsearch/bin/elasticsearch $1 > /tmp/elasticsearch.log &
 }
 

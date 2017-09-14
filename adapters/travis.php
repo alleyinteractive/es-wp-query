@@ -253,7 +253,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		// Index the content
 		$posts = get_posts( array(
 			'posts_per_page' => -1,
-			'post_type' => 'any',
+			'post_type' => array_values( get_post_types() ),
 			'post_status' => array_values( get_post_stati() ),
 			'orderby' => 'ID',
 			'order' => 'ASC',

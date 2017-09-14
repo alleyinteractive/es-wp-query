@@ -97,12 +97,18 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 		// Filter to remove empties.
 		$filters = array_filter( $filters );
 
-		if ( empty( $relation ) ) {
-			$relation = 'and';
+		if ( ! empty( $relation ) && 'or' === strtolower( $relation ) ) {
+			$relation = 'should';
+		} else {
+			$relation = 'filter';
 		}
 
 		if ( count( $filters ) > 1 ) {
-			$filters = array( strtolower( $relation ) => $filters );
+			$filters = array(
+				'bool' => array(
+					$relation => $filters,
+				),
+			);
 		} elseif ( ! empty( $filters ) ) {
 			$filters = reset( $filters );
 		}
@@ -183,7 +189,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 					if ( count( $matches ) > 1 ) {
 						$current_filter = array(
 							'bool' => array(
-								( 'AND' == $clause['operator'] ? 'must' : 'should' ) => $matches,
+								( 'AND' == $clause['operator'] ? 'filter' : 'should' ) => $matches,
 							),
 						);
 					} else {
@@ -200,7 +206,11 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 		}
 
 		if ( 'NOT IN' == $clause['operator'] ) {
-			return array( 'not' => $current_filter );
+			return array(
+				'bool' => array(
+					'must_not' => $current_filter,
+				),
+			);
 		} else {
 			return $current_filter;
 		}

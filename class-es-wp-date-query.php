@@ -23,7 +23,11 @@ class ES_WP_Date_Query extends WP_Date_Query {
 				if ( 1 == count( $filter_parts ) ) {
 					$filter[] = reset( $filter_parts );
 				} else {
-					$filter[] = array( 'and' => $filter_parts );
+					$filter[] = array(
+						'bool' => array(
+							'filter' => $filter_parts,
+						),
+					);
 				}
 			}
 		}
@@ -32,7 +36,16 @@ class ES_WP_Date_Query extends WP_Date_Query {
 		if ( 1 == count( $filter ) ) {
 			$filter = reset( $filter );
 		} elseif ( ! empty( $filter ) ) {
-			$filter = array( strtolower( $this->relation ) => $filter );
+			if ( 'or' === strtolower( $this->relation ) ) {
+				$relation = 'should';
+			} else {
+				$relation = 'filter';
+			}
+			$filter = array(
+				'bool' => array(
+					$relation => $filter,
+				),
+			);
 		} else {
 			$filter = array();
 		}
@@ -283,7 +296,11 @@ class ES_WP_Date_Query extends WP_Date_Query {
 		}
 
 		if ( ! empty( $part ) && in_array( $compare, array( '!=', 'NOT IN', 'NOT BETWEEN' ) ) ) {
-			return array( 'not' => $part );
+			return array(
+				'bool' => array(
+					'must_not' => $part,
+				),
+			);
 		} else {
 			return $part;
 		}

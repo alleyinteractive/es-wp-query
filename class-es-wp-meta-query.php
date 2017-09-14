@@ -86,12 +86,18 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 		$filters = array_filter( $filters );
 		$this->clauses = array_filter( $this->clauses );
 
-		if ( empty( $relation ) ) {
-			$relation = 'and';
+		if ( ! empty( $relation ) && 'or' === strtolower( $relation ) ) {
+			$relation = 'should';
+		} else {
+			$relation = 'filter';
 		}
 
 		if ( count( $filters ) > 1 ) {
-			$filters = array( strtolower( $relation ) => $filters );
+			$filters = array(
+				'bool' => array(
+					$relation => $filters,
+				),
+			);
 		} elseif ( ! empty( $filters ) ) {
 			$filters = reset( $filters );
 		}
@@ -254,9 +260,11 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 			// query, we still only query posts where the meta key exists.
 			if ( in_array( $clause['compare'], array( 'NOT IN', '!=', 'NOT BETWEEN', 'NOT LIKE' ) ) ) {
 				return array(
-					'and' => array(
-						$this->es_query->dsl_exists( $this->es_query->meta_map( $clause['key'] ) ),
-						array( 'not' => $filter ),
+					'bool' => array(
+						'filter' => array(
+							$this->es_query->dsl_exists( $this->es_query->meta_map( $clause['key'] ) ),
+						),
+						'must_not' => $filter,
 					),
 				);
 			} else {

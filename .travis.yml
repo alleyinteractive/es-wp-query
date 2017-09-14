@@ -51,7 +51,7 @@ before_script:
     if [[ ! -z "$WP_VERSION" ]] ; then
       bash bin/install-wp-tests.sh wordpress_test root '' localhost $WP_VERSION
     fi
-  - sleep 5
+  - sleep 15
   - curl localhost:9200 && echo "ES is up" || (cat /tmp/elasticsearch.log && exit 1)
   - phpunit --version
 

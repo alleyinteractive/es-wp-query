@@ -29,7 +29,7 @@ fi
 
 # java_home='/usr/lib/jvm/java-8-oracle'
 if [[ "$ES_VERSION" == 5.* ]]; then
-  start_es '-Epath.repo=/tmp -Enetwork.host=0.0.0.0'
+  start_es '-Epath.repo=/tmp -Enetwork.host=0.0.0.0 -Des.enforce.bootstrap.checks=false'
 else
   start_es '-Des.path.repo=/tmp'
 fi

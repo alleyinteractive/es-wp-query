@@ -2,8 +2,15 @@
 
 define( 'ES_WP_QUERY_TEST_ENV', true );
 
-$_tests_dir = getenv('WP_TESTS_DIR');
-if ( !$_tests_dir ) $_tests_dir = '/tmp/wordpress-tests-lib';
+$_tests_dir = getenv( 'WP_TESTS_DIR' );
+if ( ! $_tests_dir ) {
+	$_tests_dir = '/tmp/wordpress-tests-lib';
+}
+
+$_es_version = getenv( 'ES_VERSION' );
+if ( ! defined( 'ES_VERSION' ) && $_es_version ) {
+	define( 'ES_VERSION', $_es_version );
+}
 
 require_once $_tests_dir . '/includes/functions.php';
 

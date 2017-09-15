@@ -66,7 +66,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 
 		$analyzed = 'text';
 		$not_analyzed = 'keyword';
-		if ( version_compare( ES_VERSION, '2.4.6', '<' ) ) {
+		if ( version_compare( ES_VERSION, '5.0.0', '<' ) ) {
 			$analyzed = 'string';
 			$not_analyzed = 'string", "index": "not_analyzed';
 		}

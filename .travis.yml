@@ -32,6 +32,13 @@ matrix:
       env: WP_VERSION=nightly ES_VERSION=5.6.0
     - php: 7.1
       env: WP_VERSION=latest ES_VERSION=2.4.6
+    - php: 7.1
+      env: WP_VERSION=latest ES_VERSION=6.0.0-beta2
+    - php: 7.2
+      env: WP_VERSION=nightly ES_VERSION=5.6.0
+  allow_failures:
+    - env: WP_VERSION=latest ES_VERSION=6.0.0-beta2
+    - php: 7.2
   fast_finish: true
 
 install:

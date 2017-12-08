@@ -66,8 +66,8 @@ function es_wp_query_shoehorn( &$query ) {
 		$es_query = new ES_WP_Query( $es_query_vars );
 
 		$query->parse_query( array(
-			'post_type'        => 'any',
-			'post_status'      => 'any',
+			'post_type'        => $query->get( 'post_type' ),
+			'post_status'      => $query->get( 'post_status' ),
 			'post__in'         => $es_query->posts,
 			'posts_per_page'   => $es_query->post_count,
 			'fields'           => $query->get( 'fields' ),

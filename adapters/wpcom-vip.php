@@ -20,6 +20,8 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 						$post_id = (array) $hit['fields'][ $this->es_map( 'post_id' ) ];
 						$this->posts[] = reset( $post_id );
 					}
+
+					$this->posts = $this->post_query_sort_handler( $this->posts, $q );
 					return;
 
 				case 'id=>parent' :
@@ -33,7 +35,6 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 				default :
 					if ( apply_filters( 'es_query_use_source', false ) ) {
 						$this->posts = wp_list_pluck( $es_response['results']['hits'], '_source' );
-						return;
 					} else {
 						$post_ids = array();
 						foreach ( $es_response['results']['hits'] as $hit ) {
@@ -46,8 +47,10 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 							$post__in = implode( ',', $post_ids );
 							$this->posts = $wpdb->get_results( "SELECT $wpdb->posts.* FROM $wpdb->posts WHERE ID IN ($post__in) ORDER BY FIELD( {$wpdb->posts}.ID, $post__in )" );
 						}
-						return;
 					}
+
+					$this->posts = $this->post_query_sort_handler( $this->posts, $q );
+					return;
 			}
 		} else {
 			$this->posts = array();
@@ -73,6 +76,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 
 function vip_es_field_map( $es_map ) {
 	return wp_parse_args( array(
+		'ID'                            => 'post_id',
 		'post_author'                   => 'author_id',
 		'post_author.user_nicename'     => 'author_login',
 		'post_date'                     => 'date',
@@ -100,8 +104,8 @@ function vip_es_field_map( $es_map ) {
 		'post_title'                    => 'title',
 		'post_title.analyzed'           => 'title',
 		'post_excerpt'                  => 'excerpt',
-		'post_password'                 => 'post_password',  // this isn't indexed on vip
-		'post_name'                     => 'post_name',      // this isn't indexed on vip
+		'post_password'                 => 'post_password', // this isn't indexed on vip
+		'post_name'                     => 'slug',
 		'post_modified'                 => 'modified',
 		'post_modified.year'            => 'modified_token.year',
 		'post_modified.month'           => 'modified_token.month',
@@ -123,9 +127,9 @@ function vip_es_field_map( $es_map ) {
 		'post_modified_gmt.minute'      => 'modified_gmt_token.minute',
 		'post_modified_gmt.second'      => 'modified_gmt_token.second',
 		'post_parent'                   => 'parent_post_id',
-		'menu_order'                    => 'menu_order',     // this isn't indexed on vip
+		'menu_order'                    => 'menu_order',
 		'post_mime_type'                => 'post_mime_type', // this isn't indexed on vip
-		'comment_count'                 => 'comment_count',  // this isn't indexed on vip
+		'comment_count'                 => 'discussion.comment_count',
 		'post_meta'                     => 'meta.%s.value.raw_lc',
 		'post_meta.analyzed'            => 'meta.%s.value',
 		'post_meta.long'                => 'meta.%s.long',

@@ -11,6 +11,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 
 function sp_es_field_map( $es_map ) {
 	return wp_parse_args( array(
+		'ID'                    => 'post_id',
 		'post_name'             => 'post_name.raw',
 		'post_title'            => 'post_title.raw',
 		'post_title.analyzed'   => 'post_title',

@@ -73,6 +73,7 @@ function es_wp_query_shoehorn( &$query ) {
 			'fields'           => $query->get( 'fields' ),
 			'orderby'          => 'post__in',
 			'order'            => 'ASC',
+			'no_found_rows'    => isset( $es_query_vars->no_found_rows ) ? $es_query_vars->no_found_rows : true,
 		) );
 		# Reinsert all the conditionals from the original query
 		foreach ( $conditionals as $key => $value ) {

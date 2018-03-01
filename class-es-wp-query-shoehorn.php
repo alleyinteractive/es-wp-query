@@ -60,11 +60,14 @@ function es_wp_query_shoehorn( &$query ) {
 			$conditionals[ $key ] = $query->$key;
 		}
 
-		$es_query_vars = $query->query_vars;
 		$query_args = $query->query;
+
+		// Run this query through ES.
+		$es_query_vars = $query->query_vars;
 		$es_query_vars['fields'] = 'ids';
 		$es_query = new ES_WP_Query( $es_query_vars );
 
+		// Make the post query use the post IDs from the ES results instead.
 		$query->parse_query( array(
 			'post_type'        => $query->get( 'post_type' ),
 			'post_status'      => $query->get( 'post_status' ),
@@ -74,10 +77,12 @@ function es_wp_query_shoehorn( &$query ) {
 			'orderby'          => 'post__in',
 			'order'            => 'ASC',
 		) );
+
 		# Reinsert all the conditionals from the original query
 		foreach ( $conditionals as $key => $value ) {
 			$query->$key = $value;
 		}
+
 		$shoehorn = new ES_WP_Query_Shoehorn( $query, $es_query, $query_args );
 	}
 }
@@ -204,6 +209,7 @@ class ES_WP_Query_Shoehorn {
 	private function reboot_query_vars( &$query ) {
 		$q =& $query->query_vars;
 
+		// Remove custom query vars used for the ES query in es_wp_query_shoehorn()
 		$current_query_vars = $q;
 		unset(
 			$current_query_vars['post_type'],
@@ -222,6 +228,16 @@ class ES_WP_Query_Shoehorn {
 		// Restore some necessary defaults if we zapped 'em
 		if ( empty( $q['posts_per_page'] ) ) {
 			$q['posts_per_page'] = get_option( 'posts_per_page' );
+		}
+
+		// Restore the author ID which is normally added during get_posts() in WP_Query.
+		// Required for handle_404() in WP class to not mark empty author archives as 404s.
+		if ( $query->is_author() && ! empty( $q['author_name'] ) ) {
+			$author = get_user_by( 'slug', sanitize_title_for_query( $q['author_name'] ) );
+
+			if ( isset( $author->ID ) ) {
+				$q['author'] = $author->ID;
+			}
 		}
 	}
 }

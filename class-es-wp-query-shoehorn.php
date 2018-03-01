@@ -182,7 +182,7 @@ class ES_WP_Query_Shoehorn {
 	 * @param object $query WP_Query object.
 	 * @return string The SQL query to get posts.
 	 */
-	public function filter__posts_request( $sql, &$query ) {
+	public function filter__posts_request( $sql, $query ) {
 		if ( spl_object_hash( $query ) == $this->hash ) {
 			remove_filter( 'posts_request', array( $this, 'filter__posts_request' ), 1000, 2 );
 			$this->reboot_query_vars( $query );

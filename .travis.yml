@@ -10,33 +10,33 @@ addons:
     packages:
       - oracle-java8-installer
 
-language: php
-
-matrix:
-  include:
-    - php: 5.4
-      env: WP_VERSION=4.4.14 ES_VERSION=2.2.0
-    - php: 5.4
-      env: WP_VERSION=latest ES_VERSION=2.2.0
-    - php: 5.6
-      env: WP_VERSION=latest ES_VERSION=2.2.0
-    - php: 7.2
-      env: WP_VERSION=latest ES_VERSION=2.2.0
-    - php: 5.6
-      env: WP_VERSION=nightly ES_VERSION=2.2.0
-    - php: 5.6
-      env: WP_VERSION=latest ES_VERSION=2.1.2
-    - php: 5.6
-      env: WP_VERSION=latest ES_VERSION=2.0.2
-  fast_finish: true
+notifications:
+  email:
+    on_success: never
+    on_failure: change
 
 branches:
   only:
     - master
+    - master-1.x
 
 env:
   global:
     - JAVA_HOME=/usr/lib/jvm/java-8-oracle
+
+matrix:
+  include:
+    - php: 5.4
+      env: WP_VERSION=4.4.2 ES_VERSION=2.4.6
+    - php: 7.0
+      env: WP_VERSION=nightly ES_VERSION=5.6.8
+    - php: 7.1
+      env: WP_VERSION=latest ES_VERSION=2.4.6
+    - php: 7.1
+      env: WP_VERSION=latest ES_VERSION=6.2.2
+    - php: 7.2
+      env: WP_VERSION=nightly ES_VERSION=5.6.8
+  fast_finish: true
 
 install:
   - bash bin/install-es.sh $ES_VERSION
@@ -52,7 +52,7 @@ before_script:
 script:
   - find . -path ./vendor -prune -o -type "f" -iname "*.php" | xargs -L "1" php -l
   - phpunit
-  - if [[ "$ES_VERSION" == "2.2.0" ]]; then phpunit -c multisite.xml; fi;
+  - phpunit -c multisite.xml
 
 after_script:
   - cat /tmp/elasticsearch.log

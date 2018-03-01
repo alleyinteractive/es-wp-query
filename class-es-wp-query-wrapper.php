@@ -44,15 +44,15 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			switch ( $q['fields'] ) {
 				case 'ids' :
 					foreach ( $es_response['hits']['hits'] as $hit ) {
-						$post_id = (array) $hit['fields'][ $this->es_map( 'post_id' ) ];
+						$post_id = (array) $hit['_source'][ $this->es_map( 'post_id' ) ];
 						$this->posts[] = reset( $post_id );
 					}
 					return;
 
 				case 'id=>parent' :
 					foreach ( $es_response['hits']['hits'] as $hit ) {
-						$post_id = (array) $hit['fields'][ $this->es_map( 'post_id' ) ];
-						$post_parent = (array) $hit['fields'][ $this->es_map( 'post_parent' ) ];
+						$post_id = (array) $hit['_source'][ $this->es_map( 'post_id' ) ];
+						$post_parent = (array) $hit['_source'][ $this->es_map( 'post_parent' ) ];
 						$this->posts[ reset( $post_id ) ] = reset( $post_parent );
 					}
 					return;
@@ -64,7 +64,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 					} else {
 						$post_ids = array();
 						foreach ( $es_response['hits']['hits'] as $hit ) {
-							$post_id = (array) $hit['fields'][ $this->es_map( 'post_id' ) ];
+							$post_id = (array) $hit['_source'][ $this->es_map( 'post_id' ) ];
 							$post_ids[] = absint( reset( $post_id ) );
 						}
 						$post_ids = array_filter( $post_ids );
@@ -480,7 +480,11 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$filter[] = $this->dsl_terms( $this->es_map( 'post_id' ), $post__in );
 		} elseif ( $q['post__not_in'] ) {
 			$post__not_in = array_map( 'absint', $q['post__not_in'] );
-			$filter[] = array( 'not' => $this->dsl_terms( $this->es_map( 'post_id' ), $post__not_in ) );
+			$filter[] = array(
+				'bool' => array(
+					'must_not' => $this->dsl_terms( $this->es_map( 'post_id' ), $post__not_in )
+				),
+			);
 		}
 
 		if ( is_numeric( $q['post_parent'] ) ) {
@@ -490,7 +494,11 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$filter[] = $this->dsl_terms( $this->es_map( 'post_parent' ), $post_parent__in );
 		} elseif ( $q['post_parent__not_in'] ) {
 			$post_parent__not_in = array_map( 'absint', $q['post_parent__not_in'] );
-			$filter[] = array( 'not' => $this->dsl_terms( $this->es_map( 'post_parent' ), $post_parent__not_in ) );
+			$filter[] = array(
+				'bool' => array(
+					'must_not' => $this->dsl_terms( $this->es_map( 'post_parent' ), $post_parent__not_in ),
+				),
+			);
 		}
 
 		if ( $q['page_id'] ) {
@@ -514,10 +522,14 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		if ( ! empty( $search ) ) {
 			$query['must'] = apply_filters_ref_array( 'es_posts_search', array( $search, &$this ) );
 			if ( ! is_user_logged_in() ) {
-				$filter[] = array( 'or' => array(
-					$this->dsl_terms( $this->es_map( 'post_password' ), '' ),
-					$this->dsl_missing( $this->es_map( 'post_password' ) )
-				) );
+				$filter[] = array(
+					'bool' => array(
+						'should' => array(
+							$this->dsl_terms( $this->es_map( 'post_password' ), '' ),
+							$this->dsl_missing( $this->es_map( 'post_password' ) ),
+						),
+					),
+				);
 			}
 		}
 
@@ -628,7 +640,11 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 		if ( ! empty( $q['author__not_in'] ) ) {
 			$author__not_in = array_map( 'absint', array_unique( (array) $q['author__not_in'] ) );
-			$filter[] = array( 'not' => $this->dsl_terms( $this->es_map( 'post_author' ), $author__not_in ) );
+			$filter[] = array(
+				'bool' => array(
+					'must_not' => $this->dsl_terms( $this->es_map( 'post_author' ), $author__not_in ),
+				),
+			);
 		} elseif ( ! empty( $q['author__in'] ) ) {
 			$author__in = array_map( 'absint', array_unique( (array) $q['author__in'] ) );
 			$filter[] = $this->dsl_terms( $this->es_map( 'post_author' ), $author__in );
@@ -813,15 +829,23 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 			if ( ! empty( $e_status ) ) {
 				// $statuswheres[] = "(" . join( ' AND ', $e_status ) . ")";
-				$status_ands[] = array( 'not' => $this->dsl_terms( $this->es_map( 'post_status' ), $e_status ) );
+				$status_ands[] = array(
+					'bool' => array(
+						'must_not' => $this->dsl_terms( $this->es_map( 'post_status' ), $e_status ),
+					),
+				);
 			}
 			if ( ! empty( $r_status ) ) {
 				if ( !empty($q['perm'] ) && 'editable' == $q['perm'] && !current_user_can($edit_others_cap) ) {
 					// $statuswheres[] = "($wpdb->posts.post_author = $user_id " . "AND (" . join( ' OR ', $r_status ) . "))";
-					$status_ands[] = array( 'bool' => array( 'must' => array(
-						$this->dsl_terms( $this->es_map( 'post_author' ), $user_id ),
-						$this->dsl_terms( $this->es_map( 'post_status' ), $r_status )
-					) ) );
+					$status_ands[] = array(
+						'bool' => array(
+							'filter' => array(
+								$this->dsl_terms( $this->es_map( 'post_author' ), $user_id ),
+								$this->dsl_terms( $this->es_map( 'post_status' ), $r_status ),
+ 							),
+ 						),
+ 					);
 				} else {
 					// $statuswheres[] = "(" . join( ' OR ', $r_status ) . ")";
 					$status_ands[] = $this->dsl_terms( $this->es_map( 'post_status' ), $r_status );
@@ -830,10 +854,14 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			if ( ! empty( $p_status ) ) {
 				if ( ! empty( $q['perm'] ) && 'readable' == $q['perm'] && ! current_user_can( $read_private_cap ) ) {
 					// $statuswheres[] = "($wpdb->posts.post_author = $user_id " . "AND (" . join( ' OR ', $p_status ) . "))";
-					$status_ands[] = array( 'bool' => array( 'must' => array(
-						$this->dsl_terms( $this->es_map( 'post_author' ), $user_id ),
-						$this->dsl_terms( $this->es_map( 'post_status' ), $p_status )
-					) ) );
+					$status_ands[] = array(
+						'bool' => array(
+							'filter' => array(
+								$this->dsl_terms( $this->es_map( 'post_author' ), $user_id ),
+								$this->dsl_terms( $this->es_map( 'post_status' ), $p_status ),
+							),
+						),
+					);
 				} else {
 					// $statuswheres[] = "(" . join( ' OR ', $p_status ) . ")";
 					$status_ands[] = $this->dsl_terms( $this->es_map( 'post_status' ), $p_status );
@@ -868,10 +896,14 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 					if ( current_user_can( $read_private_cap ) ) {
 						$singular_states[] = $state;
 					} else {
-						$singular_states_ors[] = array( 'and' => array(
-							$this->dsl_terms( $this->es_map( 'post_author' ), $user_id ),
-							$this->dsl_terms( $this->es_map( 'post_status' ), $state )
-						) );
+						$singular_states_ors[] = array(
+							'bool' => array(
+								'filter' => array(
+									$this->dsl_terms( $this->es_map( 'post_author' ), $user_id ),
+									$this->dsl_terms( $this->es_map( 'post_status' ), $state ),
+								),
+							),
+						);
 					}
 				}
 			}
@@ -880,7 +912,11 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$singular_states_filter = $this->dsl_terms( $this->es_map( 'post_status' ), $singular_states );
 			if ( ! empty( $singular_states_ors ) ) {
 				$singular_states_ors[] = $singular_states_filter;
-				$filter[] = array( 'or' => $singular_states_ors );
+				$filter[] = array(
+					'bool' => array(
+						'should' => $singular_states_ors,
+					),
+				);
 			} else {
 				$filter[] = $singular_states_filter;
 			}
@@ -952,21 +988,22 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				$where = "AND 0";
 		}
 
-		// Run cleanup on our filter and query
+		// Run cleanup on our filter and query.
 		$filter = array_filter( $filter );
-		if ( ! empty( $filter ) ) {
-			$filter = array( 'and' => $filter );
-		}
 
 		$query = array_filter( $query );
 		if ( ! empty( $query ) ) {
-			if ( 1 == count( $query ) && ! empty( $query['must'] ) && 1 == count( $query['must'] ) ) {
+			if (
+				1 === count( $query )
+				&& ! empty( $query['must'] )
+				&& 1 === count( $query['must'] )
+				&& empty( $filter )
+			) {
 				$query = $query['must'];
 			} else {
-				$query = array( 'bool' => $query );
-				if ( ! empty( $query['bool']['should'] ) ) {
-					$query['bool']['minimum_should_match'] = 1;
-				}
+				$query = array(
+					'bool' => $query,
+				);
 			}
 		}
 
@@ -1006,13 +1043,20 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				$$piece = isset( $clauses[ $piece ] ) ? $clauses[ $piece ] : '';
 		}
 
+		// Add the filters to the query.
+		if ( ! empty( $filter ) ) {
+			if ( empty( $query['bool']['filter'] ) ) {
+				$query['bool']['filter'] = array();
+			}
+			$query['bool']['filter'] = array_merge( $query['bool']['filter'], $filter );
+		}
+
 		$this->es_args = array(
-			'filter' => $filter,
-			'query'  => $query,
-			'sort'   => $sort,
-			'fields' => $fields,
-			'from'   => $from,
-			'size'   => $size
+			'query'   => $query,
+			'sort'    => $sort,
+			'_source' => $fields,
+			'from'    => $from,
+			'size'    => $size,
 		);
 
 		// Remove empty criteria
@@ -1385,7 +1429,13 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 	}
 
 	public static function dsl_missing( $field, $args = array() ) {
-		return array( 'missing' => array_merge( array( 'field' => $field ), $args ) );
+		return array(
+			'bool' => array(
+				'must_not' => array(
+					'exists' => array_merge( array( 'field' => $field ), $args ),
+				),
+			),
+		);
 	}
 
 	public static function dsl_match( $field, $value, $args = array() ) {
@@ -1401,6 +1451,6 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		foreach ( $values as $value ) {
 			$queries[] = array( 'term' => array( $field => $value ) );
 		}
-		return array( 'bool' => array( 'must' => $queries ) );
+		return array( 'bool' => array( 'filter' => $queries ) );
 	}
 }

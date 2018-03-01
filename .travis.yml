@@ -4,11 +4,13 @@ matrix:
   include:
     - php: 5.3
       env: WP_VERSION=4.3.3 ES_VERSION=2.2.0
+      dist: precise
     - php: 5.3
       env: WP_VERSION=latest ES_VERSION=2.2.0
+      dist: precise
     - php: 5.6
       env: WP_VERSION=latest ES_VERSION=2.2.0
-    - php: 7.0
+    - php: 7.2
       env: WP_VERSION=latest ES_VERSION=2.2.0
     - php: 5.6
       env: WP_VERSION=nightly ES_VERSION=2.2.0

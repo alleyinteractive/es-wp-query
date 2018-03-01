@@ -23,9 +23,9 @@ add_filter( 'query_vars', 'es_wp_query_arg' );
 function es_wp_query_shoehorn( &$query ) {
 	// Prevent infinite loops!
 	if ( $query instanceof ES_WP_Query ) {
-		return;	
+		return;
 	}
-	
+
 	if ( true == $query->get( 'es' ) ) {
 		$conditionals = array(
 			'is_single'            => false,
@@ -209,7 +209,7 @@ class ES_WP_Query_Shoehorn {
 	private function reboot_query_vars( &$query ) {
 		$q =& $query->query_vars;
 
-		// Remove custom query vars used for the ES query in es_wp_query_shoehorn()
+		// Remove custom query vars used for the ES query in es_wp_query_shoehorn().
 		$current_query_vars = $q;
 		unset(
 			$current_query_vars['post_type'],
@@ -225,7 +225,7 @@ class ES_WP_Query_Shoehorn {
 		$query->parse_query();
 		$q = array_merge( $current_query_vars, $q );
 
-		// Restore some necessary defaults if we zapped 'em
+		// Restore some necessary defaults if we zapped 'em.
 		if ( empty( $q['posts_per_page'] ) ) {
 			$q['posts_per_page'] = get_option( 'posts_per_page' );
 		}
@@ -233,6 +233,14 @@ class ES_WP_Query_Shoehorn {
 		// Restore the author ID which is normally added during get_posts() in WP_Query.
 		// Required for handle_404() in WP class to not mark empty author archives as 404s.
 		if ( $query->is_author() && ! empty( $q['author_name'] ) ) {
+			if ( false !== strpos( $q['author_name'], '/' ) ) {
+				$q['author_name'] = explode( '/', $q['author_name'] );
+				if ( $q['author_name'][ count( $q['author_name'] ) - 1 ] ) {
+					$q['author_name'] = $q['author_name'][ count( $q['author_name'] ) - 1 ]; // no trailing slash.
+				} else {
+					$q['author_name'] = $q['author_name'][ count( $q['author_name'] ) - 2 ]; // there was a trailing slash.
+				}
+			}
 			$author = get_user_by( 'slug', sanitize_title_for_query( $q['author_name'] ) );
 
 			if ( isset( $author->ID ) ) {

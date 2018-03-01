@@ -29,16 +29,13 @@ matrix:
     - php: 5.4
       env: WP_VERSION=4.4.2 ES_VERSION=2.4.6
     - php: 7.0
-      env: WP_VERSION=nightly ES_VERSION=5.6.0
+      env: WP_VERSION=nightly ES_VERSION=5.6.8
     - php: 7.1
       env: WP_VERSION=latest ES_VERSION=2.4.6
     - php: 7.1
-      env: WP_VERSION=latest ES_VERSION=6.0.0-beta2
+      env: WP_VERSION=latest ES_VERSION=6.2.2
     - php: 7.2
-      env: WP_VERSION=nightly ES_VERSION=5.6.0
-  allow_failures:
-    - env: WP_VERSION=latest ES_VERSION=6.0.0-beta2
-    - php: 7.2
+      env: WP_VERSION=nightly ES_VERSION=5.6.8
   fast_finish: true
 
 install:
@@ -46,19 +43,11 @@ install:
 
 before_script:
   - export PATH="$HOME/.composer/vendor/bin:$PATH"
-  - |
-    if [[ ${TRAVIS_PHP_VERSION:0:2} == "7." ]]; then
-      composer global require "phpunit/phpunit=5.7.*"
-    else
-      composer global require "phpunit/phpunit=4.8.*"
-    fi
-  - |
-    if [[ ! -z "$WP_VERSION" ]] ; then
-      bash bin/install-wp-tests.sh wordpress_test root '' localhost $WP_VERSION
-    fi
-  - sleep 5
-  - curl localhost:9200 && echo "ES is up" || (cat /tmp/elasticsearch.log && exit 1)
+  - composer global require "phpunit/phpunit=4.8.*|5.7.*"
+  - which phpunit
   - phpunit --version
+  - bash bin/install-wp-tests.sh wordpress_test root '' localhost $WP_VERSION
+  - curl localhost:9200 && echo "ES is up" || (cat /tmp/elasticsearch.log && exit 1)
 
 script:
   - find . -path ./vendor -prune -o -type "f" -iname "*.php" | xargs -L "1" php -l

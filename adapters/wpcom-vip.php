@@ -44,13 +44,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 						if ( ! empty( $post_ids ) ) {
 							global $wpdb;
 							$post__in = implode( ',', $post_ids );
-							// Explicitly set the sort post__in property to allow for final posts to honor orderby = 'post__in'.
-							$sort_post__in = $post__in;
-							$q = $this->query_vars;
-                            if( 'post__in' == $q['orderby'] && ! empty( $q['post__in'] ) ) {
-                                $sort_post__in = implode( ',', $q['post__in'] );
-                            }
-							$this->posts = $wpdb->get_results( "SELECT $wpdb->posts.* FROM $wpdb->posts WHERE ID IN ($post__in) ORDER BY FIELD( {$wpdb->posts}.ID, $sort_post__in )" );
+							$this->posts = $wpdb->get_results( "SELECT $wpdb->posts.* FROM $wpdb->posts WHERE ID IN ($post__in) ORDER BY FIELD( {$wpdb->posts}.ID, $post__in )" );
 						}
 						return;
 					}

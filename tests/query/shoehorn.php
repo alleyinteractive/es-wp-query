@@ -54,7 +54,6 @@ class Tests_Query_Shoehorn extends WP_UnitTestCase {
 
 		es_wp_query_index_test_data();
 
-		unset( $this->q );
 		$this->q = new WP_Query();
 	}
 

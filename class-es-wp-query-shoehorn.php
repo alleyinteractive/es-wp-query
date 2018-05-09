@@ -21,6 +21,11 @@ add_filter( 'query_vars', 'es_wp_query_arg' );
  * @return void
  */
 function es_wp_query_shoehorn( &$query ) {
+	// Prevent infinite loops!
+	if ( $query instanceof ES_WP_Query ) {
+		return;
+	}
+
 	if ( true == $query->get( 'es' ) ) {
 		$conditionals = array(
 			'is_single'            => false,
@@ -55,24 +60,29 @@ function es_wp_query_shoehorn( &$query ) {
 			$conditionals[ $key ] = $query->$key;
 		}
 
-		$es_query_vars = $query->query_vars;
 		$query_args = $query->query;
+
+		// Run this query through ES.
+		$es_query_vars = $query->query_vars;
 		$es_query_vars['fields'] = 'ids';
 		$es_query = new ES_WP_Query( $es_query_vars );
 
+		// Make the post query use the post IDs from the ES results instead.
 		$query->parse_query( array(
-			'post_type'        => 'any',
-			'post_status'      => 'any',
+			'post_type'        => $query->get( 'post_type' ),
+			'post_status'      => $query->get( 'post_status' ),
 			'post__in'         => $es_query->posts,
 			'posts_per_page'   => $es_query->post_count,
 			'fields'           => $query->get( 'fields' ),
 			'orderby'          => 'post__in',
 			'order'            => 'ASC',
 		) );
+
 		# Reinsert all the conditionals from the original query
 		foreach ( $conditionals as $key => $value ) {
 			$query->$key = $value;
 		}
+
 		$shoehorn = new ES_WP_Query_Shoehorn( $query, $es_query, $query_args );
 	}
 }
@@ -172,7 +182,7 @@ class ES_WP_Query_Shoehorn {
 	 * @param object $query WP_Query object.
 	 * @return string The SQL query to get posts.
 	 */
-	public function filter__posts_request( $sql, &$query ) {
+	public function filter__posts_request( $sql, $query ) {
 		if ( spl_object_hash( $query ) == $this->hash ) {
 			remove_filter( 'posts_request', array( $this, 'filter__posts_request' ), 1000, 2 );
 			$this->reboot_query_vars( $query );
@@ -199,6 +209,7 @@ class ES_WP_Query_Shoehorn {
 	private function reboot_query_vars( &$query ) {
 		$q =& $query->query_vars;
 
+		// Remove custom query vars used for the ES query in es_wp_query_shoehorn().
 		$current_query_vars = $q;
 		unset(
 			$current_query_vars['post_type'],
@@ -214,9 +225,27 @@ class ES_WP_Query_Shoehorn {
 		$query->parse_query();
 		$q = array_merge( $current_query_vars, $q );
 
-		// Restore some necessary defaults if we zapped 'em
+		// Restore some necessary defaults if we zapped 'em.
 		if ( empty( $q['posts_per_page'] ) ) {
 			$q['posts_per_page'] = get_option( 'posts_per_page' );
+		}
+
+		// Restore the author ID which is normally added during get_posts() in WP_Query.
+		// Required for handle_404() in WP class to not mark empty author archives as 404s.
+		if ( $query->is_author() && ! empty( $q['author_name'] ) ) {
+			if ( false !== strpos( $q['author_name'], '/' ) ) {
+				$q['author_name'] = explode( '/', $q['author_name'] );
+				if ( $q['author_name'][ count( $q['author_name'] ) - 1 ] ) {
+					$q['author_name'] = $q['author_name'][ count( $q['author_name'] ) - 1 ]; // no trailing slash.
+				} else {
+					$q['author_name'] = $q['author_name'][ count( $q['author_name'] ) - 2 ]; // there was a trailing slash.
+				}
+			}
+			$author = get_user_by( 'slug', sanitize_title_for_query( $q['author_name'] ) );
+
+			if ( isset( $author->ID ) ) {
+				$q['author'] = $author->ID;
+			}
 		}
 	}
 }

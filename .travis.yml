@@ -1,36 +1,58 @@
+sudo: false
+
 language: php
 
-matrix:
-  include:
-    - php: 5.3
-      env: WP_VERSION=4.3.3 ES_VERSION=2.2.0
-    - php: 5.3
-      env: WP_VERSION=latest ES_VERSION=2.2.0
-    - php: 5.6
-      env: WP_VERSION=latest ES_VERSION=2.2.0
-    - php: 7.0
-      env: WP_VERSION=latest ES_VERSION=2.2.0
-    - php: 5.6
-      env: WP_VERSION=nightly ES_VERSION=2.2.0
-    - php: 5.6
-      env: WP_VERSION=latest ES_VERSION=2.1.2
-    - php: 5.6
-      env: WP_VERSION=latest ES_VERSION=2.0.2
-  fast_finish: true
+jdk:
+  - oraclejdk8
+
+addons:
+  apt:
+    packages:
+      - oracle-java8-installer
+
+notifications:
+  email:
+    on_success: never
+    on_failure: change
 
 branches:
   only:
     - master
+    - master-1.x
 
-before_install:
-    - curl -O -L https://download.elastic.co/elasticsearch/elasticsearch/elasticsearch-$ES_VERSION.deb && sudo dpkg -i --force-confnew elasticsearch-$ES_VERSION.deb
-    - sudo service elasticsearch start
+env:
+  global:
+    - JAVA_HOME=/usr/lib/jvm/java-8-oracle
+
+matrix:
+  include:
+    - php: 5.4
+      env: WP_VERSION=4.4.2 ES_VERSION=2.4.6
+    - php: 7.0
+      env: WP_VERSION=nightly ES_VERSION=5.6.8
+    - php: 7.1
+      env: WP_VERSION=latest ES_VERSION=2.4.6
+    - php: 7.1
+      env: WP_VERSION=latest ES_VERSION=6.2.2
+    - php: 7.2
+      env: WP_VERSION=nightly ES_VERSION=5.6.8
+  fast_finish: true
+
+install:
+  - bash bin/install-es.sh $ES_VERSION
 
 before_script:
-    - bash bin/install-wp-tests.sh wordpress_test root '' localhost $WP_VERSION
-    - sleep 5 # ensure ES is running
+  - export PATH="$HOME/.composer/vendor/bin:$PATH"
+  - composer global require "phpunit/phpunit=4.8.*|5.7.*"
+  - which phpunit
+  - phpunit --version
+  - bash bin/install-wp-tests.sh wordpress_test root '' localhost $WP_VERSION
+  - curl localhost:9200 && echo "ES is up" || (cat /tmp/elasticsearch.log && exit 1)
 
 script:
   - find . -path ./vendor -prune -o -type "f" -iname "*.php" | xargs -L "1" php -l
   - phpunit
-  - if [[ "$ES_VERSION" == "2.2.0" ]]; then phpunit -c multisite.xml; fi;
+  - phpunit -c multisite.xml
+
+after_script:
+  - cat /tmp/elasticsearch.log

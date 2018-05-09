@@ -6,9 +6,17 @@
 
 class ES_WP_Query extends ES_WP_Query_Wrapper {
 	protected function query_es( $es_args ) {
-		$response = wp_remote_post( 'http://localhost:9200/es-wp-query-unit-tests/post/_search', array( 'body' => json_encode( $es_args ) ) );
+		$response = wp_remote_post( 'http://localhost:9200/es-wp-query-unit-tests/post/_search', array(
+			'body' => json_encode( $es_args ),
+			'headers' => array(
+				'Content-Type' => 'application/json',
+			),
+		) );
 		return json_decode( wp_remote_retrieve_body( $response ), true );
 	}
+}
+
+class ES_Index_Exception extends \Exception {
 }
 
 function travis_es_field_map( $es_map ) {
@@ -33,6 +41,11 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 				$body = json_decode( wp_remote_retrieve_body( $response ), true );
 				if ( ! empty( $body['version']['number'] ) ) {
 					printf( "Elasticsearch is up and running, using version %s.\n", $body['version']['number'] );
+					if ( ! defined( 'ES_VERSION' ) ) {
+						define( 'ES_VERSION', $body['version']['number'] );
+					} elseif ( ES_VERSION !== $body['version']['number'] ) {
+						printf( "WARNING! ES_VERSION is set to %s, but Elasticsearch is reporting %s\n", ES_VERSION, $body['version']['number'] );
+					}
 					break;
 				} else {
 					sleep( $sleep );
@@ -43,214 +56,224 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 			}
 		} while ( --$tries );
 
-		// If we didn't end with a 200 status code, exit
-		travis_es_verify_response_code( $response );
+		// If we didn't end with a 200 status code, bail.
+		return travis_es_verify_response_code( $response );
 	}
 
 	function es_wp_query_index_test_data() {
 		// Ensure the index is empty
 		wp_remote_request( 'http://localhost:9200/es-wp-query-unit-tests/', array( 'method' => 'DELETE' ) );
 
+		$analyzed = 'text';
+		$not_analyzed = 'keyword';
+		if ( version_compare( ES_VERSION, '5.0.0', '<' ) ) {
+			$analyzed = 'string';
+			$not_analyzed = 'string", "index": "not_analyzed';
+		}
+
 		// Add the mapping
-		$response = wp_remote_request( 'http://localhost:9200/es-wp-query-unit-tests/', array( 'method' => 'PUT', 'body' => '
-			{
-				"settings": {
-					"analysis": {
-						"analyzer": {
-							"default": {
-								"tokenizer": "standard",
-								"filter": [
-									"standard",
-									"travis_word_delimiter",
-									"lowercase",
-									"stop",
-									"travis_snowball"
-								],
-								"language": "English"
-							}
-						},
-						"filter": {
-							"travis_word_delimiter": {
-								"type": "word_delimiter",
-								"preserve_original": true
+		$response = wp_remote_request( 'http://localhost:9200/es-wp-query-unit-tests/', array(
+			'method' => 'PUT',
+			'body' => sprintf( '
+				{
+					"settings": {
+						"analysis": {
+							"analyzer": {
+								"default": {
+									"tokenizer": "standard",
+									"filter": [
+										"standard",
+										"travis_word_delimiter",
+										"lowercase",
+										"stop",
+										"travis_snowball"
+									],
+									"language": "English"
+								}
 							},
-							"travis_snowball": {
-								"type": "snowball",
-								"language": "English"
+							"filter": {
+								"travis_word_delimiter": {
+									"type": "word_delimiter",
+									"preserve_original": true
+								},
+								"travis_snowball": {
+									"type": "snowball",
+									"language": "English"
+								}
 							}
 						}
-					}
-				},
-				"mappings": {
-					"post": {
-						"_all" : { "enabled" : false },
-						"date_detection": false,
-						"dynamic_templates": [
-							{
-								"template_meta": {
-									"path_match": "post_meta.*",
-									"mapping": {
-										"type": "object",
-										"properties": {
-											"value": {
-												"type": "string",
-												"index": "not_analyzed"
-											},
-											"analyzed": {
-												"type": "string"
-											},
-											"boolean": {
-												"type": "boolean"
-											},
-											"long": {
-												"type": "long"
-											},
-											"double": {
-												"type": "double"
-											},
-											"date": {
-												"format": "YYYY-MM-dd",
-												"type": "date"
-											},
-											"datetime": {
-												"format": "YYYY-MM-dd HH:mm:ss",
-												"type": "date"
-											},
-											"time": {
-												"format": "HH:mm:ss",
-												"type": "date"
+					},
+					"mappings": {
+						"post": {
+							"_all" : { "enabled" : false },
+							"date_detection": false,
+							"dynamic_templates": [
+								{
+									"template_meta": {
+										"path_match": "post_meta.*",
+										"mapping": {
+											"type": "object",
+											"properties": {
+												"value": {
+													"type": "%2$s"
+												},
+												"analyzed": {
+													"type": "%1$s"
+												},
+												"boolean": {
+													"type": "boolean"
+												},
+												"long": {
+													"type": "long"
+												},
+												"double": {
+													"type": "double"
+												},
+												"date": {
+													"format": "YYYY-MM-dd",
+													"type": "date"
+												},
+												"datetime": {
+													"format": "YYYY-MM-dd HH:mm:ss",
+													"type": "date"
+												},
+												"time": {
+													"format": "HH:mm:ss",
+													"type": "date"
+												}
+											}
+										}
+									}
+								},
+								{
+									"template_terms": {
+										"path_match": "terms.*",
+										"mapping": {
+											"type": "object",
+											"properties": {
+												"name": { "type": "%2$s" },
+												"term_id": { "type": "long" },
+												"term_taxonomy_id": { "type": "long" },
+												"slug": { "type": "%2$s" }
 											}
 										}
 									}
 								}
-							},
-							{
-								"template_terms": {
-									"path_match": "terms.*",
-									"mapping": {
-										"type": "object",
-										"properties": {
-											"name": { "type": "string", "index": "not_analyzed" },
-											"term_id": { "type": "long" },
-											"term_taxonomy_id": { "type": "long" },
-											"slug": { "type": "string", "index": "not_analyzed" }
-										}
+							],
+							"properties": {
+								"post_id": { "type": "long" },
+								"post_author": {
+									"type": "object",
+									"properties": {
+										"user_id": { "type": "long" },
+										"user_nicename": { "type": "%2$s" }
 									}
-								}
+								},
+								"post_title": {
+									"type": "%2$s",
+									"fields": {
+										"analyzed": { "type": "%1$s" }
+									}
+								},
+								"post_excerpt": { "type": "%1$s" },
+								"post_content": {
+									"type": "%2$s",
+									"fields": {
+										"analyzed": { "type": "%1$s" }
+									}
+								},
+								"post_status": { "type": "%2$s" },
+								"post_name": { "type": "%2$s" },
+								"post_parent": { "type": "long" },
+								"post_type": { "type": "%2$s" },
+								"post_mime_type": { "type": "%2$s" },
+								"post_password": { "type": "%2$s" },
+								"post_date": {
+									"type": "object",
+									"properties": {
+										"date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
+										"year": { "type": "short" },
+										"month": { "type": "byte" },
+										"day": { "type": "byte" },
+										"hour": { "type": "byte" },
+										"minute": { "type": "byte" },
+										"second": { "type": "byte" },
+										"week": { "type": "byte" },
+										"day_of_week": { "type": "byte" },
+										"day_of_year": { "type": "short" },
+										"seconds_from_day": { "type": "integer" },
+										"seconds_from_hour": { "type": "short" }
+									}
+								},
+								"post_date_gmt": {
+									"type": "object",
+									"properties": {
+										"date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
+										"year": { "type": "short" },
+										"month": { "type": "byte" },
+										"day": { "type": "byte" },
+										"hour": { "type": "byte" },
+										"minute": { "type": "byte" },
+										"second": { "type": "byte" },
+										"week": { "type": "byte" },
+										"day_of_week": { "type": "byte" },
+										"day_of_year": { "type": "short" },
+										"seconds_from_day": { "type": "integer" },
+										"seconds_from_hour": { "type": "short" }
+									}
+								},
+								"post_modified": {
+									"type": "object",
+									"properties": {
+										"date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
+										"year": { "type": "short" },
+										"month": { "type": "byte" },
+										"day": { "type": "byte" },
+										"hour": { "type": "byte" },
+										"minute": { "type": "byte" },
+										"second": { "type": "byte" },
+										"week": { "type": "byte" },
+										"day_of_week": { "type": "byte" },
+										"day_of_year": { "type": "short" },
+										"seconds_from_day": { "type": "integer" },
+										"seconds_from_hour": { "type": "short" }
+									}
+								},
+								"post_modified_gmt": {
+									"type": "object",
+									"properties": {
+										"date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
+										"year": { "type": "short" },
+										"month": { "type": "byte" },
+										"day": { "type": "byte" },
+										"hour": { "type": "byte" },
+										"minute": { "type": "byte" },
+										"second": { "type": "byte" },
+										"week": { "type": "byte" },
+										"day_of_week": { "type": "byte" },
+										"day_of_year": { "type": "short" },
+										"seconds_from_day": { "type": "integer" },
+										"seconds_from_hour": { "type": "short" }
+									}
+								},
+								"menu_order" : { "type" : "integer" },
+								"terms": { "type": "object" },
+								"post_meta": { "type": "object" }
 							}
-						],
-						"properties": {
-							"post_id": { "type": "long" },
-							"post_author": {
-								"type": "object",
-								"properties": {
-									"user_id": { "type": "long" },
-									"user_nicename": { "type": "string", "index": "not_analyzed" }
-								}
-							},
-							"post_title": {
-								"type": "string",
-								"index": "not_analyzed",
-								"fields": {
-									"analyzed": { "type": "string" }
-								}
-							},
-							"post_excerpt": { "type": "string" },
-							"post_content": {
-								"type": "string",
-								"index": "not_analyzed",
-								"fields": {
-									"analyzed": { "type": "string" }
-								}
-							},
-							"post_status": { "type": "string", "index": "not_analyzed" },
-							"post_name": { "type": "string", "index": "not_analyzed" },
-							"post_parent": { "type": "long" },
-							"post_type": { "type": "string", "index": "not_analyzed" },
-							"post_mime_type": { "type": "string", "index": "not_analyzed" },
-							"post_password": { "type": "string", "index": "not_analyzed" },
-							"post_date": {
-								"type": "object",
-								"properties": {
-									"date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
-									"year": { "type": "short" },
-									"month": { "type": "byte" },
-									"day": { "type": "byte" },
-									"hour": { "type": "byte" },
-									"minute": { "type": "byte" },
-									"second": { "type": "byte" },
-									"week": { "type": "byte" },
-									"day_of_week": { "type": "byte" },
-									"day_of_year": { "type": "short" },
-									"seconds_from_day": { "type": "integer" },
-									"seconds_from_hour": { "type": "short" }
-								}
-							},
-							"post_date_gmt": {
-								"type": "object",
-								"properties": {
-									"date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
-									"year": { "type": "short" },
-									"month": { "type": "byte" },
-									"day": { "type": "byte" },
-									"hour": { "type": "byte" },
-									"minute": { "type": "byte" },
-									"second": { "type": "byte" },
-									"week": { "type": "byte" },
-									"day_of_week": { "type": "byte" },
-									"day_of_year": { "type": "short" },
-									"seconds_from_day": { "type": "integer" },
-									"seconds_from_hour": { "type": "short" }
-								}
-							},
-							"post_modified": {
-								"type": "object",
-								"properties": {
-									"date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
-									"year": { "type": "short" },
-									"month": { "type": "byte" },
-									"day": { "type": "byte" },
-									"hour": { "type": "byte" },
-									"minute": { "type": "byte" },
-									"second": { "type": "byte" },
-									"week": { "type": "byte" },
-									"day_of_week": { "type": "byte" },
-									"day_of_year": { "type": "short" },
-									"seconds_from_day": { "type": "integer" },
-									"seconds_from_hour": { "type": "short" }
-								}
-							},
-							"post_modified_gmt": {
-								"type": "object",
-								"properties": {
-									"date": { "type": "date", "format": "YYYY-MM-dd HH:mm:ss" },
-									"year": { "type": "short" },
-									"month": { "type": "byte" },
-									"day": { "type": "byte" },
-									"hour": { "type": "byte" },
-									"minute": { "type": "byte" },
-									"second": { "type": "byte" },
-									"week": { "type": "byte" },
-									"day_of_week": { "type": "byte" },
-									"day_of_year": { "type": "short" },
-									"seconds_from_day": { "type": "integer" },
-									"seconds_from_hour": { "type": "short" }
-								}
-							},
-							"menu_order" : { "type" : "integer" },
-							"terms": { "type": "object" },
-							"post_meta": { "type": "object" }
 						}
 					}
 				}
-			}
-		' ) );
+			', $analyzed, $not_analyzed ),
+			'headers' => array(
+				'Content-Type' => 'application/json',
+			),
+		) );
 		travis_es_verify_response_code( $response );
 
 		// Index the content
 		$posts = get_posts( array(
 			'posts_per_page' => -1,
-			'post_type' => 'any',
+			'post_type' => array_values( get_post_types() ),
 			'post_status' => array_values( get_post_stati() ),
 			'orderby' => 'ID',
 			'order' => 'ASC',
@@ -271,7 +294,10 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 			'http://localhost:9200/es-wp-query-unit-tests/post/_bulk',
 			array(
 				'method' => 'PUT',
-				'body' => wp_check_invalid_utf8( implode( "\n", $body ), true ) . "\n"
+				'body' => wp_check_invalid_utf8( implode( "\n", $body ), true ) . "\n",
+				'headers' => array(
+					'Content-Type' => 'application/json',
+				),
 			)
 		);
 		travis_es_verify_response_code( $response );
@@ -280,37 +306,45 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		foreach ( (array) $itemized_response->items as $post ) {
 			// Status should be 200 or 201, depending on if we're updating or creating respectively
 			if ( ! isset( $post->index->status ) || ! in_array( $post->index->status, array( 200, 201 ) ) ) {
-				echo "Error indexing post {$post->index->_id}; HTTP response code: {$post->index->status}";
+				$error_message = "Error indexing post {$post->index->_id}; HTTP response code: {$post->index->status}";
 				if ( ! empty( $post->index->error ) ) {
-					echo "\n" . $post->index->error;
+					$error_message .= "\n" . $post->index->error;
 				}
-				exit( 1 );
+				$error_message .= 'Backtrace:' . travis_es_debug_backtrace_summary();
+				throw new ES_Index_Exception( $error_message );
 			}
 		}
 
-		$resposne = wp_remote_post( 'http://localhost:9200/es-wp-query-unit-tests/_refresh' );
+		$resposne = wp_remote_post( 'http://localhost:9200/es-wp-query-unit-tests/_refresh', array(
+			'headers' => array(
+				'Content-Type' => 'application/json',
+			),
+		) );
 		travis_es_verify_response_code( $response );
 	}
 
 	function travis_es_verify_response_code( $response ) {
 		if ( '200' != wp_remote_retrieve_response_code( $response ) ) {
-			printf( "Could not index posts!\nResponse code %s\n", wp_remote_retrieve_response_code( $response ) );
+			$message = [ 'Failed to index posts!' ];
 			if ( is_wp_error( $response ) ) {
-				printf( "Message: %s\n", $response->get_error_message() );
+				$message[] = sprintf( 'Message: %s', $response->get_error_message() );
+			} else {
+				$message[] = sprintf( 'Response code %s', wp_remote_retrieve_response_code( $response ) );
+				$message[] = sprintf( 'Message: %s', wp_remote_retrieve_body( $response ) );
 			}
-			printf( "Backtrace: %s\n", travis_es_debug_backtrace_summary() );
-			exit( 1 );
+			$message[] = sprintf( "Backtrace:%s", travis_es_debug_backtrace_summary() );
+			throw new ES_Index_Exception( implode( "\n", $message ) );
 		}
+
+		return true;
 	}
 
 	function travis_es_debug_backtrace_summary() {
 		$backtrace = wp_debug_backtrace_summary( null, 0, false );
-		foreach ( $backtrace as $k => $call ) {
-			if ( preg_match( '/PHPUnit_(TextUI_(Command|TestRunner)|Framework_(TestSuite|TestCase|TestResult))|ReflectionMethod|travis_es_(verify_response_code|debug_backtrace_summary)/', $call ) ) {
-				unset( $backtrace[ $k ] );
-			}
-		}
-		return join( ', ', array_reverse( $backtrace ) );
+		$backtrace = array_filter( $backtrace, function( $call ) {
+			return ! preg_match( '/PHPUnit_(TextUI_(Command|TestRunner)|Framework_(TestSuite|TestCase|TestResult))|ReflectionMethod|travis_es_(verify_response_code|debug_backtrace_summary)/', $call );
+		} );
+		return "\n\t" . join( "\n\t", $backtrace );
 	}
 
 	/**

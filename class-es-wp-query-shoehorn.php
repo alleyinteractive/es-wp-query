@@ -190,7 +190,7 @@ class ES_WP_Query_Shoehorn {
 			if ( ! $this->post_count ) {
 				global $wpdb;
 				return "SELECT * FROM {$wpdb->posts} WHERE 1=0 /* ES_WP_Query Shoehorn */";
-			} else {
+			} else if ( ! empty( $sql ) ) {
 				return $sql . ' /* ES_WP_Query Shoehorn */';
 			}
 		}

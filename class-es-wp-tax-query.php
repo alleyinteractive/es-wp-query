@@ -176,11 +176,14 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 					$term = sanitize_term_field( $clause['field'], $term, 0, $clause['taxonomy'], 'db' );
 
 					/**
-					 * Allow adapters to normalize term value (like `strtolower` if mapping to `raw_lc`).
+					 * Allow adapters to normalize term value (like `strtolower` if mapping to
+					 * `raw_lc`).
 					 *
-					 * The dynamic portion of the filter name, `$clause['field']`, refers to the term field.
+					 * The dynamic portion of the filter name, `$clause['field']`, refers to the
+					 * term field.
 					 *
-					 * @param mixed $term Term's slug or name sanitised using `sanitize_term_field` function for db context.
+					 * @param mixed  $term     Term's slug or name sanitized using
+					 *                         `sanitize_term_field` function for db context.
 					 * @param string $taxonomy Term's taxonomy slug.
 					 */
 					$term = apply_filters( "es_tax_query_term_{$clause['field']}", $term, $clause['taxonomy'] );

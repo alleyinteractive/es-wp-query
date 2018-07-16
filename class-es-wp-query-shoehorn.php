@@ -65,6 +65,16 @@ function es_wp_query_shoehorn( &$query ) {
 		// Run this query through ES.
 		$es_query_vars = $query->query_vars;
 		$es_query_vars['fields'] = 'ids';
+
+		/*
+		 * WP_Query, when doing initial query parsing, sets `is_search` to `true` when
+		 * `s` attribute exists, not only when it's non-empty. The `s` attribute also
+		 * gets backfilled, so we need to reset it, when appropriate.
+		*/
+		if ( true === empty( $es_query_vars['s'] ) && false === $query->is_search ) {
+			unset( $es_query_vars['s'] );
+		}
+
 		$es_query = new ES_WP_Query( $es_query_vars );
 
 		// Make the post query use the post IDs from the ES results instead.

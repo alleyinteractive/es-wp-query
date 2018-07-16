@@ -149,14 +149,29 @@ function vip_es_field_map( $es_map ) {
 add_filter( 'es_field_map', 'vip_es_field_map' );
 
 function vip_es_meta_value_tolower( $meta_value, $meta_key, $meta_compare, $meta_type ) {
-	if ( ! empty( $meta_value ) && is_string( $meta_value ) ) {
-		$meta_value = strtolower( $meta_value );
-	} else if ( ! empty( $meta_value ) && is_array( $meta_value ) ) {
-		$meta_value = array_map( 'strtolower', $meta_value );
+	if ( ! is_string( $meta_value ) || empty( $meta_value ) ) {
+		return $meta_value;
 	}
-	return $meta_value;
+	return strtolower( $meta_value );
 }
 add_filter( 'es_meta_query_meta_value', 'vip_es_meta_value_tolower', 10, 4 );
+
+/**
+ * Normalise term name to lowercase as we are mapping that against raw_lc field.
+ *
+ * @param string|mixed $term     Term's name which should be normalised to
+ *                               lowercase.
+ * @param string       $taxonomy Taxonomy of the term.
+ * @return mixed If $term is a string, lowercased string is returned. Otherwise
+ *               original value is return unchanged.
+ */
+function vip_es_term_name_slug_tolower( $term, $taxonomy ) {
+	if ( ! is_string( $term ) || empty( $term ) ) {
+		return $term;
+	}
+	return strtolower( $term );
+}
+add_filter( 'es_tax_query_term_name', 'vip_es_term_name_slug_tolower', 10, 2 );
 
 /*
  * Advanced Post Cache and es-wp-query do not work well together. In

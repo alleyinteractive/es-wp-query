@@ -109,8 +109,11 @@ class ES_WP_Query_Shoehorn {
 
 	private $original_query_args;
 
+	private $posts_per_page;
+
 	public function __construct( &$query, &$es_query, $query_args ) {
 		$this->hash = spl_object_hash( $query );
+		$this->posts_per_page = $es_query->get( 'posts_per_page' );
 
 		if ( $query->get( 'no_found_rows' ) || -1 == $query->get( 'posts_per_page' ) || true == $query->get( 'nopaging' ) ) {
 			$this->do_found_posts = false;
@@ -227,7 +230,7 @@ class ES_WP_Query_Shoehorn {
 
 		// Restore some necessary defaults if we zapped 'em.
 		if ( empty( $q['posts_per_page'] ) ) {
-			$q['posts_per_page'] = get_option( 'posts_per_page' );
+			$q['posts_per_page'] = $this->posts_per_page;
 		}
 
 		// Restore the author ID which is normally added during get_posts() in WP_Query.

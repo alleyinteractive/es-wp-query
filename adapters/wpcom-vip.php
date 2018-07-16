@@ -171,7 +171,7 @@ add_filter( 'es_meta_query_meta_value', 'vip_es_meta_value_tolower', 10, 4 );
  * Note that this applies only to calles done via WP_Query(), and not
  * ES_WP_Query()
  */
-function es_disable_advanced_post_cache( &$query ) {
+function vip_es_disable_advanced_post_cache( &$query ) {
 	global $advanced_post_cache_object;
 
 	static $disabled_apc = false;
@@ -191,22 +191,22 @@ function es_disable_advanced_post_cache( &$query ) {
 
 	if ( $query->get( 'es' ) ) {
 		if ( true === $disabled_apc ) {
-			/* Already disabled, don't try again */
+			// Already disabled, don't try again.
 			return;
 		}
 
 		/*
-		 * An Elasticsearch-enabled query is being run. Disable
-		 * Advanced Post Cache entirely.
+		 * An Elasticsearch-enabled query is being run. Disable Advanced Post Cache
+		 * entirely.
 		 *
-		 * Note that there is one action-hook that is not deactivated:
-		 * The switch_blog action is not deactivated, because it might be
-		 * called in-between Elasticsearch-enabled query, and a non-Elasticsearch
-		 * query, and because it does not have an effect on WP_Query()-results directly.
+		 * Note that there is one action-hook that is not deactivated: The switch_blog
+		 * action is not deactivated, because it might be called in-between
+		 * Elasticsearch-enabled query, and a non-Elasticsearch query, and because it
+		 * does not have an effect on WP_Query()-results directly.
 		 */
 
 		remove_filter( 'posts_request', array( $advanced_post_cache_object, 'posts_request' ) );
-		remove_filter(  'posts_results', array( $advanced_post_cache_object, 'posts_results' ) );
+		remove_filter( 'posts_results', array( $advanced_post_cache_object, 'posts_results' ) );
 
 		remove_filter( 'post_limits_request', array( $advanced_post_cache_object, 'post_limits_request' ), 999 );
 
@@ -215,9 +215,7 @@ function es_disable_advanced_post_cache( &$query ) {
 
 		$disabled_apc = true;
 	} else {
-
-		/* A non-ES query */
-
+		// A non-ES query.
 		if ( true === $disabled_apc ) {
 			/*
 			 * Earlier, we disabled Advanced Post Cache
@@ -226,13 +224,10 @@ function es_disable_advanced_post_cache( &$query ) {
 			 * to have the Cache enabled. Here we enable
 			 * it again.
 			 */
-
 			$advanced_post_cache_object->__construct();
 
 			$disabled_apc = false;
 		}
 	}
 }
-
-add_action( 'pre_get_posts', 'es_disable_advanced_post_cache', -100 );
-
+add_action( 'pre_get_posts', 'vip_es_disable_advanced_post_cache', -100 );

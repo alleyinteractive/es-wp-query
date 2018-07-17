@@ -451,7 +451,7 @@ class Tests_Query_Shoehorn extends WP_UnitTestCase {
 		remove_action( 'pre_get_posts', array( $this, '_check_subquery_conditionals' ) );
 
 		/*
-		 * This is a roundabout way of varifying that the pre_get_posts filter
+		 * This is a roundabout way of verifying that the pre_get_posts filter
 		 * ran successfully.
 		 */
 		$this->assertEmpty( $this->subquery_assertions );

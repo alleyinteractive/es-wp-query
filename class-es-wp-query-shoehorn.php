@@ -27,6 +27,7 @@ function es_wp_query_shoehorn( &$query ) {
 	}
 
 	if ( true == $query->get( 'es' ) ) {
+		// Backup the conditionals to restore later.
 		$conditionals = array(
 			'is_single'            => false,
 			'is_preview'           => false,
@@ -60,12 +61,17 @@ function es_wp_query_shoehorn( &$query ) {
 			$conditionals[ $key ] = $query->$key;
 		}
 
+		// Backup the query args to restore later.
 		$query_args = $query->query;
 
-		// Run this query through ES.
-		$es_query_vars = $query->query;
-		$es_query_vars['fields'] = 'ids';
-		$es_query = new ES_WP_Query( $es_query_vars );
+		/*
+		 * Run this query through ES. By passing `WP_Query::$query` along to the
+		 * subquery, we ensure that the subquery is as similar to the original
+		 * query as possible.
+		 */
+		$es_query_args = $query->query;
+		$es_query_args['fields'] = 'ids';
+		$es_query = new ES_WP_Query( $es_query_args );
 
 		// Make the post query use the post IDs from the ES results instead.
 		$query->parse_query( array(
@@ -78,7 +84,7 @@ function es_wp_query_shoehorn( &$query ) {
 			'order'            => 'ASC',
 		) );
 
-		# Reinsert all the conditionals from the original query
+		// Reinsert all the conditionals from the original query.
 		foreach ( $conditionals as $key => $value ) {
 			$query->$key = $value;
 		}

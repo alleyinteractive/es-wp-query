@@ -63,7 +63,7 @@ function es_wp_query_shoehorn( &$query ) {
 		$query_args = $query->query;
 
 		// Run this query through ES.
-		$es_query_vars = $query->query_vars;
+		$es_query_vars = $query->query;
 		$es_query_vars['fields'] = 'ids';
 		$es_query = new ES_WP_Query( $es_query_vars );
 

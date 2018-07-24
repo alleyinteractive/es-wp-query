@@ -128,7 +128,7 @@ function vip_es_field_map( $es_map ) {
 		'post_modified_gmt.second'      => 'modified_gmt_token.second',
 		'post_parent'                   => 'parent_post_id',
 		'menu_order'                    => 'menu_order',     // this isn't indexed on vip
-		'post_mime_type'                => 'post_mime_type', // this isn't indexed on vip
+		'post_mime_type'                => 'post_mime_type.raw', // this isn't indexed on vip
 		'comment_count'                 => 'comment_count',  // this isn't indexed on vip
 		'post_meta'                     => 'meta.%s.value.raw_lc',
 		'post_meta.analyzed'            => 'meta.%s.value',

@@ -808,7 +808,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$r_status = array();
 			$p_status = array();
 			$e_status = array();
-			if ( in_array('any', $q_status) ) {
+			if ( in_array('any', $q_status) || in_array( 'inherit', $q_status ) ) {
 				$e_status = get_post_stati( array( 'exclude_from_search' => true ) );
 				$e_status = array_values( $e_status );
 			} else {

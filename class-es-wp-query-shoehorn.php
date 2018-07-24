@@ -27,6 +27,7 @@ function es_wp_query_shoehorn( &$query ) {
 	}
 
 	if ( true == $query->get( 'es' ) ) {
+		// Backup the conditionals to restore later.
 		$conditionals = array(
 			'is_single'            => false,
 			'is_preview'           => false,
@@ -60,12 +61,17 @@ function es_wp_query_shoehorn( &$query ) {
 			$conditionals[ $key ] = $query->$key;
 		}
 
+		// Backup the query args to restore later.
 		$query_args = $query->query;
 
-		// Run this query through ES.
-		$es_query_vars = $query->query_vars;
-		$es_query_vars['fields'] = 'ids';
-		$es_query = new ES_WP_Query( $es_query_vars );
+		/*
+		 * Run this query through ES. By passing `WP_Query::$query` along to the
+		 * subquery, we ensure that the subquery is as similar to the original
+		 * query as possible.
+		 */
+		$es_query_args = $query->query;
+		$es_query_args['fields'] = 'ids';
+		$es_query = new ES_WP_Query( $es_query_args );
 
 		// Make the post query use the post IDs from the ES results instead.
 		$query->parse_query( array(
@@ -78,7 +84,7 @@ function es_wp_query_shoehorn( &$query ) {
 			'order'            => 'ASC',
 		) );
 
-		# Reinsert all the conditionals from the original query
+		// Reinsert all the conditionals from the original query.
 		foreach ( $conditionals as $key => $value ) {
 			$query->$key = $value;
 		}
@@ -109,8 +115,11 @@ class ES_WP_Query_Shoehorn {
 
 	private $original_query_args;
 
+	private $posts_per_page;
+
 	public function __construct( &$query, &$es_query, $query_args ) {
 		$this->hash = spl_object_hash( $query );
+		$this->posts_per_page = $es_query->get( 'posts_per_page' );
 
 		if ( $query->get( 'no_found_rows' ) || -1 == $query->get( 'posts_per_page' ) || true == $query->get( 'nopaging' ) ) {
 			$this->do_found_posts = false;
@@ -190,7 +199,7 @@ class ES_WP_Query_Shoehorn {
 			if ( ! $this->post_count ) {
 				global $wpdb;
 				return "SELECT * FROM {$wpdb->posts} WHERE 1=0 /* ES_WP_Query Shoehorn */";
-			} else {
+			} elseif ( ! empty( $sql ) ) {
 				return $sql . ' /* ES_WP_Query Shoehorn */';
 			}
 		}
@@ -227,7 +236,7 @@ class ES_WP_Query_Shoehorn {
 
 		// Restore some necessary defaults if we zapped 'em.
 		if ( empty( $q['posts_per_page'] ) ) {
-			$q['posts_per_page'] = get_option( 'posts_per_page' );
+			$q['posts_per_page'] = $this->posts_per_page;
 		}
 
 		// Restore the author ID which is normally added during get_posts() in WP_Query.

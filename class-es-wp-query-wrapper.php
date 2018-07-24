@@ -1288,13 +1288,15 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		// Meta values get special treatment
 		$meta_keys = array();
 		$meta_clauses = $this->meta_query->queries;
+		$meta_clauses_types = $this->meta_query->queries_types_all;
+
 		if ( ! empty( $meta_clauses ) ) {
 			if ( 'meta_value' == $orderby ) {
 				return $this->parse_orderby_for_meta( reset( $meta_clauses ) );
 			} elseif ( 'meta_value_num' == $orderby ) {
 				return $this->parse_orderby_for_meta( reset( $meta_clauses ), 'double' );
-			} elseif ( array_key_exists( $orderby, $meta_clauses ) ) {
-				return $this->parse_orderby_for_meta( $meta_clauses[ $orderby ] );
+			} elseif ( array_key_exists( $orderby, $meta_clauses_types ) ) {
+				return $this->parse_orderby_for_meta( $meta_clauses_types[ $orderby ] );
 			}
 		}
 

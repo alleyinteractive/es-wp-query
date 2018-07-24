@@ -7,6 +7,10 @@
 class ES_WP_Query extends ES_WP_Query_Wrapper {
 	protected function query_es( $es_args ) {
 		if ( function_exists( 'es_api_search_index' ) ) {
+			$es_args['name'] = es_api_get_index_name_by_blog_id( $es_args['blog_id'] );
+			if ( is_wp_error( $es_args['name'] ) ) {
+				return $es_args['name'];
+			}
 			return es_api_search_index( $es_args, 'es-wp-query' );
 		}
 	}
@@ -145,11 +149,100 @@ function vip_es_field_map( $es_map ) {
 add_filter( 'es_field_map', 'vip_es_field_map' );
 
 function vip_es_meta_value_tolower( $meta_value, $meta_key, $meta_compare, $meta_type ) {
-	if ( ! empty( $meta_value ) && is_string( $meta_value ) ) {
-		$meta_value = strtolower( $meta_value );
-	} else if ( ! empty( $meta_value ) && is_array( $meta_value ) ) {
-		$meta_value = array_map( 'strtolower', $meta_value );
+	if ( ! is_string( $meta_value ) || empty( $meta_value ) ) {
+		return $meta_value;
 	}
-	return $meta_value;
+	return strtolower( $meta_value );
 }
 add_filter( 'es_meta_query_meta_value', 'vip_es_meta_value_tolower', 10, 4 );
+
+/**
+ * Normalise term name to lowercase as we are mapping that against raw_lc field.
+ *
+ * @param string|mixed $term     Term's name which should be normalised to
+ *                               lowercase.
+ * @param string       $taxonomy Taxonomy of the term.
+ * @return mixed If $term is a string, lowercased string is returned. Otherwise
+ *               original value is return unchanged.
+ */
+function vip_es_term_name_slug_tolower( $term, $taxonomy ) {
+	if ( ! is_string( $term ) || empty( $term ) ) {
+		return $term;
+	}
+	return strtolower( $term );
+}
+add_filter( 'es_tax_query_term_name', 'vip_es_term_name_slug_tolower', 10, 2 );
+
+/*
+ * Advanced Post Cache and es-wp-query do not work well together. In
+ * particular, the WP_Query->found_posts attribute gets corrupted when using
+ * both of these plugins, so here we disable Advanced Post Cache completely
+ * when queries are being made using Elasticsearch.
+ *
+ * On the other hand, if a non-Elasticsearch query is run, and we disabled
+ * Advanced Post Cache earlier, we enable it again, to make use of its caching
+ * features.
+ *
+ * Note that this applies only to calles done via WP_Query(), and not
+ * ES_WP_Query()
+ */
+function vip_es_disable_advanced_post_cache( &$query ) {
+	global $advanced_post_cache_object;
+
+	static $disabled_apc = false;
+
+
+	/*
+	 * These two might be passsed to us; we only
+	 * handle WP_Query, so ignore these.
+	 */
+
+	if (
+		( $query instanceof ES_WP_Query_Wrapper ) ||
+		( $query instanceof ES_WP_Query )
+	) {
+		return;
+	}
+
+	if ( $query->get( 'es' ) ) {
+		if ( true === $disabled_apc ) {
+			// Already disabled, don't try again.
+			return;
+		}
+
+		/*
+		 * An Elasticsearch-enabled query is being run. Disable Advanced Post Cache
+		 * entirely.
+		 *
+		 * Note that there is one action-hook that is not deactivated: The switch_blog
+		 * action is not deactivated, because it might be called in-between
+		 * Elasticsearch-enabled query, and a non-Elasticsearch query, and because it
+		 * does not have an effect on WP_Query()-results directly.
+		 */
+
+		remove_filter( 'posts_request', array( $advanced_post_cache_object, 'posts_request' ) );
+		remove_filter( 'posts_results', array( $advanced_post_cache_object, 'posts_results' ) );
+
+		remove_filter( 'post_limits_request', array( $advanced_post_cache_object, 'post_limits_request' ), 999 );
+
+		remove_filter( 'found_posts_query', array( $advanced_post_cache_object, 'found_posts_query' ) );
+		remove_filter( 'found_posts', array( $advanced_post_cache_object, 'found_posts' ) );
+
+		$disabled_apc = true;
+	} else {
+		// A non-ES query.
+		if ( true === $disabled_apc ) {
+			/*
+			 * Earlier, we disabled Advanced Post Cache
+			 * entirely, but now a non-Elasticsearch query is
+			 * being run, and in such cases it might be useful
+			 * to have the Cache enabled. Here we enable
+			 * it again.
+			 */
+			$advanced_post_cache_object->__construct();
+
+			$disabled_apc = false;
+		}
+	}
+}
+add_action( 'pre_get_posts', 'vip_es_disable_advanced_post_cache', -100 );

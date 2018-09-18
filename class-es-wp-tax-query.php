@@ -203,7 +203,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 					if ( count( $matches ) > 1 ) {
 						$current_filter = array(
 							'bool' => array(
-								( 'AND' == $clause['operator'] ? 'filter' : 'should' ) => $matches,
+								( 'AND' === $clause['operator'] ? 'filter' : 'should' ) => $matches,
 							),
 						);
 					} else {

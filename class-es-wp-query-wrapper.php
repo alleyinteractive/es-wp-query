@@ -802,6 +802,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 		if ( ! empty( $q['post_status'] ) ) {
 			$statuswheres = array();
+			$status_ands = array();
 			$q_status = $q['post_status'];
 			if ( ! is_array( $q_status ) )
 				$q_status = explode(',', $q_status);

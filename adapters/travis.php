@@ -44,7 +44,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 					if ( ! defined( 'ES_VERSION' ) ) {
 						define( 'ES_VERSION', $body['version']['number'] );
 					} elseif ( ES_VERSION !== $body['version']['number'] ) {
-						printf( "WARNING! ES_VERSION is set to %s, but Elasticsearch is reporting %s\n", ES_VERSION, $body['version']['number'] );
+						printf( "WARNING! ES_VERSION is set to %s, but Elasticsearch is reporting %s\n", esc_html( ES_VERSION ), esc_html( $body['version']['number'] ) );
 					}
 					break;
 				} else {

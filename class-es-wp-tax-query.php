@@ -13,7 +13,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	protected $es_query;
 
 	public static function get_from_tax_query( $tax_query ) {
-		$q = new ES_WP_Tax_Query( $tax_query->queries );
+		$q           = new ES_WP_Tax_Query( $tax_query->queries );
 		$q->relation = $tax_query->relation;
 		return $q;
 	}
@@ -165,8 +165,8 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 		}
 
 		switch ( $clause['field'] ) {
-			case 'slug' :
-			case 'name' :
+			case 'slug':
+			case 'name':
 				foreach ( $clause['terms'] as &$term ) {
 					/*
 					 * 0 is the $term_id parameter. We don't have a term ID yet, but it doesn't
@@ -192,7 +192,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 				$current_filter = call_user_func( $terms_method, $this->es_query->tax_map( $clause['taxonomy'], 'term_' . $clause['field'] ), $clause['terms'] );
 				break;
 
-			case 'term_taxonomy_id' :
+			case 'term_taxonomy_id':
 				if ( ! empty( $clause['taxonomy'] ) ) {
 					$current_filter = call_user_func( $terms_method, $this->es_query->tax_map( $clause['taxonomy'], 'term_tt_id' ), $clause['terms'] );
 				} else {
@@ -213,8 +213,8 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 
 				break;
 
-			default :
-				$terms = array_map( 'absint', array_values( $clause['terms'] ) );
+			default:
+				$terms          = array_map( 'absint', array_values( $clause['terms'] ) );
 				$current_filter = call_user_func( $terms_method, $this->es_query->tax_map( $clause['taxonomy'], 'term_id' ), $terms );
 				break;
 		}
@@ -264,7 +264,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 
 			$children = array();
 			foreach ( $query['terms'] as $term ) {
-				$children = array_merge( $children, get_term_children( $term, $query['taxonomy'] ) );
+				$children   = array_merge( $children, get_term_children( $term, $query['taxonomy'] ) );
 				$children[] = $term;
 			}
 			$query['terms'] = $children;
@@ -282,7 +282,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	/**
 	 * Transforms a single query, from one field to another.
 	 *
-	 * @param array &$query The single query
+	 * @param array  &$query The single query
 	 * @param string $resulting_field The resulting field
 	 */
 	public function transform_query( &$query, $resulting_field ) {
@@ -302,30 +302,36 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 			case 'slug':
 			case 'name':
 				$terms = "'" . implode( "','", array_map( 'sanitize_title_for_query', $query['terms'] ) ) . "'";
-				$terms = $wpdb->get_col( "
+				$terms = $wpdb->get_col(
+					"
 					SELECT $wpdb->term_taxonomy.$resulting_field
 					FROM $wpdb->term_taxonomy
 					INNER JOIN $wpdb->terms USING (term_id)
 					WHERE taxonomy = '{$query['taxonomy']}'
 					AND $wpdb->terms.{$query['field']} IN ($terms)
-				" );
+				" 
+				);
 				break;
 			case 'term_taxonomy_id':
 				$terms = implode( ',', array_map( 'intval', $query['terms'] ) );
-				$terms = $wpdb->get_col( "
+				$terms = $wpdb->get_col(
+					"
 					SELECT $resulting_field
 					FROM $wpdb->term_taxonomy
 					WHERE term_taxonomy_id IN ($terms)
-				" );
+				" 
+				);
 				break;
 			default:
 				$terms = implode( ',', array_map( 'intval', $query['terms'] ) );
-				$terms = $wpdb->get_col( "
+				$terms = $wpdb->get_col(
+					"
 					SELECT $resulting_field
 					FROM $wpdb->term_taxonomy
 					WHERE taxonomy = '{$query['taxonomy']}'
 					AND term_id IN ($terms)
-				" );
+				" 
+				);
 		}
 
 		if ( 'AND' == $query['operator'] && count( $terms ) < count( $query['terms'] ) ) {

@@ -137,7 +137,14 @@ class ES_WP_Date_Query extends WP_Date_Query {
 		}
 
 		// Avoid notices
-		$query = wp_parse_args( $query, array( 'hour' => null, 'minute' => null, 'second' => null ) );
+		$query = wp_parse_args(
+			$query,
+			array(
+				'hour'   => null,
+				'minute' => null,
+				'second' => null,
+			) 
+		);
 
 		$time = $this->build_es_time( $compare, $query['hour'], $query['minute'], $query['second'] );
 		if ( false === $time ) {
@@ -170,7 +177,7 @@ class ES_WP_Date_Query extends WP_Date_Query {
 	 * @access public
 	 *
 	 * @param string|array $datetime An array of parameters or a strotime() string
-	 * @param string $default_to Controls what values default to if they are missing from $datetime. Pass "min" or "max".
+	 * @param string       $default_to Controls what values default to if they are missing from $datetime. Pass "min" or "max".
 	 * @return string|false A MySQL format date/time or false on failure
 	 */
 	public static function build_datetime( $datetime, $default_to_max = false ) {
@@ -183,23 +190,29 @@ class ES_WP_Date_Query extends WP_Date_Query {
 
 		$datetime = array_map( 'absint', $datetime );
 
-		if ( ! isset( $datetime['year'] ) )
+		if ( ! isset( $datetime['year'] ) ) {
 			$datetime['year'] = gmdate( 'Y', $now );
+		}
 
-		if ( ! isset( $datetime['month'] ) )
+		if ( ! isset( $datetime['month'] ) ) {
 			$datetime['month'] = ( $default_to_max ) ? 12 : 1;
+		}
 
-		if ( ! isset( $datetime['day'] ) )
+		if ( ! isset( $datetime['day'] ) ) {
 			$datetime['day'] = ( $default_to_max ) ? (int) date( 't', mktime( 0, 0, 0, $datetime['month'], 1, $datetime['year'] ) ) : 1;
+		}
 
-		if ( ! isset( $datetime['hour'] ) )
+		if ( ! isset( $datetime['hour'] ) ) {
 			$datetime['hour'] = ( $default_to_max ) ? 23 : 0;
+		}
 
-		if ( ! isset( $datetime['minute'] ) )
+		if ( ! isset( $datetime['minute'] ) ) {
 			$datetime['minute'] = ( $default_to_max ) ? 59 : 0;
+		}
 
-		if ( ! isset( $datetime['second'] ) )
+		if ( ! isset( $datetime['second'] ) ) {
 			$datetime['second'] = ( $default_to_max ) ? 59 : 0;
+		}
 
 		return sprintf( '%04d-%02d-%02d %02d:%02d:%02d', $datetime['year'], $datetime['month'], $datetime['day'], $datetime['hour'], $datetime['minute'], $datetime['second'] );
 	}
@@ -216,21 +229,21 @@ class ES_WP_Date_Query extends WP_Date_Query {
 		$lower_edge = false;
 
 		switch ( $compare ) {
-			case '!=' :
-			case '=' :
+			case '!=':
+			case '=':
 				return array(
 					'gte' => self::build_datetime( $date, $lower_edge ),
-					'lte' => self::build_datetime( $date, $upper_edge )
+					'lte' => self::build_datetime( $date, $upper_edge ),
 				);
 
-			case '>' :
+			case '>':
 				return array( 'gt' => self::build_datetime( $date, $upper_edge ) );
-			case '>=' :
+			case '>=':
 				return array( 'gte' => self::build_datetime( $date, $lower_edge ) );
 
-			case '<' :
+			case '<':
 				return array( 'lt' => self::build_datetime( $date, $lower_edge ) );
-			case '<=' :
+			case '<=':
 				return array( 'lte' => self::build_datetime( $date, $upper_edge ) );
 		}
 	}
@@ -240,13 +253,14 @@ class ES_WP_Date_Query extends WP_Date_Query {
 	 *
 	 * @access public
 	 *
-	 * @param string $compare The compare operator to use
+	 * @param string       $compare The compare operator to use
 	 * @param string|array $value The value
 	 * @return string|int|false The value to be used in DSL or false on error.
 	 */
 	public function build_dsl_part( $field, $value, $compare, $sanitize = 'intval' ) {
-		if ( ! isset( $value ) )
+		if ( ! isset( $value ) ) {
 			return false;
+		}
 
 		$part = false;
 		switch ( $compare ) {
@@ -274,7 +288,13 @@ class ES_WP_Date_Query extends WP_Date_Query {
 				$value = array_map( $sanitize, $value );
 				sort( $value );
 
-				$part = ES_WP_Query_Wrapper::dsl_range( $field, array( 'gte' => $value[0], 'lte' => $value[1] ) );
+				$part = ES_WP_Query_Wrapper::dsl_range(
+					$field,
+					array(
+						'gte' => $value[0],
+						'lte' => $value[1],
+					) 
+				);
 				break;
 
 			case '>':
@@ -282,10 +302,18 @@ class ES_WP_Date_Query extends WP_Date_Query {
 			case '<':
 			case '<=':
 				switch ( $compare ) {
-					case '>' :   $operator = 'gt';   break;
-					case '>=' :  $operator = 'gte';  break;
-					case '<' :   $operator = 'lt';   break;
-					case '<=' :  $operator = 'lte';  break;
+					case '>':   
+						$operator = 'gt';
+						break;
+					case '>=':  
+						$operator = 'gte';
+						break;
+					case '<':   
+						$operator = 'lt';
+						break;
+					case '<=':  
+						$operator = 'lte';
+						break;
 				}
 				$part = ES_WP_Query_Wrapper::dsl_range( $field, array( $operator => $sanitize( $value ) ) );
 				break;
@@ -315,8 +343,8 @@ class ES_WP_Date_Query extends WP_Date_Query {
 	 *
 	 * @access public
 	 *
-	 * @param string $column The column to query against. Needs to be pre-validated!
-	 * @param string $compare The comparison operator. Needs to be pre-validated!
+	 * @param string   $column The column to query against. Needs to be pre-validated!
+	 * @param string   $compare The comparison operator. Needs to be pre-validated!
 	 * @param int|null $hour Optional. An hour value (0-23).
 	 * @param int|null $minute Optional. A minute value (0-59).
 	 * @param int|null $second Optional. A second value (0-59).

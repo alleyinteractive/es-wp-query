@@ -69,20 +69,22 @@ function es_wp_query_shoehorn( &$query ) {
 		 * subquery, we ensure that the subquery is as similar to the original
 		 * query as possible.
 		 */
-		$es_query_args = $query->query;
+		$es_query_args           = $query->query;
 		$es_query_args['fields'] = 'ids';
-		$es_query = new ES_WP_Query( $es_query_args );
+		$es_query                = new ES_WP_Query( $es_query_args );
 
 		// Make the post query use the post IDs from the ES results instead.
-		$query->parse_query( array(
-			'post_type'        => $query->get( 'post_type' ),
-			'post_status'      => $query->get( 'post_status' ),
-			'post__in'         => $es_query->posts,
-			'posts_per_page'   => $es_query->post_count,
-			'fields'           => $query->get( 'fields' ),
-			'orderby'          => 'post__in',
-			'order'            => 'ASC',
-		) );
+		$query->parse_query(
+			array(
+				'post_type'      => $query->get( 'post_type' ),
+				'post_status'    => $query->get( 'post_status' ),
+				'post__in'       => $es_query->posts,
+				'posts_per_page' => $es_query->post_count,
+				'fields'         => $query->get( 'fields' ),
+				'orderby'        => 'post__in',
+				'order'          => 'ASC',
+			) 
+		);
 
 		// Reinsert all the conditionals from the original query.
 		foreach ( $conditionals as $key => $value ) {
@@ -118,16 +120,16 @@ class ES_WP_Query_Shoehorn {
 	private $posts_per_page;
 
 	public function __construct( &$query, &$es_query, $query_args ) {
-		$this->hash = spl_object_hash( $query );
+		$this->hash           = spl_object_hash( $query );
 		$this->posts_per_page = $es_query->get( 'posts_per_page' );
 
 		if ( $query->get( 'no_found_rows' ) || -1 == $query->get( 'posts_per_page' ) || true == $query->get( 'nopaging' ) ) {
 			$this->do_found_posts = false;
 		} else {
 			$this->do_found_posts = true;
-			$this->found_posts = $es_query->found_posts;
+			$this->found_posts    = $es_query->found_posts;
 		}
-		$this->post_count = $es_query->post_count;
+		$this->post_count          = $es_query->post_count;
 		$this->original_query_args = $query_args;
 		$this->add_query_hooks();
 	}
@@ -141,9 +143,9 @@ class ES_WP_Query_Shoehorn {
 	 */
 	public function add_query_hooks() {
 		if ( $this->post_count ) {
-			# Kills the FOUND_ROWS() database query
+			// Kills the FOUND_ROWS() database query
 			add_filter( 'found_posts_query', array( $this, 'filter__found_posts_query' ), 1000, 2 );
-			# Since the FOUND_ROWS() query was killed, we need to supply the total number of found posts
+			// Since the FOUND_ROWS() query was killed, we need to supply the total number of found posts
 			add_filter( 'found_posts', array( $this, 'filter__found_posts' ), 1000, 2 );
 		}
 
@@ -170,7 +172,7 @@ class ES_WP_Query_Shoehorn {
 	/**
 	 * If we killed the found_posts query, set the found posts via ES.
 	 *
-	 * @param int $found_posts The total number of posts found when running the query.
+	 * @param int    $found_posts The total number of posts found when running the query.
 	 * @param object $query WP_Query object.
 	 * @return int
 	 */

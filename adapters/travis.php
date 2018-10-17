@@ -6,12 +6,15 @@
 
 class ES_WP_Query extends ES_WP_Query_Wrapper {
 	protected function query_es( $es_args ) {
-		$response = wp_remote_post( 'http://localhost:9200/es-wp-query-unit-tests/post/_search', array(
-			'body' => json_encode( $es_args ),
-			'headers' => array(
-				'Content-Type' => 'application/json',
-			),
-		) );
+		$response = wp_remote_post(
+			'http://localhost:9200/es-wp-query-unit-tests/post/_search',
+			array(
+				'body'    => json_encode( $es_args ),
+				'headers' => array(
+					'Content-Type' => 'application/json',
+				),
+			) 
+		);
 		return json_decode( wp_remote_retrieve_body( $response ), true );
 	}
 }
@@ -20,14 +23,17 @@ class ES_Index_Exception extends \Exception {
 }
 
 function travis_es_field_map( $es_map ) {
-	return wp_parse_args( array(
-		'post_meta'         => 'post_meta.%s.value',
-		'post_author'       => 'post_author.user_id',
-		'post_date'         => 'post_date.date',
-		'post_date_gmt'     => 'post_date_gmt.date',
-		'post_modified'     => 'post_modified.date',
-		'post_modified_gmt' => 'post_modified_gmt.date',
-	), $es_map );
+	return wp_parse_args(
+		array(
+			'post_meta'         => 'post_meta.%s.value',
+			'post_author'       => 'post_author.user_id',
+			'post_date'         => 'post_date.date',
+			'post_date_gmt'     => 'post_date_gmt.date',
+			'post_modified'     => 'post_modified.date',
+			'post_modified_gmt' => 'post_modified_gmt.date',
+		),
+		$es_map 
+	);
 }
 add_filter( 'es_field_map', 'travis_es_field_map' );
 
@@ -64,17 +70,20 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		// Ensure the index is empty
 		wp_remote_request( 'http://localhost:9200/es-wp-query-unit-tests/', array( 'method' => 'DELETE' ) );
 
-		$analyzed = 'text';
+		$analyzed     = 'text';
 		$not_analyzed = 'keyword';
 		if ( version_compare( ES_VERSION, '5.0.0', '<' ) ) {
-			$analyzed = 'string';
+			$analyzed     = 'string';
 			$not_analyzed = 'string", "index": "not_analyzed';
 		}
 
 		// Add the mapping
-		$response = wp_remote_request( 'http://localhost:9200/es-wp-query-unit-tests/', array(
-			'method' => 'PUT',
-			'body' => sprintf( '
+		$response = wp_remote_request(
+			'http://localhost:9200/es-wp-query-unit-tests/',
+			array(
+				'method'  => 'PUT',
+				'body'    => sprintf(
+					'
 				{
 					"settings": {
 						"analysis": {
@@ -263,21 +272,27 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 						}
 					}
 				}
-			', $analyzed, $not_analyzed ),
-			'headers' => array(
-				'Content-Type' => 'application/json',
-			),
-		) );
+			',
+					$analyzed,
+					$not_analyzed 
+				),
+				'headers' => array(
+					'Content-Type' => 'application/json',
+				),
+			) 
+		);
 		travis_es_verify_response_code( $response );
 
 		// Index the content
-		$posts = get_posts( array(
-			'posts_per_page' => -1,
-			'post_type' => array_values( get_post_types() ),
-			'post_status' => array_values( get_post_stati() ),
-			'orderby' => 'ID',
-			'order' => 'ASC',
-		) );
+		$posts = get_posts(
+			array(
+				'posts_per_page' => -1,
+				'post_type'      => array_values( get_post_types() ),
+				'post_status'    => array_values( get_post_stati() ),
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+			) 
+		);
 
 		$es_posts = array();
 		foreach ( $posts as $post ) {
@@ -293,8 +308,8 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		$response = wp_remote_request(
 			'http://localhost:9200/es-wp-query-unit-tests/post/_bulk',
 			array(
-				'method' => 'PUT',
-				'body' => wp_check_invalid_utf8( implode( "\n", $body ), true ) . "\n",
+				'method'  => 'PUT',
+				'body'    => wp_check_invalid_utf8( implode( "\n", $body ), true ) . "\n",
 				'headers' => array(
 					'Content-Type' => 'application/json',
 				),
@@ -315,11 +330,14 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 			}
 		}
 
-		$resposne = wp_remote_post( 'http://localhost:9200/es-wp-query-unit-tests/_refresh', array(
-			'headers' => array(
-				'Content-Type' => 'application/json',
-			),
-		) );
+		$resposne = wp_remote_post(
+			'http://localhost:9200/es-wp-query-unit-tests/_refresh',
+			array(
+				'headers' => array(
+					'Content-Type' => 'application/json',
+				),
+			) 
+		);
 		travis_es_verify_response_code( $response );
 	}
 
@@ -332,7 +350,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 				$message[] = sprintf( 'Response code %s', wp_remote_retrieve_response_code( $response ) );
 				$message[] = sprintf( 'Message: %s', wp_remote_retrieve_body( $response ) );
 			}
-			$message[] = sprintf( "Backtrace:%s", travis_es_debug_backtrace_summary() );
+			$message[] = sprintf( 'Backtrace:%s', travis_es_debug_backtrace_summary() );
 			throw new ES_Index_Exception( implode( "\n", $message ) );
 		}
 
@@ -341,26 +359,31 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 
 	function travis_es_debug_backtrace_summary() {
 		$backtrace = wp_debug_backtrace_summary( null, 0, false );
-		$backtrace = array_filter( $backtrace, function( $call ) {
-			return ! preg_match( '/PHPUnit_(TextUI_(Command|TestRunner)|Framework_(TestSuite|TestCase|TestResult))|ReflectionMethod|travis_es_(verify_response_code|debug_backtrace_summary)/', $call );
-		} );
+		$backtrace = array_filter(
+			$backtrace,
+			function( $call ) {
+				return ! preg_match( '/PHPUnit_(TextUI_(Command|TestRunner)|Framework_(TestSuite|TestCase|TestResult))|ReflectionMethod|travis_es_(verify_response_code|debug_backtrace_summary)/', $call );
+			} 
+		);
 		return "\n\t" . join( "\n\t", $backtrace );
 	}
 
 	/**
-	* Taken from SearchPress
-	*/
+	 * Taken from SearchPress
+	 */
 	class Travis_ES_Post {
-		# This stores what will eventually become our JSON
+		// This stores what will eventually become our JSON
 		public $data = array();
 
 		protected static $users = array();
 
 		function __construct( $post ) {
-			if ( is_numeric( $post ) && 0 != intval( $post ) )
+			if ( is_numeric( $post ) && 0 != intval( $post ) ) {
 				$post = get_post( intval( $post ) );
-			if ( ! is_object( $post ) )
+			}
+			if ( ! is_object( $post ) ) {
 				return;
+			}
 
 			$this->fill( $post );
 		}
@@ -373,19 +396,19 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		 */
 		public function fill( $post ) {
 			$this->data = array(
-				'post_id'           => $post->ID,
-				'post_author'       => $this->get_user( $post->post_author ),
-				'post_title'        => $post->post_title,
-				'post_excerpt'      => $post->post_excerpt,
-				'post_content'      => $post->post_content,
-				'post_status'       => $post->post_status,
-				'post_name'         => $post->post_name,
-				'post_parent'       => $post->post_parent,
-				'post_type'         => $post->post_type,
-				'post_mime_type'    => $post->post_mime_type,
-				'post_password'     => $post->post_password,
-				'terms'             => $this->get_terms( $post ),
-				'post_meta'         => $this->get_meta( $post->ID ),
+				'post_id'        => $post->ID,
+				'post_author'    => $this->get_user( $post->post_author ),
+				'post_title'     => $post->post_title,
+				'post_excerpt'   => $post->post_excerpt,
+				'post_content'   => $post->post_content,
+				'post_status'    => $post->post_status,
+				'post_name'      => $post->post_name,
+				'post_parent'    => $post->post_parent,
+				'post_type'      => $post->post_type,
+				'post_mime_type' => $post->post_mime_type,
+				'post_password'  => $post->post_password,
+				'terms'          => $this->get_terms( $post ),
+				'post_meta'      => $this->get_meta( $post->ID ),
 			);
 			foreach ( array( 'post_date', 'post_date_gmt', 'post_modified', 'post_modified_gmt' ) as $field ) {
 				if ( $value = $this->get_date( $post->$field, $field ) ) {
@@ -404,7 +427,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		public function get_meta( $post_id ) {
 			$meta = (array) get_post_meta( $post_id );
 
-			# Remove a filtered set of meta that we don't want indexed
+			// Remove a filtered set of meta that we don't want indexed
 			$ignored_meta = array(
 				'_edit_lock',
 				'_edit_last',
@@ -413,7 +436,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 				'_wp_trash_meta_status',
 				'_previous_revision',
 				'_wpas_done_all',
-				'_encloseme'
+				'_encloseme',
 			);
 			foreach ( $ignored_meta as $key ) {
 				unset( $meta[ $key ] );
@@ -445,7 +468,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 			}
 
 			// correct boolean values
-			if ( ( "false" === $value ) || ( "FALSE" === $value ) ) {
+			if ( ( 'false' === $value ) || ( 'FALSE' === $value ) ) {
 				$return['boolean'] = false;
 			} elseif ( ( 'true' === $value ) || ( 'TRUE' === $value ) ) {
 				$return['boolean'] = true;
@@ -470,7 +493,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		 */
 		public function get_terms( $post ) {
 			$object_terms = array();
-			$taxonomies = get_object_taxonomies( $post->post_type );
+			$taxonomies   = get_object_taxonomies( $post->post_type );
 			foreach ( $taxonomies as $taxonomy ) {
 				$these_terms = get_the_terms( $post->ID, $taxonomy );
 				if ( $these_terms && ! is_wp_error( $these_terms ) ) {

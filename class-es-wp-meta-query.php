@@ -77,18 +77,18 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 				 * As a result, the last one will be the one who prevails.
 				 */
 
-               	
+				
 				if ( isset( $meta_clauses[ $meta_clause_key ]['key'] ) ) {                 
 					$queries_types[
 						$meta_clause_key
 					] = array(
-						'key'   => $meta_clauses[ $meta_clause_key ]['key'],
+						'key' => $meta_clauses[ $meta_clause_key ]['key'],
 					);
 				} else {
 					$queries_types[
 						$meta_clause_key
 					] = array(
-						'key'	=> $meta_clause_key
+						'key' => $meta_clause_key,
 					);
 				}
 
@@ -98,8 +98,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 				) ) {
 					$queries_types[ $meta_clause_key ]['type'] =
 						$meta_clauses[ $meta_clause_key ]['type'];
-				}
-
+				}           
 			} else {
 				/*
 				 * Recursively process the clause.
@@ -198,7 +197,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 		}
 
 		// Filter to remove empties.
-		$filters = array_filter( $filters );
+		$filters       = array_filter( $filters );
 		$this->clauses = array_filter( $this->clauses );
 
 		if ( ! empty( $relation ) && 'or' === strtolower( $relation ) ) {
@@ -242,7 +241,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 		}
 
 		// Ensure unique clause keys, so none are overwritten.
-		$iterator = 1;
+		$iterator        = 1;
 		$clause_key_base = $clause_key;
 		while ( isset( $this->clauses[ $clause_key ] ) ) {
 			$clause_key = $clause_key_base . '-' . $iterator;
@@ -309,21 +308,29 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 		$clause['value'] = apply_filters( 'es_meta_query_meta_value', $clause['value'], $clause['key'], $clause['compare'], $clause['type'] );
 
 		switch ( $clause['compare'] ) {
-			case '>' :
-			case '>=' :
-			case '<' :
-			case '<=' :
+			case '>':
+			case '>=':
+			case '<':
+			case '<=':
 				switch ( $clause['compare'] ) {
-					case '>' :   $operator = 'gt';   break;
-					case '>=' :  $operator = 'gte';  break;
-					case '<' :   $operator = 'lt';   break;
-					case '<=' :  $operator = 'lte';  break;
+					case '>':   
+						$operator = 'gt';
+						break;
+					case '>=':  
+						$operator = 'gte';
+						break;
+					case '<':   
+						$operator = 'lt';
+						break;
+					case '<=':  
+						$operator = 'lte';
+						break;
 				}
 				$filter = $this->es_query->dsl_range( $this->es_query->meta_map( $clause['key'], $clause['type'] ), array( $operator => $clause['value'] ) );
 				break;
 
-			case 'LIKE' :
-			case 'NOT LIKE' :
+			case 'LIKE':
+			case 'NOT LIKE':
 				if ( '*' == $clause['key'] ) {
 					$filter = $this->es_query->dsl_multi_match( $this->es_query->meta_map( $clause['key'], 'analyzed' ), $clause['value'] );
 				} else {
@@ -331,8 +338,8 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 				}
 				break;
 
-			case 'BETWEEN' :
-			case 'NOT BETWEEN' :
+			case 'BETWEEN':
+			case 'NOT BETWEEN':
 				// These may produce unexpected results depending on how your data is indexed.
 				$clause['value'] = array_slice( $clause['value'], 0, 2 );
 				if ( 'DATETIME' == $clause['type'] && $date1 = strtotime( $clause['value'][0] ) && $date2 = strtotime( $clause['value'][1] ) ) {
@@ -346,21 +353,24 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 					natcasesort( $clause['value'] );
 					$filter = $this->es_query->dsl_range(
 						$this->es_query->meta_map( $clause['key'], $clause['type'] ),
-						array( 'gte' => $clause['value'][0], 'lte' => $clause['value'][1] )
+						array(
+							'gte' => $clause['value'][0],
+							'lte' => $clause['value'][1],
+						)
 					);
 				}
 				break;
 
-			case 'REGEXP' :
-			case 'NOT REGEXP' :
-			case 'RLIKE' :
+			case 'REGEXP':
+			case 'NOT REGEXP':
+			case 'RLIKE':
 				_doing_it_wrong( 'ES_WP_Query', __( 'ES_WP_Query does not support regular expression meta queries.', 'es-wp-query' ), '0.1' );
 				// Empty out $clause, since this will be disregarded.
 				$clause = array();
 				return array();
 				break;
 
-			default :
+			default:
 				if ( '*' == $clause['key'] ) {
 					$filter = $this->es_query->dsl_multi_match( $this->es_query->meta_map( $clause['key'], $clause['type'] ), $clause['value'] );
 				} else {
@@ -376,7 +386,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 			if ( in_array( $clause['compare'], array( 'NOT IN', '!=', 'NOT BETWEEN', 'NOT LIKE' ) ) ) {
 				return array(
 					'bool' => array(
-						'filter' => array(
+						'filter'   => array(
 							$this->es_query->dsl_exists( $this->es_query->meta_map( $clause['key'] ) ),
 						),
 						'must_not' => $filter,
@@ -398,14 +408,22 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 	public function get_cast_for_type( $type = '' ) {
 		$type = preg_replace( '/^([A-Z]+).*$/', '$1', strtoupper( $type ) );
 		switch ( $type ) {
-			case 'NUMERIC'  : return 'long';
-			case 'SIGNED'   : return 'long';
-			case 'UNSIGNED' : return 'long';
-			case 'BINARY'   : return 'boolean';
-			case 'DECIMAL'  : return 'double';
-			case 'DATE'     : return 'date';
-			case 'DATETIME' : return 'datetime';
-			case 'TIME'     : return 'time';
+			case 'NUMERIC': 
+				return 'long';
+			case 'SIGNED': 
+				return 'long';
+			case 'UNSIGNED': 
+				return 'long';
+			case 'BINARY': 
+				return 'boolean';
+			case 'DECIMAL': 
+				return 'double';
+			case 'DATE': 
+				return 'date';
+			case 'DATETIME': 
+				return 'datetime';
+			case 'TIME': 
+				return 'time';
 		}
 		return '';
 	}

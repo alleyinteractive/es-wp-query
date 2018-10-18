@@ -1,4 +1,9 @@
 <?php
+/**
+ * ES_WP_Query classes: ES_WP_Meta_Query class
+ *
+ * @package ES_WP_Query
+ */
 
 /**
  * Elasticsearch wrapper for WP_Meta_Query
@@ -39,15 +44,15 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 	/**
 	 * Returns a simplified version of the meta-queries given as an argument.
 	 * The simplification pertains to returning only the key/type values of
-	 * each part of the meta-query. Also, the simplification takes care to flattern
+	 * each part of the meta-query. Also, the simplification takes care to flatten
 	 * out the result.
 	 *
 	 * If the meta-query is composed of multiple joining queries, these are
 	 * processed by recursively walking through them, and calling this
 	 * function to process each.
 	 *
+	 * @param array $meta_clauses Meta clauses to be processed.
 	 * @access protected
-	 *
 	 * @return array All queries, but only with key and type key/values pairs.
 	 */
 	protected function queries_types_all_get( $meta_clauses ) {
@@ -61,9 +66,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 			return $meta_clauses;
 		}
 
-		foreach (
-			$meta_clauses as $meta_clause_key => $meta_clause_value
-		) {
+		foreach ( array_keys( $meta_clauses ) as $meta_clause_key ) {
 			if ( $this->is_first_order_clause(
 				$meta_clauses[ $meta_clause_key ]
 			) ) {
@@ -136,8 +139,8 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 	 * @return array ES filters
 	 */
 	public function get_dsl( $es_query, $type ) {
-		// Currently only 'post' is supported
-		if ( 'post' != $type ) {
+		// Currently only 'post' is supported.
+		if ( 'post' !== $type ) {
 			return false;
 		}
 
@@ -145,7 +148,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 
 		$filters = $this->get_dsl_clauses();
 
-		return apply_filters_ref_array( 'get_meta_dsl', array( $filters, $this->queries, $type, $this->es_query ) );
+		return apply_filters_ref_array( 'get_meta_dsl', array( $filters, $this->queries, $type, $this->es_query ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 	}
 
 	/**
@@ -251,16 +254,16 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 		// Split out 'exists' and 'not exists' queries. These may also be
 		// queries missing a value or with an empty array as the value.
 		if ( isset( $clause['compare'] ) && ! empty( $clause['value'] ) ) {
-			if ( 'EXISTS' == strtoupper( $clause['compare'] ) ) {
+			if ( 'EXISTS' === strtoupper( $clause['compare'] ) ) {
 				$clause['compare'] = is_array( $clause['value'] ) ? 'IN' : '=';
-			} elseif ( 'NOT EXISTS' == strtoupper( $clause['compare'] ) ) {
+			} elseif ( 'NOT EXISTS' === strtoupper( $clause['compare'] ) ) {
 				unset( $clause['value'] );
 			}
 		}
 
 		if ( ( isset( $clause['value'] ) && is_array( $clause['value'] ) && empty( $clause['value'] ) ) || ( ! array_key_exists( 'value', $clause ) && ! empty( $clause['key'] ) ) ) {
 			$this->clauses[ $clause_key ] =& $clause;
-			if ( isset( $clause['compare'] ) && 'NOT EXISTS' == strtoupper( $clause['compare'] ) ) {
+			if ( isset( $clause['compare'] ) && 'NOT EXISTS' === strtoupper( $clause['compare'] ) ) {
 				return $this->es_query->dsl_missing( $this->es_query->meta_map( trim( $clause['key'] ) ) );
 			} else {
 				return $this->es_query->dsl_exists( $this->es_query->meta_map( trim( $clause['key'] ) ) );
@@ -281,7 +284,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 			$clause['compare'] = is_array( $clause['value'] ) ? 'IN' : '=';
 		}
 
-		if ( in_array( $clause['compare'], array( 'IN', 'NOT IN', 'BETWEEN', 'NOT BETWEEN' ) ) ) {
+		if ( in_array( $clause['compare'], array( 'IN', 'NOT IN', 'BETWEEN', 'NOT BETWEEN' ), true ) ) {
 			if ( ! is_array( $clause['value'] ) ) {
 				$clause['value'] = preg_split( '/[,\s]+/', $clause['value'] );
 			}
@@ -298,13 +301,13 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 		// Store the clause in our flat array.
 		$this->clauses[ $clause_key ] =& $clause;
 
-		if ( '*' == $clause['key'] && ! in_array( $clause['compare'], array( '=', '!=', 'LIKE', 'NOT LIKE' ) ) ) {
+		if ( '*' === $clause['key'] && ! in_array( $clause['compare'], array( '=', '!=', 'LIKE', 'NOT LIKE' ), true ) ) {
 			return apply_filters( 'es_meta_query_keyless_query', array(), $clause['value'], $clause['compare'], $this, $this->es_query );
 		}
 
 		$clause['type'] = $this->get_cast_for_type( isset( $clause['type'] ) ? $clause['type'] : '' );
 
-		// Allow adapters to normalize meta values (like `strtolower` if mapping to `raw_lc`)
+		// Allow adapters to normalize meta values (like `strtolower` if mapping to `raw_lc`).
 		$clause['value'] = apply_filters( 'es_meta_query_meta_value', $clause['value'], $clause['key'], $clause['compare'], $clause['type'] );
 
 		switch ( $clause['compare'] ) {
@@ -331,7 +334,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 
 			case 'LIKE':
 			case 'NOT LIKE':
-				if ( '*' == $clause['key'] ) {
+				if ( '*' === $clause['key'] ) {
 					$filter = $this->es_query->dsl_multi_match( $this->es_query->meta_map( $clause['key'], 'analyzed' ), $clause['value'] );
 				} else {
 					$filter = $this->es_query->dsl_match( $this->es_query->meta_map( $clause['key'], 'analyzed' ), $clause['value'] );
@@ -342,13 +345,17 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 			case 'NOT BETWEEN':
 				// These may produce unexpected results depending on how your data is indexed.
 				$clause['value'] = array_slice( $clause['value'], 0, 2 );
-				if ( 'DATETIME' == $clause['type'] && $date1 = strtotime( $clause['value'][0] ) && $date2 = strtotime( $clause['value'][1] ) ) {
-					$clause['value'] = array( $date1, $date2 );
-					sort( $clause['value'] );
-					$filter = $this->es_query->dsl_range(
-						$this->es_query->meta_map( $clause['key'], $clause['type'] ),
-						ES_WP_Date_Query::build_date_range( $clause['value'][0], '>=', $clause['value'][1], '<=' )
-					);
+				if ( 'DATETIME' === $clause['type'] ) {
+					$date1 = strtotime( $clause['value'][0] );
+					$date2 = strtotime( $clause['value'][1] );
+					if ( $date1 && $date2 ) {
+						$clause['value'] = array( $date1, $date2 );
+						sort( $clause['value'] );
+						$filter = $this->es_query->dsl_range(
+							$this->es_query->meta_map( $clause['key'], $clause['type'] ),
+							ES_WP_Date_Query::build_date_range( $clause['value'][0], '>=', $clause['value'][1], '<=' )
+						);
+					}
 				} else {
 					natcasesort( $clause['value'] );
 					$filter = $this->es_query->dsl_range(
@@ -364,14 +371,13 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 			case 'REGEXP':
 			case 'NOT REGEXP':
 			case 'RLIKE':
-				_doing_it_wrong( 'ES_WP_Query', __( 'ES_WP_Query does not support regular expression meta queries.', 'es-wp-query' ), '0.1' );
+				_doing_it_wrong( 'ES_WP_Query', esc_html__( 'ES_WP_Query does not support regular expression meta queries.', 'es-wp-query' ), '0.1' );
 				// Empty out $clause, since this will be disregarded.
 				$clause = array();
 				return array();
-				break;
 
 			default:
-				if ( '*' == $clause['key'] ) {
+				if ( '*' === $clause['key'] ) {
 					$filter = $this->es_query->dsl_multi_match( $this->es_query->meta_map( $clause['key'], $clause['type'] ), $clause['value'] );
 				} else {
 					$filter = $this->es_query->dsl_terms( $this->es_query->meta_map( $clause['key'], $clause['type'] ), $clause['value'] );
@@ -383,7 +389,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 		if ( ! empty( $filter ) ) {
 			// To maintain parity with WP_Query, if we're doing a negation
 			// query, we still only query posts where the meta key exists.
-			if ( in_array( $clause['compare'], array( 'NOT IN', '!=', 'NOT BETWEEN', 'NOT LIKE' ) ) ) {
+			if ( in_array( $clause['compare'], array( 'NOT IN', '!=', 'NOT BETWEEN', 'NOT LIKE' ), true ) ) {
 				return array(
 					'bool' => array(
 						'filter'   => array(

@@ -1,4 +1,9 @@
 <?php
+/**
+ * ES_WP_Query classes: ES_WP_Tax_Query class
+ *
+ * @package ES_WP_Query
+ */
 
 /**
  * Elasticsearch wrapper for WP_Meta_Query
@@ -12,6 +17,13 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	 */
 	protected $es_query;
 
+	/**
+	 * Generates DSL from a tax query.
+	 *
+	 * @param WP_Tax_Query $tax_query The tax query to transform.
+	 * @access public
+	 * @return ES_WP_Tax_Query
+	 */
 	public static function get_from_tax_query( $tax_query ) {
 		$q           = new ES_WP_Tax_Query( $tax_query->queries );
 		$q->relation = $tax_query->relation;
@@ -34,7 +46,6 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	 * @access public
 	 *
 	 * @param object $es_query Any object which extends ES_WP_Query_Wrapper.
-	 * @param string $type Type of meta. Currently, only 'post' is supported.
 	 * @return array ES filters
 	 */
 	public function get_dsl( $es_query ) {
@@ -138,28 +149,28 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 
 		// If the comparison is EXISTS or NOT EXISTS, handle that first since
 		// it's quick and easy.
-		if ( 'EXISTS' == $clause['operator'] || 'NOT EXISTS' == $clause['operator'] ) {
+		if ( 'EXISTS' === $clause['operator'] || 'NOT EXISTS' === $clause['operator'] ) {
 			if ( empty( $clause['taxonomy'] ) ) {
 				return $this->get_no_results_clause();
 			}
 
-			if ( 'EXISTS' == $clause['operator'] ) {
+			if ( 'EXISTS' === $clause['operator'] ) {
 				return $this->es_query->dsl_exists( $this->es_query->tax_map( $clause['taxonomy'], 'term_id' ) );
-			} elseif ( 'NOT EXISTS' == $clause['operator'] ) {
+			} elseif ( 'NOT EXISTS' === $clause['operator'] ) {
 				return $this->es_query->dsl_missing( $this->es_query->tax_map( $clause['taxonomy'], 'term_id' ) );
 			}
 		}
 
-		if ( 'AND' == $clause['operator'] ) {
+		if ( 'AND' === $clause['operator'] ) {
 			$terms_method = array( $this->es_query, 'dsl_all_terms' );
 		} else {
 			$terms_method = array( $this->es_query, 'dsl_terms' );
 		}
 
 		if ( empty( $clause['terms'] ) ) {
-			if ( 'NOT IN' == $clause['operator'] || 'AND' == $clause['operator'] ) {
+			if ( 'NOT IN' === $clause['operator'] || 'AND' === $clause['operator'] ) {
 				return array();
-			} elseif ( 'IN' == $clause['operator'] ) {
+			} elseif ( 'IN' === $clause['operator'] ) {
 				return $this->get_no_results_clause();
 			}
 		}
@@ -203,7 +214,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 					if ( count( $matches ) > 1 ) {
 						$current_filter = array(
 							'bool' => array(
-								( 'AND' == $clause['operator'] ? 'filter' : 'should' ) => $matches,
+								( 'AND' === $clause['operator'] ? 'filter' : 'should' ) => $matches,
 							),
 						);
 					} else {
@@ -219,7 +230,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 				break;
 		}
 
-		if ( 'NOT IN' == $clause['operator'] ) {
+		if ( 'NOT IN' === $clause['operator'] ) {
 			return array(
 				'bool' => array(
 					'must_not' => $current_filter,
@@ -237,7 +248,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	 *
 	 * @access private
 	 *
-	 * @param array &$query The single query
+	 * @param array $query The single query.
 	 */
 	private function clean_query( &$query ) {
 		if ( empty( $query['taxonomy'] ) ) {
@@ -246,7 +257,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 				return;
 			}
 
-			// so long as there are shared terms, include_children requires that a taxonomy is set
+			// So long as there are shared terms, include_children requires that a taxonomy is set.
 			$query['include_children'] = false;
 		} elseif ( ! taxonomy_exists( $query['taxonomy'] ) ) {
 			$query = new WP_Error( 'Invalid taxonomy' );
@@ -272,7 +283,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 
 		// If we have a term_taxonomy_id, use mysql, as that's almost certainly not stored in ES.
 		// However, you can override this.
-		if ( 'term_taxonomy_id' == $query['field'] && ! empty( $query['taxonomy'] ) ) {
+		if ( 'term_taxonomy_id' === $query['field'] && ! empty( $query['taxonomy'] ) ) {
 			if ( apply_filters( 'es_use_mysql_for_term_taxonomy_id', true ) ) {
 				$this->transform_query( $query, 'term_id' );
 			}
@@ -282,8 +293,8 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	/**
 	 * Transforms a single query, from one field to another.
 	 *
-	 * @param array  &$query The single query
-	 * @param string $resulting_field The resulting field
+	 * @param array  $query           The single query.
+	 * @param string $resulting_field The resulting field.
 	 */
 	public function transform_query( &$query, $resulting_field ) {
 		global $wpdb;
@@ -292,12 +303,13 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 			return;
 		}
 
-		if ( $query['field'] == $resulting_field ) {
+		if ( $query['field'] === $resulting_field ) {
 			return;
 		}
 
 		$resulting_field = sanitize_key( $resulting_field );
 
+		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.VIP.DirectDatabaseQuery.NoCaching, WordPress.VIP.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 		switch ( $query['field'] ) {
 			case 'slug':
 			case 'name':
@@ -333,8 +345,9 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 				" 
 				);
 		}
+		// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.VIP.DirectDatabaseQuery.NoCaching, WordPress.VIP.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 
-		if ( 'AND' == $query['operator'] && count( $terms ) < count( $query['terms'] ) ) {
+		if ( 'AND' === $query['operator'] && count( $terms ) < count( $query['terms'] ) ) {
 			$query = new WP_Error( 'Inexistent terms' );
 			return;
 		}

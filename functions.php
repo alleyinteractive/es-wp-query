@@ -1,4 +1,11 @@
 <?php
+/**
+ * ES_WP_Query functions
+ *
+ * @package ES_WP_Query
+ */
+
+// phpcs:disable WordPressVIPMinimum.Files.IncludingFile.IncludingFile
 
 if ( ! function_exists( 'es_get_posts' ) ) {
 
@@ -35,15 +42,15 @@ if ( ! function_exists( 'es_get_posts' ) ) {
 			'order'            => 'DESC',
 			'include'          => array(),
 			'exclude'          => array(),
-			'meta_key'         => '',
-			'meta_value'       => '',
+			'meta_key'         => '', // phpcs:ignore WordPress.VIP.SlowDBQuery.slow_db_query_meta_key
+			'meta_value'       => '', // phpcs:ignore WordPress.VIP.SlowDBQuery.slow_db_query_meta_value
 			'post_type'        => 'post',
-			'suppress_filters' => true,
+			'suppress_filters' => true, // phpcs:ignore WordPressVIPMinimum.VIP.WPQueryParams.suppressFiltersTrue
 		);
 
 		$r = wp_parse_args( $args, $defaults );
 		if ( empty( $r['post_status'] ) ) {
-			$r['post_status'] = ( 'attachment' == $r['post_type'] ) ? 'inherit' : 'publish';
+			$r['post_status'] = ( 'attachment' === $r['post_type'] ) ? 'inherit' : 'publish';
 		}
 		if ( ! empty( $r['numberposts'] ) && empty( $r['posts_per_page'] ) ) {
 			$r['posts_per_page'] = $r['numberposts'];
@@ -53,10 +60,10 @@ if ( ! function_exists( 'es_get_posts' ) ) {
 		}
 		if ( ! empty( $r['include'] ) ) {
 			$incposts            = wp_parse_id_list( $r['include'] );
-			$r['posts_per_page'] = count( $incposts );  // only the number of posts included
+			$r['posts_per_page'] = count( $incposts );  // Only the number of posts included.
 			$r['post__in']       = $incposts;
 		} elseif ( ! empty( $r['exclude'] ) ) {
-			$r['post__not_in'] = wp_parse_id_list( $r['exclude'] );
+			$r['post__not_in'] = wp_parse_id_list( $r['exclude'] ); // phpcs:ignore WordPressVIPMinimum.VIP.WPQueryParams.post__not_in
 		}
 
 		$r['ignore_sticky_posts'] = true;
@@ -76,7 +83,7 @@ if ( ! function_exists( 'es_get_posts' ) ) {
  * @return void
  */
 function es_wp_query_load_adapter( $adapter ) {
-	if ( in_array( $adapter, array( 'searchpress', 'wpcom-vip', 'travis' ) ) ) {
+	if ( in_array( $adapter, array( 'searchpress', 'wpcom-vip', 'travis' ), true ) ) {
 		require_once ES_WP_QUERY_PATH . "/adapters/{$adapter}.php";
 	}
 }

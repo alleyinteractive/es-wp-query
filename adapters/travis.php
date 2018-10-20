@@ -8,7 +8,7 @@
  * @package ES_WP_Query
  */
 
-// phpcs:disable Generic.Files.OneClassPerFile.MultipleFound, WordPress.Security.EscapeOutput.OutputNotEscaped
+// phpcs:disable Generic.Files.OneClassPerFile.MultipleFound, WordPress.Security.EscapeOutput.OutputNotEscaped, Generic.Classes.DuplicateClassName.Found
 
 /**
  * A generic ES implementation for Travis CI.

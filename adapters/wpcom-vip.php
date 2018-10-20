@@ -1,10 +1,24 @@
-<?php
-
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName
 /**
- * An adapter for WordPress.com VIP
+ * ES_WP_Query adapters: WordPress.com VIP adapter
+ *
+ * @package ES_WP_Query
  */
 
+// phpcs:disable Generic.Classes.DuplicateClassName.Found
+
+/**
+ * An adapter for WordPress.com VIP.
+ */
 class ES_WP_Query extends ES_WP_Query_Wrapper {
+
+	/**
+	 * Implements the abstract function query_es from ES_WP_Query_Wrapper.
+	 *
+	 * @param array $es_args Arguments to pass to the Elasticsearch server.
+	 * @access protected
+	 * @return array The response from the Elasticsearch server.
+	 */
 	protected function query_es( $es_args ) {
 		if ( function_exists( 'es_api_search_index' ) ) {
 			$es_args['name'] = es_api_get_index_name_by_blog_id( $es_args['blog_id'] );
@@ -15,6 +29,13 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 		}
 	}
 
+	/**
+	 * Sets the posts array to the list of found post IDs.
+	 *
+	 * @param array          $q           Query arguments.
+	 * @param array|WP_Error $es_response Response from the Elasticsearch server.
+	 * @access protected
+	 */
 	protected function set_posts( $q, $es_response ) {
 		$this->posts = array();
 		if ( ! is_wp_error( $es_response ) && isset( $es_response['results']['hits'] ) ) {
@@ -48,7 +69,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 						if ( ! empty( $post_ids ) ) {
 							global $wpdb;
 							$post__in    = implode( ',', $post_ids );
-							$this->posts = $wpdb->get_results( "SELECT $wpdb->posts.* FROM $wpdb->posts WHERE ID IN ($post__in) ORDER BY FIELD( {$wpdb->posts}.ID, $post__in )" );
+							$this->posts = $wpdb->get_results( "SELECT $wpdb->posts.* FROM $wpdb->posts WHERE ID IN ($post__in) ORDER BY FIELD( {$wpdb->posts}.ID, $post__in )" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.VIP.DirectDatabaseQuery.NoCaching, WordPress.VIP.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 						}
 						return;
 					}
@@ -62,6 +83,8 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 	 * Set up the amount of found posts and the number of pages (if limit clause was used)
 	 * for the current query.
 	 *
+	 * @param array          $q           Query arguments.
+	 * @param array|WP_Error $es_response The response from the Elasticsearch server.
 	 * @access public
 	 */
 	public function set_found_posts( $q, $es_response ) {
@@ -75,6 +98,12 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 	}
 }
 
+/**
+ * Maps Elasticsearch DSL keys to their VIP-specific naming conventions.
+ *
+ * @param array $es_map Additional fields to map.
+ * @return array The final field mapping.
+ */
 function vip_es_field_map( $es_map ) {
 	return wp_parse_args(
 		array(
@@ -105,8 +134,8 @@ function vip_es_field_map( $es_map ) {
 			'post_title'                    => 'title',
 			'post_title.analyzed'           => 'title',
 			'post_excerpt'                  => 'excerpt',
-			'post_password'                 => 'post_password',  // this isn't indexed on vip
-			'post_name'                     => 'post_name',      // this isn't indexed on vip
+			'post_password'                 => 'post_password',  // This isn't indexed on VIP.
+			'post_name'                     => 'post_name',      // This isn't indexed on VIP.
 			'post_modified'                 => 'modified',
 			'post_modified.year'            => 'modified_token.year',
 			'post_modified.month'           => 'modified_token.month',
@@ -128,9 +157,9 @@ function vip_es_field_map( $es_map ) {
 			'post_modified_gmt.minute'      => 'modified_gmt_token.minute',
 			'post_modified_gmt.second'      => 'modified_gmt_token.second',
 			'post_parent'                   => 'parent_post_id',
-			'menu_order'                    => 'menu_order',     // this isn't indexed on vip
-			'post_mime_type'                => 'post_mime_type', // this isn't indexed on vip
-			'comment_count'                 => 'comment_count',  // this isn't indexed on vip
+			'menu_order'                    => 'menu_order',     // This isn't indexed on VIP.
+			'post_mime_type'                => 'post_mime_type', // This isn't indexed on VIP.
+			'comment_count'                 => 'comment_count',  // This isn't indexed on VIP.
 			'post_meta'                     => 'meta.%s.value.raw_lc',
 			'post_meta.analyzed'            => 'meta.%s.value',
 			'post_meta.long'                => 'meta.%s.long',
@@ -151,6 +180,15 @@ function vip_es_field_map( $es_map ) {
 }
 add_filter( 'es_field_map', 'vip_es_field_map' );
 
+/**
+ * Returns the lowercase version of a meta value.
+ *
+ * @param mixed  $meta_value   The meta value.
+ * @param string $meta_key     The meta key.
+ * @param string $meta_compare The comparison operation.
+ * @param string $meta_type    The type of meta (post, user, term, etc).
+ * @return mixed If value is a string, returns the lowercase version. Otherwise, returns the original value, unmodified.
+ */
 function vip_es_meta_value_tolower( $meta_value, $meta_key, $meta_compare, $meta_type ) {
 	if ( ! is_string( $meta_value ) || empty( $meta_value ) ) {
 		return $meta_value;
@@ -176,7 +214,7 @@ function vip_es_term_name_slug_tolower( $term, $taxonomy ) {
 }
 add_filter( 'es_tax_query_term_name', 'vip_es_term_name_slug_tolower', 10, 2 );
 
-/*
+/**
  * Advanced Post Cache and es-wp-query do not work well together. In
  * particular, the WP_Query->found_posts attribute gets corrupted when using
  * both of these plugins, so here we disable Advanced Post Cache completely
@@ -186,8 +224,10 @@ add_filter( 'es_tax_query_term_name', 'vip_es_term_name_slug_tolower', 10, 2 );
  * Advanced Post Cache earlier, we enable it again, to make use of its caching
  * features.
  *
- * Note that this applies only to calles done via WP_Query(), and not
+ * Note that this applies only to calls done via WP_Query(), and not
  * ES_WP_Query()
+ *
+ * @param WP_Query|ES_WP_Query|ES_WP_Query_Wrapper $query The query to examine.
  */
 function vip_es_disable_advanced_post_cache( &$query ) {
 	global $advanced_post_cache_object;

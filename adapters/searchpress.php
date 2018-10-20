@@ -5,6 +5,8 @@
  * @package ES_WP_Query
  */
 
+// phpcs:disable Generic.Classes.DuplicateClassName.Found
+
 /**
  * An adapter for SearchPress.
  */

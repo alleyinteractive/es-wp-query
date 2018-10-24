@@ -1,4 +1,11 @@
 <?php
+/**
+ * ES_WP_Query classes: ES_WP_Query_Shoehorn class
+ *
+ * @package ES_WP_Query
+ */
+
+// phpcs:disable WordPressVIPMinimum.Actions.PreGetPosts.PreGetPosts
 
 /**
  * Add the 'es' query var. This is a filter for "query_vars".
@@ -26,7 +33,7 @@ function es_wp_query_shoehorn( &$query ) {
 		return;
 	}
 
-	if ( true == $query->get( 'es' ) ) {
+	if ( ! empty( $query->get( 'es' ) ) ) {
 		// Backup the conditionals to restore later.
 		$conditionals = array(
 			'is_single'            => false,
@@ -69,27 +76,29 @@ function es_wp_query_shoehorn( &$query ) {
 		 * subquery, we ensure that the subquery is as similar to the original
 		 * query as possible.
 		 */
-		$es_query_args = $query->query;
+		$es_query_args           = $query->query;
 		$es_query_args['fields'] = 'ids';
-		$es_query = new ES_WP_Query( $es_query_args );
+		$es_query                = new ES_WP_Query( $es_query_args );
 
 		// Make the post query use the post IDs from the ES results instead.
-		$query->parse_query( array(
-			'post_type'        => $query->get( 'post_type' ),
-			'post_status'      => $query->get( 'post_status' ),
-			'post__in'         => $es_query->posts,
-			'posts_per_page'   => $es_query->post_count,
-			'fields'           => $query->get( 'fields' ),
-			'orderby'          => 'post__in',
-			'order'            => 'ASC',
-		) );
+		$query->parse_query(
+			array(
+				'post_type'      => $query->get( 'post_type' ),
+				'post_status'    => $query->get( 'post_status' ),
+				'post__in'       => $es_query->posts,
+				'posts_per_page' => $es_query->post_count,
+				'fields'         => $query->get( 'fields' ),
+				'orderby'        => 'post__in',
+				'order'          => 'ASC',
+			) 
+		);
 
 		// Reinsert all the conditionals from the original query.
 		foreach ( $conditionals as $key => $value ) {
 			$query->$key = $value;
 		}
 
-		$shoehorn = new ES_WP_Query_Shoehorn( $query, $es_query, $query_args );
+		new ES_WP_Query_Shoehorn( $query, $es_query, $query_args );
 	}
 }
 add_action( 'pre_get_posts', 'es_wp_query_shoehorn', 1000 );
@@ -105,29 +114,73 @@ add_action( 'pre_get_posts', 'es_wp_query_shoehorn', 1000 );
  */
 class ES_WP_Query_Shoehorn {
 
+	/**
+	 * Keeps track of a hash of the query arguments.
+	 *
+	 * @access private
+	 * @var string
+	 */
 	private $hash;
 
+	/**
+	 * Whether to execute the found_posts query or not.
+	 *
+	 * @access private
+	 * @var bool
+	 */
 	private $do_found_posts = true;
 
+	/**
+	 * Keeps track of the number of posts returned by this query.
+	 *
+	 * @access private
+	 * @var int
+	 */
 	private $post_count;
 
+	/**
+	 * Keeps track of the total number of found posts matching the query.
+	 *
+	 * @access private
+	 * @var int
+	 */
 	private $found_posts;
 
+	/**
+	 * Keeps track of the original query args from the query.
+	 *
+	 * @access private
+	 * @var array
+	 */
 	private $original_query_args;
 
+	/**
+	 * Keeps track of the number of posts per page from the query.
+	 *
+	 * @access private
+	 * @var int
+	 */
 	private $posts_per_page;
 
+	/**
+	 * ES_WP_Query_Shoehorn constructor.
+	 *
+	 * @param WP_Query    $query      The WP_Query object to augment.
+	 * @param ES_WP_Query $es_query   The ES_WP_Query object to augment.
+	 * @param array       $query_args Arguments passed to the original query.
+	 * @access public
+	 */
 	public function __construct( &$query, &$es_query, $query_args ) {
-		$this->hash = spl_object_hash( $query );
+		$this->hash           = spl_object_hash( $query );
 		$this->posts_per_page = $es_query->get( 'posts_per_page' );
 
-		if ( $query->get( 'no_found_rows' ) || -1 == $query->get( 'posts_per_page' ) || true == $query->get( 'nopaging' ) ) {
+		if ( $query->get( 'no_found_rows' ) || -1 === intval( $query->get( 'posts_per_page' ) ) || true === $query->get( 'nopaging' ) ) {
 			$this->do_found_posts = false;
 		} else {
 			$this->do_found_posts = true;
-			$this->found_posts = $es_query->found_posts;
+			$this->found_posts    = $es_query->found_posts;
 		}
-		$this->post_count = $es_query->post_count;
+		$this->post_count          = $es_query->post_count;
 		$this->original_query_args = $query_args;
 		$this->add_query_hooks();
 	}
@@ -141,9 +194,9 @@ class ES_WP_Query_Shoehorn {
 	 */
 	public function add_query_hooks() {
 		if ( $this->post_count ) {
-			# Kills the FOUND_ROWS() database query
+			// Kills the FOUND_ROWS() database query.
 			add_filter( 'found_posts_query', array( $this, 'filter__found_posts_query' ), 1000, 2 );
-			# Since the FOUND_ROWS() query was killed, we need to supply the total number of found posts
+			// Since the FOUND_ROWS() query was killed, we need to supply the total number of found posts.
 			add_filter( 'found_posts', array( $this, 'filter__found_posts' ), 1000, 2 );
 		}
 
@@ -158,7 +211,7 @@ class ES_WP_Query_Shoehorn {
 	 * @return string
 	 */
 	public function filter__found_posts_query( $sql, $query ) {
-		if ( spl_object_hash( $query ) == $this->hash ) {
+		if ( spl_object_hash( $query ) === $this->hash ) {
 			remove_filter( 'found_posts_query', array( $this, 'filter__found_posts_query' ), 1000, 2 );
 			if ( $this->do_found_posts ) {
 				return '';
@@ -170,12 +223,12 @@ class ES_WP_Query_Shoehorn {
 	/**
 	 * If we killed the found_posts query, set the found posts via ES.
 	 *
-	 * @param int $found_posts The total number of posts found when running the query.
+	 * @param int    $found_posts The total number of posts found when running the query.
 	 * @param object $query WP_Query object.
 	 * @return int
 	 */
 	public function filter__found_posts( $found_posts, $query ) {
-		if ( spl_object_hash( $query ) == $this->hash ) {
+		if ( spl_object_hash( $query ) === $this->hash ) {
 			remove_filter( 'found_posts', array( $this, 'filter__found_posts' ), 1000, 2 );
 			if ( $this->do_found_posts ) {
 				return $this->found_posts;
@@ -192,7 +245,7 @@ class ES_WP_Query_Shoehorn {
 	 * @return string The SQL query to get posts.
 	 */
 	public function filter__posts_request( $sql, $query ) {
-		if ( spl_object_hash( $query ) == $this->hash ) {
+		if ( spl_object_hash( $query ) === $this->hash ) {
 			remove_filter( 'posts_request', array( $this, 'filter__posts_request' ), 1000, 2 );
 			$this->reboot_query_vars( $query );
 
@@ -230,7 +283,8 @@ class ES_WP_Query_Shoehorn {
 			$current_query_vars['order']
 		);
 
-		$q = $query->query = $this->original_query_args;
+		$query->query = $this->original_query_args;
+		$q            = $query->query;
 		$query->parse_query();
 		$q = array_merge( $current_query_vars, $q );
 

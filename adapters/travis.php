@@ -1,43 +1,83 @@
-<?php
-
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName
 /**
- * A generic ES implementation for Travis CI
+ * ES_WP_Query adapters: Travis CI adapter
+ *
+ * Code in this file will only ever be run in a Travis CI context when running
+ * unit tests.
+ *
+ * @package ES_WP_Query
  */
 
+// phpcs:disable Generic.Files.OneClassPerFile.MultipleFound, WordPress.Security.EscapeOutput.OutputNotEscaped, Generic.Classes.DuplicateClassName.Found
+
+/**
+ * A generic ES implementation for Travis CI.
+ */
 class ES_WP_Query extends ES_WP_Query_Wrapper {
+
+	/**
+	 * Implements the abstract function query_es from ES_WP_Query_Wrapper.
+	 *
+	 * @param array $es_args Arguments to pass to the Elasticsearch server.
+	 * @access protected
+	 * @return array The response from the Elasticsearch server.
+	 */
 	protected function query_es( $es_args ) {
-		$response = wp_remote_post( 'http://localhost:9200/es-wp-query-unit-tests/post/_search', array(
-			'body' => json_encode( $es_args ),
-			'headers' => array(
-				'Content-Type' => 'application/json',
-			),
-		) );
+		$response = wp_remote_post(
+			'http://localhost:9200/es-wp-query-unit-tests/post/_search',
+			array(
+				'body'    => wp_json_encode( $es_args ),
+				'headers' => array(
+					'Content-Type' => 'application/json',
+				),
+			) 
+		);
 		return json_decode( wp_remote_retrieve_body( $response ), true );
 	}
 }
 
+/**
+ * A class to represent an exception that fires when indexing fails.
+ */
 class ES_Index_Exception extends \Exception {
 }
 
+/**
+ * Provides a mapping between WordPress fields and Elasticsearch DSL keys.
+ *
+ * @param array $es_map Additional mappings to layer on top of the default.
+ * @return array Mappings to use.
+ */
 function travis_es_field_map( $es_map ) {
-	return wp_parse_args( array(
-		'post_meta'         => 'post_meta.%s.value',
-		'post_author'       => 'post_author.user_id',
-		'post_date'         => 'post_date.date',
-		'post_date_gmt'     => 'post_date_gmt.date',
-		'post_modified'     => 'post_modified.date',
-		'post_modified_gmt' => 'post_modified_gmt.date',
-	), $es_map );
+	return wp_parse_args(
+		array(
+			'post_meta'         => 'post_meta.%s.value',
+			'post_author'       => 'post_author.user_id',
+			'post_date'         => 'post_date.date',
+			'post_date_gmt'     => 'post_date_gmt.date',
+			'post_modified'     => 'post_modified.date',
+			'post_modified_gmt' => 'post_modified_gmt.date',
+		),
+		$es_map 
+	);
 }
 add_filter( 'es_field_map', 'travis_es_field_map' );
 
 if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 
+	/**
+	 * Verifies that the Elasticsearch server is up and accepting connections.
+	 *
+	 * @param int $tries The number of retries to attempt.
+	 * @param int $sleep The amount of time to sleep between retries.
+	 * @return bool True if the server is up, false if not.
+	 * @throws ES_Index_Exception If the indexing operation fails.
+	 */
 	function es_wp_query_verify_es_is_running( $tries = 5, $sleep = 3 ) {
-		// Make sure ES is running and responding
+		// Make sure ES is running and responding.
 		do {
-			$response = wp_remote_get( 'http://localhost:9200/' );
-			if ( '200' == wp_remote_retrieve_response_code( $response ) ) {
+			$response = wp_remote_get( 'http://localhost:9200/' ); // phpcs:ignore WordPressVIPMinimum.VIP.RestrictedFunctions.wp_remote_get_wp_remote_get
+			if ( 200 === intval( wp_remote_retrieve_response_code( $response ) ) ) {
 				$body = json_decode( wp_remote_retrieve_body( $response ), true );
 				if ( ! empty( $body['version']['number'] ) ) {
 					printf( "Elasticsearch is up and running, using version %s.\n", $body['version']['number'] );
@@ -60,21 +100,29 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		return travis_es_verify_response_code( $response );
 	}
 
+	/**
+	 * Indexes test data.
+	 *
+	 * @throws ES_Index_Exception If the indexing operation fails.
+	 */
 	function es_wp_query_index_test_data() {
-		// Ensure the index is empty
+		// Ensure the index is empty.
 		wp_remote_request( 'http://localhost:9200/es-wp-query-unit-tests/', array( 'method' => 'DELETE' ) );
 
-		$analyzed = 'text';
+		$analyzed     = 'text';
 		$not_analyzed = 'keyword';
 		if ( version_compare( ES_VERSION, '5.0.0', '<' ) ) {
-			$analyzed = 'string';
+			$analyzed     = 'string';
 			$not_analyzed = 'string", "index": "not_analyzed';
 		}
 
-		// Add the mapping
-		$response = wp_remote_request( 'http://localhost:9200/es-wp-query-unit-tests/', array(
-			'method' => 'PUT',
-			'body' => sprintf( '
+		// Add the mapping.
+		$response = wp_remote_request(
+			'http://localhost:9200/es-wp-query-unit-tests/',
+			array(
+				'method'  => 'PUT',
+				'body'    => sprintf(
+					'
 				{
 					"settings": {
 						"analysis": {
@@ -263,21 +311,27 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 						}
 					}
 				}
-			', $analyzed, $not_analyzed ),
-			'headers' => array(
-				'Content-Type' => 'application/json',
-			),
-		) );
+			',
+					$analyzed,
+					$not_analyzed 
+				),
+				'headers' => array(
+					'Content-Type' => 'application/json',
+				),
+			) 
+		);
 		travis_es_verify_response_code( $response );
 
-		// Index the content
-		$posts = get_posts( array(
-			'posts_per_page' => -1,
-			'post_type' => array_values( get_post_types() ),
-			'post_status' => array_values( get_post_stati() ),
-			'orderby' => 'ID',
-			'order' => 'ASC',
-		) );
+		// Index the content.
+		$posts = get_posts( // phpcs:ignore WordPressVIPMinimum.VIP.RestrictedFunctions.get_posts_get_posts
+			array(
+				'posts_per_page' => -1, // phpcs:ignore WordPress.VIP.PostsPerPage.posts_per_page_posts_per_page
+				'post_type'      => array_values( get_post_types() ),
+				'post_status'    => array_values( get_post_stati() ),
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+			) 
+		);
 
 		$es_posts = array();
 		foreach ( $posts as $post ) {
@@ -293,8 +347,8 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		$response = wp_remote_request(
 			'http://localhost:9200/es-wp-query-unit-tests/post/_bulk',
 			array(
-				'method' => 'PUT',
-				'body' => wp_check_invalid_utf8( implode( "\n", $body ), true ) . "\n",
+				'method'  => 'PUT',
+				'body'    => wp_check_invalid_utf8( implode( "\n", $body ), true ) . "\n",
 				'headers' => array(
 					'Content-Type' => 'application/json',
 				),
@@ -304,8 +358,8 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 
 		$itemized_response = json_decode( wp_remote_retrieve_body( $response ) );
 		foreach ( (array) $itemized_response->items as $post ) {
-			// Status should be 200 or 201, depending on if we're updating or creating respectively
-			if ( ! isset( $post->index->status ) || ! in_array( $post->index->status, array( 200, 201 ) ) ) {
+			// Status should be 200 or 201, depending on if we're updating or creating respectively.
+			if ( ! isset( $post->index->status ) || ! in_array( intval( $post->index->status ), array( 200, 201 ), true ) ) {
 				$error_message = "Error indexing post {$post->index->_id}; HTTP response code: {$post->index->status}";
 				if ( ! empty( $post->index->error ) ) {
 					$error_message .= "\n" . $post->index->error;
@@ -315,16 +369,26 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 			}
 		}
 
-		$resposne = wp_remote_post( 'http://localhost:9200/es-wp-query-unit-tests/_refresh', array(
-			'headers' => array(
-				'Content-Type' => 'application/json',
-			),
-		) );
+		$response = wp_remote_post(
+			'http://localhost:9200/es-wp-query-unit-tests/_refresh',
+			array(
+				'headers' => array(
+					'Content-Type' => 'application/json',
+				),
+			) 
+		);
 		travis_es_verify_response_code( $response );
 	}
 
+	/**
+	 * Verifies the Elasticsearch response code.
+	 *
+	 * @param WP_Error|array $response The response from wp_remote_request.
+	 * @return bool
+	 * @throws ES_Index_Exception If the indexing fails.
+	 */
 	function travis_es_verify_response_code( $response ) {
-		if ( '200' != wp_remote_retrieve_response_code( $response ) ) {
+		if ( 200 !== intval( wp_remote_retrieve_response_code( $response ) ) ) {
 			$message = [ 'Failed to index posts!' ];
 			if ( is_wp_error( $response ) ) {
 				$message[] = sprintf( 'Message: %s', $response->get_error_message() );
@@ -332,63 +396,92 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 				$message[] = sprintf( 'Response code %s', wp_remote_retrieve_response_code( $response ) );
 				$message[] = sprintf( 'Message: %s', wp_remote_retrieve_body( $response ) );
 			}
-			$message[] = sprintf( "Backtrace:%s", travis_es_debug_backtrace_summary() );
+			$message[] = sprintf( 'Backtrace:%s', travis_es_debug_backtrace_summary() );
 			throw new ES_Index_Exception( implode( "\n", $message ) );
 		}
 
 		return true;
 	}
 
+	/**
+	 * Provides a backtrace summary for error reporting in Travis tests.
+	 *
+	 * @return string
+	 */
 	function travis_es_debug_backtrace_summary() {
-		$backtrace = wp_debug_backtrace_summary( null, 0, false );
-		$backtrace = array_filter( $backtrace, function( $call ) {
-			return ! preg_match( '/PHPUnit_(TextUI_(Command|TestRunner)|Framework_(TestSuite|TestCase|TestResult))|ReflectionMethod|travis_es_(verify_response_code|debug_backtrace_summary)/', $call );
-		} );
+		$backtrace = wp_debug_backtrace_summary( null, 0, false ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_wp_debug_backtrace_summary
+		$backtrace = array_filter(
+			$backtrace,
+			function( $call ) {
+				return ! preg_match( '/PHPUnit_(TextUI_(Command|TestRunner)|Framework_(TestSuite|TestCase|TestResult))|ReflectionMethod|travis_es_(verify_response_code|debug_backtrace_summary)/', $call );
+			} 
+		);
 		return "\n\t" . join( "\n\t", $backtrace );
 	}
 
 	/**
-	* Taken from SearchPress
-	*/
+	 * Taken from SearchPress.
+	 */
 	class Travis_ES_Post {
-		# This stores what will eventually become our JSON
+
+		/**
+		 * This stores what will eventually become our JSON.
+		 *
+		 * @access public
+		 * @var array
+		 */
 		public $data = array();
 
+		/**
+		 * A list of users.
+		 *
+		 * @access protected
+		 * @var array
+		 */
 		protected static $users = array();
 
-		function __construct( $post ) {
-			if ( is_numeric( $post ) && 0 != intval( $post ) )
+		/**
+		 * Travis_ES_Post constructor.
+		 *
+		 * @param WP_Post $post The post object to use.
+		 * @access public
+		 */
+		public function __construct( $post ) {
+			if ( is_numeric( $post ) && 0 !== intval( $post ) ) {
 				$post = get_post( intval( $post ) );
-			if ( ! is_object( $post ) )
+			}
+			if ( ! is_object( $post ) ) {
 				return;
+			}
 
 			$this->fill( $post );
 		}
 
 		/**
-		 * Populate this object with all of the post's properties
+		 * Populate this object with all of the post's properties.
 		 *
-		 * @param object $post
-		 * @return void
+		 * @param WP_Post $post The post to use when filling post properties.
+		 * @access public
 		 */
 		public function fill( $post ) {
 			$this->data = array(
-				'post_id'           => $post->ID,
-				'post_author'       => $this->get_user( $post->post_author ),
-				'post_title'        => $post->post_title,
-				'post_excerpt'      => $post->post_excerpt,
-				'post_content'      => $post->post_content,
-				'post_status'       => $post->post_status,
-				'post_name'         => $post->post_name,
-				'post_parent'       => $post->post_parent,
-				'post_type'         => $post->post_type,
-				'post_mime_type'    => $post->post_mime_type,
-				'post_password'     => $post->post_password,
-				'terms'             => $this->get_terms( $post ),
-				'post_meta'         => $this->get_meta( $post->ID ),
+				'post_id'        => $post->ID,
+				'post_author'    => $this->get_user( $post->post_author ),
+				'post_title'     => $post->post_title,
+				'post_excerpt'   => $post->post_excerpt,
+				'post_content'   => $post->post_content,
+				'post_status'    => $post->post_status,
+				'post_name'      => $post->post_name,
+				'post_parent'    => $post->post_parent,
+				'post_type'      => $post->post_type,
+				'post_mime_type' => $post->post_mime_type,
+				'post_password'  => $post->post_password,
+				'terms'          => $this->get_terms( $post ),
+				'post_meta'      => $this->get_meta( $post->ID ),
 			);
 			foreach ( array( 'post_date', 'post_date_gmt', 'post_modified', 'post_modified_gmt' ) as $field ) {
-				if ( $value = $this->get_date( $post->$field, $field ) ) {
+				$value = $this->get_date( $post->$field, $field );
+				if ( ! empty( $value ) ) {
 					$this->data[ $field ] = $value;
 				}
 			}
@@ -398,13 +491,13 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		 * Get post meta for a given post ID.
 		 * Some post meta is removed (you can filter it), and serialized data gets unserialized
 		 *
-		 * @param int $post_id
+		 * @param int $post_id The ID of the post for which to retrieve meta.
 		 * @return array 'meta_key' => array( value 1, value 2... )
 		 */
 		public function get_meta( $post_id ) {
 			$meta = (array) get_post_meta( $post_id );
 
-			# Remove a filtered set of meta that we don't want indexed
+			// Remove a filtered set of meta that we don't want indexed.
 			$ignored_meta = array(
 				'_edit_lock',
 				'_edit_last',
@@ -413,7 +506,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 				'_wp_trash_meta_status',
 				'_previous_revision',
 				'_wpas_done_all',
-				'_encloseme'
+				'_encloseme',
 			);
 			foreach ( $ignored_meta as $key ) {
 				unset( $meta[ $key ] );
@@ -444,14 +537,14 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 				$return['double'] = floatval( $value );
 			}
 
-			// correct boolean values
-			if ( ( "false" === $value ) || ( "FALSE" === $value ) ) {
+			// Correct boolean values.
+			if ( ( 'false' === $value ) || ( 'FALSE' === $value ) ) {
 				$return['boolean'] = false;
 			} elseif ( ( 'true' === $value ) || ( 'TRUE' === $value ) ) {
 				$return['boolean'] = true;
 			}
 
-			// add date/time if we have it.
+			// Add date/time if we have it.
 			$time = strtotime( $value );
 			if ( false !== $time ) {
 				$return['date']     = date( 'Y-m-d', $time );
@@ -465,12 +558,13 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		/**
 		 * Get all terms across all taxonomies for a given post
 		 *
-		 * @param object $post
+		 * @param WP_Post $post The post to process.
+		 * @access public
 		 * @return array
 		 */
 		public function get_terms( $post ) {
 			$object_terms = array();
-			$taxonomies = get_object_taxonomies( $post->post_type );
+			$taxonomies   = get_object_taxonomies( $post->post_type );
 			foreach ( $taxonomies as $taxonomy ) {
 				$these_terms = get_the_terms( $post->ID, $taxonomy );
 				if ( $these_terms && ! is_wp_error( $these_terms ) ) {
@@ -529,7 +623,8 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		/**
 		 * Get information about a post author
 		 *
-		 * @param int $user_id
+		 * @param int $user_id The user ID to look up.
+		 * @access public
 		 * @return array
 		 */
 		public function get_user( $user_id ) {
@@ -554,7 +649,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		 * @return string
 		 */
 		public function to_json() {
-			return json_encode( $this->data );
+			return wp_json_encode( $this->data );
 		}
 	}
 }

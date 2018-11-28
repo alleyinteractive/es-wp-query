@@ -233,12 +233,14 @@ function vip_es_disable_advanced_post_cache( &$query ) {
 
 	static $disabled_apc = false;
 
+	if ( empty( $advanced_post_cache_object ) || ! is_object( $advanced_post_cache_object ) ) {
+		return;
+	}
 
 	/*
 	 * These two might be passsed to us; we only
 	 * handle WP_Query, so ignore these.
 	 */
-
 	if (
 		( $query instanceof ES_WP_Query_Wrapper ) ||
 		( $query instanceof ES_WP_Query )

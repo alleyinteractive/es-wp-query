@@ -79,11 +79,11 @@ if ( ! function_exists( 'es_get_posts' ) ) {
 /**
  * Loads one of the included adapters.
  *
- * @param  string $adapter Which adapter to include. Currently allows searchpress, wpcom-vip, and travis.
+ * @param  string $adapter Which adapter to include. Currently allows searchpress, wpcom-vip, travis and jetpack-search.
  * @return void
  */
 function es_wp_query_load_adapter( $adapter ) {
-	if ( in_array( $adapter, array( 'searchpress', 'wpcom-vip', 'travis' ), true ) ) {
+	if ( in_array( $adapter, array( 'searchpress', 'wpcom-vip', 'travis', 'jetpack-search' ), true ) ) {
 		require_once ES_WP_QUERY_PATH . "/adapters/{$adapter}.php";
 	}
 }

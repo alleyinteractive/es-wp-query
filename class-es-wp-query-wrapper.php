@@ -1207,7 +1207,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$this->es_args = apply_filters_ref_array( 'es_posts_request', array( $this->es_args, &$this ) );
 		}
 
-		if ( 'ids' === $q['fields'] || 'id=>parent' === $q['fields'] ) {
+		if ( 'ids' === $q['fields'] || 'id=>parent' === $q['fields'] || apply_filters( 'es_query_use_source', false ) ) {
 			$this->es_response = $this->query_es( $this->es_args );
 			$this->set_posts( $q, $this->es_response );
 			$this->post_count = count( $this->posts );

@@ -80,6 +80,29 @@ function es_wp_query_shoehorn( &$query ) {
 		$es_query_args['fields'] = 'ids';
 		$es_query                = new ES_WP_Query( $es_query_args );
 
+		/*
+		 * If there were any taxonomies being queried,
+		 * save those for later reconstruction.
+		 */
+
+		$taxonomies = get_taxonomies(
+			array(
+				'public' => true,
+				'_builtin' => false
+			),
+			'names',
+			'and'
+		);
+
+		$query_vars_taxonomy_save = array();
+
+		foreach( $taxonomies as $taxonomy_key => $taxonomy_name ) {
+			if ( isset($query->query_vars[ $taxonomy_key ] ) ) {
+				$query_vars_taxonomy_save[$taxonomy_key] =
+					$query->query_vars[ $taxonomy_key ];
+			}
+		}
+
 		// Make the post query use the post IDs from the ES results instead.
 		$query->parse_query(
 			array(
@@ -96,6 +119,14 @@ function es_wp_query_shoehorn( &$query ) {
 		// Reinsert all the conditionals from the original query.
 		foreach ( $conditionals as $key => $value ) {
 			$query->$key = $value;
+		}
+
+		/*
+		 * Add taxonomies saved earlier.
+		 */
+
+		foreach( $query_vars_taxonomy_save as $tax_key => $tax_name ) {
+			$query->query_vars[ $tax_key ] = $tax_name;
 		}
 
 		new ES_WP_Query_Shoehorn( $query, $es_query, $query_args );

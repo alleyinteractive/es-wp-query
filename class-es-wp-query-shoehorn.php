@@ -60,6 +60,29 @@ function es_wp_query_shoehorn( &$query ) {
 		$es_query_vars['fields'] = 'ids';
 		$es_query = new ES_WP_Query( $es_query_vars );
 
+		/*
+		 * If there were any taxonomies being queried,
+		 * save those for later reconstruction.
+		 */
+
+		$taxonomies = get_taxonomies(
+			array(
+				'public' => true,
+				'_builtin' => false
+			),
+			'names',
+			'and'
+		);
+
+		$query_vars_taxonomy_save = array();
+
+		foreach( $taxonomies as $taxonomy_key => $taxonomy_name ) {
+			if ( isset($query->query_vars[ $taxonomy_key ] ) ) {
+				$query_vars_taxonomy_save[ $taxonomy_key ] =
+					$query->query_vars[ $taxonomy_key ];
+			}
+		}
+
 		$query->parse_query( array(
 			'post_type'        => 'any',
 			'post_status'      => 'any',
@@ -73,6 +96,15 @@ function es_wp_query_shoehorn( &$query ) {
 		foreach ( $conditionals as $key => $value ) {
 			$query->$key = $value;
 		}
+
+		/*
+		 * Add taxonomies saved earlier.
+		 */
+
+		foreach( $query_vars_taxonomy_save as $tax_key => $tax_name ) {
+			$query->query_vars[ $tax_key ] = $tax_name;
+		}
+
 		$shoehorn = new ES_WP_Query_Shoehorn( $query, $es_query, $query_args );
 	}
 }

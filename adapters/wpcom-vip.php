@@ -23,9 +23,13 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 		if ( function_exists( 'es_api_search_index' ) ) {
 			$es_args['name'] = es_api_get_index_name_by_blog_id( $es_args['blog_id'] );
 			if ( is_wp_error( $es_args['name'] ) ) {
-				return $es_args['name'];
+				return [];
 			}
-			return es_api_search_index( $es_args, 'es-wp-query' );
+			$response = es_api_search_index( $es_args, 'es-wp-query' );
+			if ( is_wp_error( $response ) ) {
+				$response = [];
+			}
+			return $response;
 		}
 	}
 

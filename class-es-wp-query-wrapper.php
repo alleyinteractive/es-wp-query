@@ -100,7 +100,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 	 */
 	protected function set_posts( $q, $es_response ) {
 		$this->posts = array();
-		if ( isset( $es_response['hits']['hits'] ) ) {
+		if ( ! is_wp_error( $es_response) && isset( $es_response['hits']['hits'] ) ) {
 			switch ( $q['fields'] ) {
 				case 'ids':
 					foreach ( $es_response['hits']['hits'] as $hit ) {

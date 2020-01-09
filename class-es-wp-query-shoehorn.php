@@ -81,7 +81,6 @@ function es_wp_query_shoehorn( &$query ) {
 		$es_query_args['is_main_query'] = $query->is_main_query();
 		$es_query                = new ES_WP_Query( $es_query_args );
 
-
 		// Make the post query use the post IDs from the ES results instead.
 		$query->parse_query(
 			array(

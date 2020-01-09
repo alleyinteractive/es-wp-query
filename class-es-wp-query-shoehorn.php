@@ -33,7 +33,8 @@ function es_wp_query_shoehorn( &$query ) {
 		return;
 	}
 
-	if ( ! empty( $query->get( 'es' ) ) ) {
+	if ( apply_filters( 'es_query_use_es', ! empty( $query->get( 'es' ) ), $query ) ) {
+
 		// Backup the conditionals to restore later.
 		$conditionals = array(
 			'is_single'            => false,

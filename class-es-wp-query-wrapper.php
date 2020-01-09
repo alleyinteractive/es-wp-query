@@ -54,7 +54,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 	 * @return bool
 	 */
 	public function is_main_query() {
-		return $this->get( 'is_main_query', false );
+		return $this->get( 'es_is_main_query', false );
 	}
 
 	/**

@@ -1,5 +1,9 @@
 sudo: false
 
+# Xenial does not start mysql by default
+services:
+  - mysql
+
 language: php
 
 notifications:

@@ -114,7 +114,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		} elseif ( defined( 'SP_PLUGIN_DIR' ) ) {
 			require_once ABSPATH . '/wp-admin/includes/plugin.php';
 			$plugin_data = get_plugin_data( SP_PLUGIN_DIR . '/searchpress.php' );
-			$sp_version  = $plugin_data['Version'] ?? '[unknown version]';
+			$sp_version  = ! empty( $plugin_data['Version'] ) ? $plugin_data['Version'] : '[unknown version]';
 		} else {
 			$sp_version = '[unknown version]';
 		}

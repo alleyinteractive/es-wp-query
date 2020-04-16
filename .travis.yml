@@ -1,5 +1,9 @@
 sudo: false
 
+# Xenial does not start mysql by default
+services:
+  - mysql
+
 language: php
 
 notifications:
@@ -12,40 +16,75 @@ branches:
     - master
     - master-1.x
 
+cache:
+  directories:
+    - $HOME/.composer/cache
+    - $HOME/.config/composer/cache
+
 matrix:
   include:
     - php: 5.6
       env: WP_VERSION=latest PHP_LINT=1 ES_VERSION=2.4.6
-    - php: 7.0
-      env: WP_VERSION=nightly WP_PHPCS=1 ES_VERSION=5.6.0
-    - php: 7.1
-      env: WP_VERSION=latest PHP_LINT=1 ES_VERSION=2.4.6
-    - php: 7.2
-      env: WP_VERSION=nightly PHP_LINT=1 ES_VERSION=6.4.1
+      dist: trusty
+    - php: 7.3
+      env: WP_VERSION=latest WP_PHPCS=1 ES_VERSION=5.6.16
+      dist: xenial
+    - php: 7.3
+      env: WP_VERSION=latest PHP_LINT=1 ES_VERSION=6.8.8
+      dist: xenial
+    - php: 7.4
+      env: WP_VERSION=nightly PHP_LINT=1 ES_VERSION=7.6.2
+      dist: xenial
   fast_finish: true
 
 install:
   - bash bin/install-es.sh $ES_VERSION
 
 before_script:
-  - export PATH="$HOME/.composer/vendor/bin:$PATH"
+  - export PATH="$HOME/.config/composer/vendor/bin:$HOME/.composer/vendor/bin:$PATH"
+
+  # Turn off Xdebug. See https://core.trac.wordpress.org/changeset/40138.
+  - phpenv config-rm xdebug.ini || echo "Xdebug not available"
+
+  # Couple the PHPUnit version to the PHP version.
   - |
-    if [[ ${TRAVIS_PHP_VERSION:0:2} == "7." ]]; then
-      composer global require "phpunit/phpunit=5.7.*"
-    else
+    case "$TRAVIS_PHP_VERSION" in
+    5.6)
+      echo "Using PHPUnit 4.8"
       composer global require "phpunit/phpunit=4.8.*"
-    fi
+      ;;
+    *)
+      echo "Using PHPUnit 6.1"
+      composer global require "phpunit/phpunit=6.1.*"
+      ;;
+    esac
+
   - |
     if [[ ! -z "$WP_VERSION" ]] ; then
       bash bin/install-wp-tests.sh wordpress_test root '' localhost $WP_VERSION
     fi
+
   - |
     if [[ "$WP_PHPCS" == "1" ]]; then
       composer global require automattic/vipwpcs
       phpcs --config-set installed_paths $HOME/.composer/vendor/wp-coding-standards/wpcs,$HOME/.composer/vendor/automattic/vipwpcs
     fi
-  - sleep 5
-  - curl localhost:9200 && echo "ES is up" || (cat /tmp/elasticsearch.log && exit 1)
+
+  # Wait up to 60 seconds until ES is up, or die if it never comes up.
+  - |
+    failures=0
+    curl localhost:9200;
+    while [[ $? -ne 0 && $failures -lt 60 ]]; do
+      sleep 1
+      ((failures++))
+      curl localhost:9200
+    done
+
+    if [ $? -ne 0 ]; then
+      echo "Elasticsearch is unavailable."
+      cat /tmp/elasticsearch.log
+      exit 1
+    fi
   - phpunit --version
 
 

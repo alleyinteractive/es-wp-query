@@ -48,10 +48,13 @@ function sp_es_field_map( $es_map ) {
 			'post_meta.signed'      => 'post_meta.%s.long',
 			'post_meta.unsigned'    => 'post_meta.%s.long',
 			'term_name'             => 'terms.%s.name.raw',
+			'term_tt_id'            => 'terms.%s.term_id',
 			'category_name'         => 'terms.%s.name.raw',
+			'category_tt_id'        => 'terms.%s.term_id',
 			'tag_name'              => 'terms.%s.name.raw',
+			'tag_tt_id'             => 'terms.%s.term_id',
 		),
-		$es_map 
+		$es_map
 	);
 }
 add_filter( 'es_field_map', 'sp_es_field_map' );
@@ -64,6 +67,107 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 	remove_action( 'delete_post', array( SP_Sync_Manager(), 'delete_post' ) );
 	remove_action( 'trashed_post', array( SP_Sync_Manager(), 'delete_post' ) );
 
+	add_filter(
+		'sp_post_allowed_meta',
+		function() {
+			return array(
+				'numeric_value'    => array( 'long', 'double' ),
+				'decimal_value'    => array( 'value', 'long', 'double' ),
+				'time'             => array( 'value', 'long' ),
+				'foo'              => array( 'value', 'long' ),
+				'foo2'             => array( 'value' ),
+				'foo3'             => array( 'value' ),
+				'foo4'             => array( 'value' ),
+				'number_of_colors' => array( 'value', 'long' ),
+				'oof'              => array( 'value' ),
+				'bar'              => array( 'value' ),
+				'bar1'             => array( 'value' ),
+				'bar2'             => array( 'value' ),
+				'baz'              => array( 'value' ),
+				'froo'             => array( 'value' ),
+				'tango'            => array( 'value' ),
+				'color'            => array( 'value' ),
+				'vegetable'        => array( 'value' ),
+				'city'             => array( 'value' ),
+				'address'          => array( 'value' ),
+			);
+		}
+	);
+
+	/**
+	 * Verifies that the Elasticsearch server is up and accepting connections.
+	 *
+	 * @param int $tries The number of retries to attempt.
+	 * @param int $sleep The amount of time to sleep between retries.
+	 * @return bool True if the server is up, false if not.
+	 * @throws ES_Index_Exception If the indexing operation fails.
+	 */
+	function es_wp_query_verify_es_is_running( $tries = 5, $sleep = 3 ) {
+		// If your ES server is not at localhost:9200, you need to set $_ENV['SEARCHPRESS_HOST'].
+		$host = getenv( 'SEARCHPRESS_HOST' );
+		if ( empty( $host ) ) {
+			$host = 'http://localhost:9200';
+		}
+
+		if ( defined( 'SP_VERSION' ) ) {
+			$sp_version = SP_VERSION;
+		} elseif ( defined( 'SP_PLUGIN_DIR' ) ) {
+			require_once ABSPATH . '/wp-admin/includes/plugin.php';
+			$plugin_data = get_plugin_data( SP_PLUGIN_DIR . '/searchpress.php' );
+			$sp_version  = ! empty( $plugin_data['Version'] ) ? $plugin_data['Version'] : '[unknown version]';
+		} else {
+			$sp_version = '[unknown version]';
+		}
+
+		printf(
+			"Testing with SearchPress adapter, using SearchPress version %s and host %s\n",
+			$sp_version,
+			$host
+		);
+
+		// Make sure ES is running and responding.
+		$tries = 5;
+		$sleep = 3;
+		do {
+			$response = wp_remote_get( $host );
+			if ( 200 === wp_remote_retrieve_response_code( $response ) ) {
+				$body = json_decode( wp_remote_retrieve_body( $response ), true );
+				if ( ! empty( $body['version']['number'] ) ) {
+					printf( "Elasticsearch is up and running, using version %s.\n", $body['version']['number'] );
+				}
+				break;
+			} else {
+				printf( "\nInvalid response from ES (%s), sleeping %d seconds and trying again...\n", wp_remote_retrieve_response_code( $response ), $sleep );
+				sleep( $sleep );
+			}
+		} while ( --$tries );
+
+		// If we didn't end with a 200 status code, exit
+		sp_adapter_verify_response_code( $response );
+
+		$i = 0;
+		while ( ! ( $beat = SP_Heartbeat()->check_beat( true ) ) && $i++ < 5 ) {
+			echo "\nHeartbeat failed, sleeping 2 seconds and trying again...\n";
+			sleep( 2 );
+		}
+		if ( ! $beat && ! SP_Heartbeat()->check_beat( true ) ) {
+			echo "\nCould not find a heartbeat!";
+			exit( 1 );
+		}
+
+		return true;
+	}
+
+	function sp_adapter_verify_response_code( $response ) {
+		if ( '200' != wp_remote_retrieve_response_code( $response ) ) {
+			printf( "Could not index posts!\nResponse code %s\n", wp_remote_retrieve_response_code( $response ) );
+			if ( is_wp_error( $response ) ) {
+				printf( "Message: %s\n", $response->get_error_message() );
+			}
+			exit( 1 );
+		}
+	}
+
 	/**
 	 * A function to make test data available in the index.
 	 */
@@ -75,7 +179,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 			array(
 				'active' => false,
 				'host'   => $host,
-			) 
+			)
 		);
 		SP_API()->index = 'es-wp-query-tests';
 
@@ -89,7 +193,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 				'post_status'    => array_values( get_post_stati() ),
 				'orderby'        => 'ID',
 				'order'          => 'ASC',
-			) 
+			)
 		);
 
 		$sp_posts = array();
@@ -108,7 +212,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 			array(
 				'active'    => true,
 				'must_init' => false,
-			) 
+			)
 		);
 
 		SP_API()->post( '_refresh' );

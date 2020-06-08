@@ -77,7 +77,6 @@ function es_wp_query_shoehorn( &$query ) {
 		 * query as possible.
 		 */
 		$es_query_args           = array_merge( $query->query_vars, $query->query );
-		// $es_query_args           = $query->query;
 		$es_query_args['fields'] = 'ids';
 		$es_query                = new ES_WP_Query( $es_query_args );
 

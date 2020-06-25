@@ -163,7 +163,7 @@ function vip_es_field_map( $es_map ) {
 			'menu_order'                    => 'menu_order',
 			'post_mime_type'                => 'post_mime_type',
 			'comment_count'                 => 'comment_count',
-			'post_meta'                     => 'meta.%s.value',
+			'post_meta'                     => 'meta.%s.value.sortable',
 			'post_meta.analyzed'            => 'meta.%s.value',
 			'post_meta.long'                => 'meta.%s.long',
 			'post_meta.double'              => 'meta.%s.double',
@@ -182,6 +182,23 @@ function vip_es_field_map( $es_map ) {
 	);
 }
 add_filter( 'es_field_map', 'vip_es_field_map' );
+
+/**
+ * Returns the lowercase version of a meta value.
+ *
+ * @param mixed  $meta_value   The meta value.
+ * @param string $meta_key     The meta key.
+ * @param string $meta_compare The comparison operation.
+ * @param string $meta_type    The type of meta (post, user, term, etc).
+ * @return mixed If value is a string, returns the lowercase version. Otherwise, returns the original value, unmodified.
+ */
+function vip_es_meta_value_tolower( $meta_value, $meta_key, $meta_compare, $meta_type ) {
+	if ( ! is_string( $meta_value ) || empty( $meta_value ) ) {
+		return $meta_value;
+	}
+	return strtolower( $meta_value );
+}
+add_filter( 'es_meta_query_meta_value', 'vip_es_meta_value_tolower', 10, 4 );
 
 /**
  * Normalise term name to lowercase as we are mapping that against the "sortable" field, which is a lowercased keyword.

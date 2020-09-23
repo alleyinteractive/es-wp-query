@@ -76,7 +76,7 @@ function es_wp_query_shoehorn( &$query ) {
 		 * subquery, we ensure that the subquery is as similar to the original
 		 * query as possible.
 		 */
-		$es_query_args           = $query->query;
+		$es_query_args           = array_merge( $query->query_vars, $query->query );
 		$es_query_args['fields'] = 'ids';
 		$es_query                = new ES_WP_Query( $es_query_args );
 
@@ -90,7 +90,7 @@ function es_wp_query_shoehorn( &$query ) {
 				'fields'         => $query->get( 'fields' ),
 				'orderby'        => 'post__in',
 				'order'          => 'ASC',
-			) 
+			)
 		);
 
 		// Reinsert all the conditionals from the original query.

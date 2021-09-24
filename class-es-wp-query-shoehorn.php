@@ -294,9 +294,9 @@ class ES_WP_Query_Shoehorn {
 			$q['posts_per_page'] = $this->posts_per_page;
 		}
 
-		if ( $query->is_page() && ! empty( $q['pagename'] ) ) {
+		// Allow sitemap.xml redirect to wp-sitemap.xml page.
+		if ( 'sitemap.xml' === $q['pagename'] ) {
 			$q['pagename'] = sanitize_title_for_query( wp_basename( $q['pagename'] ) );
-			$q['name']     = $q['pagename'];
 		}
 
 		// Restore the author ID which is normally added during get_posts() in WP_Query.

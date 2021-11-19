@@ -1216,6 +1216,9 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$size                  = apply_filters( 'es_query_max_results', 1000 );
 			$this->es_args['size'] = $size;
 		}
+		
+		// ES > 7.0 doesn't return the actual total hits by default (capped at 10k), but we need accurate counts
+		$this->es_args[ 'track_total_hits' ] = true;
 
 		if ( ! $q['suppress_filters'] ) {
 			$this->es_args = apply_filters_ref_array( 'es_posts_request', array( $this->es_args, &$this ) );

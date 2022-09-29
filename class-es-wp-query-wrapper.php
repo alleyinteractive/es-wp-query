@@ -799,10 +799,10 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				$filter = array_values( array_merge( $filter, $es_mime['filters'] ) );
 			}
 			if ( ! empty( $es_mime['query'] ) ) {
-				if ( empty( $query['must'] ) ) {
-					$query['must'] = $es_mime['query'];
+				if ( empty( $query['should'] ) ) {
+					$query['should'] = $es_mime['query'];
 				} else {
-					$query['must'] = array_merge( $query['must'], $es_mime['query'] );
+					$query['should'] = array_merge( $query['should'], $es_mime['query'] );
 				}
 			}
 		}
@@ -1520,17 +1520,17 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 	 *
 	 * @param string|array $post_mime_types List of mime types or comma separated string of mime types.
 	 * @access public
-	 * @return string|array Array of filters and query on success, empty string on failure.
+	 * @return array Array of filters and query on success, empty array on failure.
 	 */
 	public function post_mime_type_query( $post_mime_types ) {
 		$wildcards         = array( '', '%', '%/%' );
 		$strict_mime_types = array();
-		$query             = array();
-		$filters           = array();
+		$prefix_mime_types = array();
 
 		if ( is_string( $post_mime_types ) ) {
 			$post_mime_types = array_map( 'trim', explode( ',', $post_mime_types ) );
 		}
+
 		foreach ( (array) $post_mime_types as $mime_type ) {
 			$mime_type = preg_replace( '/\s/', '', $mime_type );
 			$slashpos  = strpos( $mime_type, '/' );
@@ -1550,26 +1550,49 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				}
 			}
 
-
 			if ( in_array( $mime_type, $wildcards, true ) ) {
-				return '';
+				return [];
 			}
 
 			if ( false !== strpos( $mime_pattern, '*' ) ) {
-				$mime_pattern = preg_replace( '/\*+/', '', $mime_pattern );
-				$filters[]    = array( 'prefix' => array( $this->es_map( 'post_mime_type' ) => $mime_pattern ) );
+				$prefix_mime_types[] = preg_replace( '/\*+/', '', $mime_pattern );
 			} else {
 				$strict_mime_types[] = $mime_pattern;
 			}
 		}
 
-		if ( ! empty( $strict_mime_types ) ) {
-			$filters = array_merge(
-				$filters,
-				[
-					$this->dsl_terms( $this->es_map( 'post_mime_type' ), $strict_mime_types ),
-				],
+		$query   = array();
+		$filters = array();
+
+		// Support a mix of prefix and strict mime types (e.g. 'image/*,video/mp4').
+		if ( ! empty( $prefix_mime_types ) && ! empty( $strict_mime_types ) ) {
+			// Create a new bool query with multiple 'OR' conditions to support a mix
+			// of prefix and term queries.
+			$query = array(
+				'bool' => array(
+					'should' => array(
+						$this->dsl_terms( $this->es_map( 'post_mime_type' ), $strict_mime_types ),
+					),
+				),
 			);
+
+			foreach ( $prefix_mime_types as $prefix_mime_type ) {
+				$query['bool']['should'][] = array(
+					'prefix' => array(
+						$this->es_map( 'post_mime_type' ) => $prefix_mime_type,
+					),
+				);
+			}
+
+			$query = [ $query ];
+		} elseif ( ! empty( $prefix_mime_types ) ) {
+			foreach ( $prefix_mime_types as $prefix_mime_type ) {
+				$filters[] = array( 'prefix' => array( $this->es_map( 'post_mime_type' ) => $prefix_mime_type ) );
+			}
+		} elseif ( ! empty( $strict_mime_types ) ) {
+			$filters = [
+				$this->dsl_terms( $this->es_map( 'post_mime_type' ), $strict_mime_types ),
+			];
 		}
 
 		return compact( 'filters', 'query' );

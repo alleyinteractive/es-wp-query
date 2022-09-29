@@ -796,7 +796,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		if ( isset( $q['post_mime_type'] ) && '' !== $q['post_mime_type'] ) {
 			$es_mime = $this->post_mime_type_query( $q['post_mime_type'], $wpdb->posts );
 			if ( ! empty( $es_mime['filters'] ) ) {
-				$filter[] = $es_mime['filters'];
+				$filter = array_values( array_merge( $filter, $es_mime['filters'] ) );
 			}
 			if ( ! empty( $es_mime['query'] ) ) {
 				if ( empty( $query['must'] ) ) {
@@ -1557,14 +1557,19 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 			if ( false !== strpos( $mime_pattern, '*' ) ) {
 				$mime_pattern = preg_replace( '/\*+/', '', $mime_pattern );
-				$query[]      = array( 'prefix' => array( $this->es_map( 'post_mime_type' ) => $mime_pattern ) );
+				$filters[]    = array( 'prefix' => array( $this->es_map( 'post_mime_type' ) => $mime_pattern ) );
 			} else {
 				$strict_mime_types[] = $mime_pattern;
 			}
 		}
 
 		if ( ! empty( $strict_mime_types ) ) {
-			$filters = $this->dsl_terms( $this->es_map( 'post_mime_type' ), $strict_mime_types );
+			$filters = array_merge(
+				$filters,
+				[
+					$this->dsl_terms( $this->es_map( 'post_mime_type' ), $strict_mime_types ),
+				],
+			);
 		}
 
 		return compact( 'filters', 'query' );

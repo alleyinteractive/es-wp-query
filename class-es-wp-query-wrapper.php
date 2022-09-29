@@ -799,10 +799,10 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				$filter[] = $es_mime['filters'];
 			}
 			if ( ! empty( $es_mime['query'] ) ) {
-				if ( empty( $query['should'] ) ) {
-					$query['should'] = $es_mime['query'];
+				if ( empty( $query['must'] ) ) {
+					$query['must'] = $es_mime['query'];
 				} else {
-					$query['should'] = array_merge( $query['should'], $es_mime['query'] );
+					$query['must'] = array_merge( $query['must'], $es_mime['query'] );
 				}
 			}
 		}
@@ -1216,7 +1216,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$size                  = apply_filters( 'es_query_max_results', 1000 );
 			$this->es_args['size'] = $size;
 		}
-		
+
 		// ES > 7.0 doesn't return the actual total hits by default (capped at 10k), but we need accurate counts
 		$this->es_args[ 'track_total_hits' ] = true;
 

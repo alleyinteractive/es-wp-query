@@ -795,6 +795,14 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		// MIME-Type stuff for attachment browsing.
 		if ( ! empty( $q['post_mime_type'] ) ) {
 			$es_mime = $this->post_mime_type_query( $q['post_mime_type'] );
+
+			/* phpcs:disable */
+			// Temporary debugging code.
+			if ( ! empty( $_GET['debug'] ) ) {
+				var_dump( $es_mime, $q );
+			}
+			/* phpcs:enable */
+
 			if ( ! empty( $es_mime['filters'] ) ) {
 				$filter = array_values( array_merge( $filter, $es_mime['filters'] ) );
 			}

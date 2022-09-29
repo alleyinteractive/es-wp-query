@@ -1,6 +1,6 @@
 <?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName
 /**
- * ES_WP_Query adapters: WordPress.com VIP adapter
+ * ES_WP_Query adapters: VIP Search adapter
  *
  * @package ES_WP_Query
  */
@@ -8,7 +8,7 @@
 // phpcs:disable Generic.Classes.DuplicateClassName.Found
 
 /**
- * An adapter for WordPress.com VIP.
+ * An adapter for VIP Search.
  */
 class ES_WP_Query extends ES_WP_Query_Wrapper {
 
@@ -20,16 +20,14 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 	 * @return array The response from the Elasticsearch server.
 	 */
 	protected function query_es( $es_args ) {
-		if ( function_exists( 'es_api_search_index' ) ) {
-			$es_args['name'] = es_api_get_index_name_by_blog_id( $es_args['blog_id'] );
-			if ( is_wp_error( $es_args['name'] ) ) {
-				return [];
+		if ( class_exists( '\\Automattic\\VIP\\Search\\Search' ) ) {
+			$vip_search = \Automattic\VIP\Search\Search::instance();
+
+			if ( method_exists( $vip_search, 'query_es' ) ) {
+				$result = $vip_search->query_es( 'post', $es_args );
+
+				return $result;
 			}
-			$response = es_api_search_index( $es_args, 'es-wp-query' );
-			if ( is_wp_error( $response ) ) {
-				$response = [];
-			}
-			return $response;
 		}
 	}
 
@@ -37,36 +35,36 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 	 * Sets the posts array to the list of found post IDs.
 	 *
 	 * @param array          $q           Query arguments.
-	 * @param array|WP_Error $es_response Response from the Elasticsearch server.
+	 * @param array|WP_Error $es_response Response from VIP Search.
 	 * @access protected
 	 */
 	protected function set_posts( $q, $es_response ) {
 		$this->posts = array();
-		if ( ! is_wp_error( $es_response ) && isset( $es_response['results']['hits'] ) ) {
+		if ( ! is_wp_error( $es_response ) && isset( $es_response['documents'] ) ) {
 			switch ( $q['fields'] ) {
 				case 'ids':
-					foreach ( $es_response['results']['hits'] as $hit ) {
-						$post_id       = (array) $hit['fields'][ $this->es_map( 'post_id' ) ];
+					foreach ( $es_response['documents'] as $hit ) {
+						$post_id       = (array) $hit[ $this->es_map( 'post_id' ) ];
 						$this->posts[] = reset( $post_id );
 					}
 					return;
 
 				case 'id=>parent':
-					foreach ( $es_response['results']['hits'] as $hit ) {
-						$post_id                          = (array) $hit['fields'][ $this->es_map( 'post_id' ) ];
-						$post_parent                      = (array) $hit['fields'][ $this->es_map( 'post_parent' ) ];
+					foreach ( $es_response['documents'] as $hit ) {
+						$post_id                          = (array) $hit[ $this->es_map( 'post_id' ) ];
+						$post_parent                      = (array) $hit[ $this->es_map( 'post_parent' ) ];
 						$this->posts[ reset( $post_id ) ] = reset( $post_parent );
 					}
 					return;
 
 				default:
 					if ( apply_filters( 'es_query_use_source', false ) ) {
-						$this->posts = wp_list_pluck( $es_response['results']['hits'], '_source' );
+						$this->posts = wp_list_pluck( $es_response['documents'], '_source' );
 						return;
 					} else {
 						$post_ids = array();
-						foreach ( $es_response['results']['hits'] as $hit ) {
-							$post_id    = (array) $hit['fields'][ $this->es_map( 'post_id' ) ];
+						foreach ( $es_response['documents'] as $hit ) {
+							$post_id    = (array) $hit[ $this->es_map( 'post_id' ) ];
 							$post_ids[] = absint( reset( $post_id ) );
 						}
 						$post_ids = array_filter( $post_ids );
@@ -92,8 +90,8 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 	 * @access public
 	 */
 	public function set_found_posts( $q, $es_response ) {
-		if ( ! is_wp_error( $es_response ) && isset( $es_response['results']['total'] ) ) {
-			$this->found_posts = absint( $es_response['results']['total'] );
+		if ( ! is_wp_error( $es_response ) && isset( $es_response['found_documents']['value'] ) ) {
+			$this->found_posts = absint( $es_response['found_documents']['value'] );
 		} else {
 			$this->found_posts = 0;
 		}
@@ -111,75 +109,76 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 function vip_es_field_map( $es_map ) {
 	return wp_parse_args(
 		array(
-			'post_author'                   => 'author_id',
-			'post_author.user_nicename'     => 'author_login',
-			'post_date'                     => 'date',
-			'post_date.year'                => 'date_token.year',
-			'post_date.month'               => 'date_token.month',
-			'post_date.week'                => 'date_token.week',
-			'post_date.day'                 => 'date_token.day',
-			'post_date.day_of_year'         => 'date_token.day_of_year',
-			'post_date.day_of_week'         => 'date_token.day_of_week',
-			'post_date.hour'                => 'date_token.hour',
-			'post_date.minute'              => 'date_token.minute',
-			'post_date.second'              => 'date_token.second',
-			'post_date_gmt'                 => 'date_gmt',
-			'post_date_gmt.year'            => 'date_gmt_token.year',
-			'post_date_gmt.month'           => 'date_gmt_token.month',
-			'post_date_gmt.week'            => 'date_gmt_token.week',
-			'post_date_gmt.day'             => 'date_gmt_token.day',
-			'post_date_gmt.day_of_year'     => 'date_gmt_token.day_of_year',
-			'post_date_gmt.day_of_week'     => 'date_gmt_token.day_of_week',
-			'post_date_gmt.hour'            => 'date_gmt_token.hour',
-			'post_date_gmt.minute'          => 'date_gmt_token.minute',
-			'post_date_gmt.second'          => 'date_gmt_token.second',
-			'post_content'                  => 'content',
-			'post_content.analyzed'         => 'content',
-			'post_title'                    => 'title',
-			'post_title.analyzed'           => 'title',
-			'post_excerpt'                  => 'excerpt',
+			'post_author'                   => 'post_author.id',
+			'post_author.user_nicename'     => 'post_author.login.raw',
+			'post_date'                     => 'post_date',
+			'post_date.year'                => 'date_terms.year',
+			'post_date.month'               => 'date_terms.month',
+			'post_date.week'                => 'date_terms.week',
+			'post_date.day'                 => 'date_terms.day',
+			'post_date.day_of_year'         => 'date_terms.dayofyear',
+			'post_date.day_of_week'         => 'date_terms.dayofweek',
+			'post_date.hour'                => 'date_terms.hour',
+			'post_date.minute'              => 'date_terms.minute',
+			'post_date.second'              => 'date_terms.second',
+			'post_date_gmt'                 => 'post_date_gmt',
+			'post_date_gmt.year'            => 'date_gmt_terms.year',
+			'post_date_gmt.month'           => 'date_gmt_terms.month',
+			'post_date_gmt.week'            => 'date_gmt_terms.week',
+			'post_date_gmt.day'             => 'date_gmt_terms.day',
+			'post_date_gmt.day_of_year'     => 'date_gmt_terms.day_of_year',
+			'post_date_gmt.day_of_week'     => 'date_gmt_terms.day_of_week',
+			'post_date_gmt.hour'            => 'date_gmt_terms.hour',
+			'post_date_gmt.minute'          => 'date_gmt_terms.minute',
+			'post_date_gmt.second'          => 'date_gmt_terms.second',
+			'post_content'                  => 'post_content',
+			'post_content.analyzed'         => 'post_content',
+			'post_title'                    => 'post_title.raw',
+			'post_title.analyzed'           => 'post_title',
+			'post_type'                     => 'post_type.raw',
+			'post_excerpt'                  => 'post_excerpt',
 			'post_password'                 => 'post_password',  // This isn't indexed on VIP.
-			'post_name'                     => 'post_name',      // This isn't indexed on VIP.
-			'post_modified'                 => 'modified',
-			'post_modified.year'            => 'modified_token.year',
-			'post_modified.month'           => 'modified_token.month',
-			'post_modified.week'            => 'modified_token.week',
-			'post_modified.day'             => 'modified_token.day',
-			'post_modified.day_of_year'     => 'modified_token.day_of_year',
-			'post_modified.day_of_week'     => 'modified_token.day_of_week',
-			'post_modified.hour'            => 'modified_token.hour',
-			'post_modified.minute'          => 'modified_token.minute',
-			'post_modified.second'          => 'modified_token.second',
-			'post_modified_gmt'             => 'modified_gmt',
-			'post_modified_gmt.year'        => 'modified_gmt_token.year',
-			'post_modified_gmt.month'       => 'modified_gmt_token.month',
-			'post_modified_gmt.week'        => 'modified_gmt_token.week',
-			'post_modified_gmt.day'         => 'modified_gmt_token.day',
-			'post_modified_gmt.day_of_year' => 'modified_gmt_token.day_of_year',
-			'post_modified_gmt.day_of_week' => 'modified_gmt_token.day_of_week',
-			'post_modified_gmt.hour'        => 'modified_gmt_token.hour',
-			'post_modified_gmt.minute'      => 'modified_gmt_token.minute',
-			'post_modified_gmt.second'      => 'modified_gmt_token.second',
-			'post_parent'                   => 'parent_post_id',
-			'menu_order'                    => 'menu_order',     // This isn't indexed on VIP.
-			'post_mime_type'                => 'post_mime_type', // This isn't indexed on VIP.
-			'comment_count'                 => 'comment_count',  // This isn't indexed on VIP.
-			'post_meta'                     => 'meta.%s.value.raw_lc',
+			'post_name'                     => 'post_name.raw',
+			'post_modified'                 => 'post_modified',
+			'post_modified.year'            => 'modified_date_terms.year',
+			'post_modified.month'           => 'modified_date_terms.month',
+			'post_modified.week'            => 'modified_date_terms.week',
+			'post_modified.day'             => 'modified_date_terms.day',
+			'post_modified.day_of_year'     => 'modified_date_terms.day_of_year',
+			'post_modified.day_of_week'     => 'modified_date_terms.day_of_week',
+			'post_modified.hour'            => 'modified_date_terms.hour',
+			'post_modified.minute'          => 'modified_date_terms.minute',
+			'post_modified.second'          => 'modified_date_terms.second',
+			'post_modified_gmt'             => 'post_modified_gmt',
+			'post_modified_gmt.year'        => 'modified_date_gmt_terms.year',
+			'post_modified_gmt.month'       => 'modified_date_gmt_terms.month',
+			'post_modified_gmt.week'        => 'modified_date_gmt_terms.week',
+			'post_modified_gmt.day'         => 'modified_date_gmt_terms.day',
+			'post_modified_gmt.day_of_year' => 'modified_date_gmt_terms.day_of_year',
+			'post_modified_gmt.day_of_week' => 'modified_date_gmt_terms.day_of_week',
+			'post_modified_gmt.hour'        => 'modified_date_gmt_terms.hour',
+			'post_modified_gmt.minute'      => 'modified_date_gmt_terms.minute',
+			'post_modified_gmt.second'      => 'modified_date_gmt_terms.second',
+			'post_parent'                   => 'post_parent',
+			'menu_order'                    => 'menu_order',
+			'post_mime_type'                => 'post_mime_type',
+			'comment_count'                 => 'comment_count',
+			'post_meta'                     => 'meta.%s.value.sortable',
 			'post_meta.analyzed'            => 'meta.%s.value',
 			'post_meta.long'                => 'meta.%s.long',
 			'post_meta.double'              => 'meta.%s.double',
 			'post_meta.binary'              => 'meta.%s.boolean',
-			'term_id'                       => 'taxonomy.%s.term_id',
-			'term_slug'                     => 'taxonomy.%s.slug',
-			'term_name'                     => 'taxonomy.%s.name.raw_lc',
-			'category_id'                   => 'category.term_id',
-			'category_slug'                 => 'category.slug',
-			'category_name'                 => 'category.name.raw',
-			'tag_id'                        => 'tag.term_id',
-			'tag_slug'                      => 'tag.slug',
-			'tag_name'                      => 'tag.name.raw',
+			'term_id'                       => 'terms.%s.term_id',
+			'term_slug'                     => 'terms.%s.slug',
+			'term_name'                     => 'terms.%s.name.sortable',
+			'category_id'                   => 'terms.category.term_id',
+			'category_slug'                 => 'terms.category.slug',
+			'category_name'                 => 'terms.category.name.sortable',
+			'tag_id'                        => 'terms.post_tag.term_id',
+			'tag_slug'                      => 'terms.post_tag.slug',
+			'tag_name'                      => 'terms.post_tag.name.sortable',
 		),
-		$es_map 
+		$es_map
 	);
 }
 add_filter( 'es_field_map', 'vip_es_field_map' );
@@ -202,7 +201,7 @@ function vip_es_meta_value_tolower( $meta_value, $meta_key, $meta_compare, $meta
 add_filter( 'es_meta_query_meta_value', 'vip_es_meta_value_tolower', 10, 4 );
 
 /**
- * Normalise term name to lowercase as we are mapping that against raw_lc field.
+ * Normalise term name to lowercase as we are mapping that against the "sortable" field, which is a lowercased keyword.
  *
  * @param string|mixed $term     Term's name which should be normalised to
  *                               lowercase.
@@ -238,12 +237,14 @@ function vip_es_disable_advanced_post_cache( &$query ) {
 
 	static $disabled_apc = false;
 
+	if ( empty( $advanced_post_cache_object ) || ! is_object( $advanced_post_cache_object ) ) {
+		return;
+	}
 
 	/*
 	 * These two might be passsed to us; we only
 	 * handle WP_Query, so ignore these.
 	 */
-
 	if (
 		( $query instanceof ES_WP_Query_Wrapper ) ||
 		( $query instanceof ES_WP_Query )

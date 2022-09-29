@@ -20,13 +20,18 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 	 * @return array The response from the Elasticsearch server.
 	 */
 	protected function query_es( $es_args ) {
-		if ( class_exists( 'Jetpack_Search' ) ) {
+		$jetpack_search = null;
+		
+		if ( class_exists( 'Automattic\Jetpack\Search\Classic_Search' ) ) {
+			$jetpack_search = Automattic\Jetpack\Search\Classic_Search::initialize( get_current_blog_id() );
+		} else if ( class_exists( 'Jetpack_Search' ) ) {
 			$jetpack_search = Jetpack_Search::instance();
-			if ( method_exists( $jetpack_search, 'search' ) ) {
+		
+		}
+		if ( method_exists( $jetpack_search, 'search' ) ) {
 				$es_args = apply_filters( 'jetpack_search_es_query_args', $es_args, $this );
 				return $jetpack_search->search( $es_args );
 			}
-		}
 	}
 
 	/**

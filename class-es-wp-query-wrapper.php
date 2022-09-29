@@ -34,6 +34,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 	 */
 	public $es_response;
 
+
 	/**
 	 * Construct for querying Elasticsearch. Must be implemented in child classes.
 	 *
@@ -42,6 +43,19 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 	 * @return array The response from the Elasticsearch server.
 	 */
 	abstract protected function query_es( $es_args );
+
+	/**
+	 * Override default WP_Query->is_main_query() to support
+	 * this conditional when the main query has been overridden
+	 * by this class.
+	 *
+	 * @fixes #38
+	 *
+	 * @return bool
+	 */
+	public function is_main_query() {
+		return $this->get( 'es_is_main_query', false );
+	}
 
 	/**
 	 * Maps a field to its Elasticsearch context.
@@ -785,10 +799,10 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				$filter[] = $es_mime['filters'];
 			}
 			if ( ! empty( $es_mime['query'] ) ) {
-				if ( empty( $query['should'] ) ) {
-					$query['should'] = $es_mime['query'];
+				if ( empty( $query['must'] ) ) {
+					$query['must'] = $es_mime['query'];
 				} else {
-					$query['should'] = array_merge( $query['should'], $es_mime['query'] );
+					$query['must'] = array_merge( $query['must'], $es_mime['query'] );
 				}
 			}
 		}
@@ -1203,11 +1217,14 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$this->es_args['size'] = $size;
 		}
 
+		// ES > 7.0 doesn't return the actual total hits by default (capped at 10k), but we need accurate counts
+		$this->es_args[ 'track_total_hits' ] = true;
+
 		if ( ! $q['suppress_filters'] ) {
 			$this->es_args = apply_filters_ref_array( 'es_posts_request', array( $this->es_args, &$this ) );
 		}
 
-		if ( 'ids' === $q['fields'] || 'id=>parent' === $q['fields'] ) {
+		if ( 'ids' === $q['fields'] || 'id=>parent' === $q['fields'] || apply_filters( 'es_query_use_source', false ) ) {
 			$this->es_response = $this->query_es( $this->es_args );
 			$this->set_posts( $q, $this->es_response );
 			$this->post_count = count( $this->posts );

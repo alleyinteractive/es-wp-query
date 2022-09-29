@@ -793,17 +793,17 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		}
 
 		// MIME-Type stuff for attachment browsing.
-		if ( isset( $q['post_mime_type'] ) && '' !== $q['post_mime_type'] ) {
-			$es_mime = $this->post_mime_type_query( $q['post_mime_type'], $wpdb->posts );
+		if ( ! empty( $q['post_mime_type'] ) ) {
+			$es_mime = $this->post_mime_type_query( $q['post_mime_type'] );
 			if ( ! empty( $es_mime['filters'] ) ) {
 				$filter = array_values( array_merge( $filter, $es_mime['filters'] ) );
 			}
 			if ( ! empty( $es_mime['query'] ) ) {
 				if ( empty( $query['should'] ) ) {
-					$query['should'] = $es_mime['query'];
-				} else {
-					$query['should'] = array_merge( $query['should'], $es_mime['query'] );
+					$query['should'] = array();
 				}
+
+				$query['should'] = array_merge( $query['should'], $es_mime['query'] );
 			}
 		}
 
@@ -1532,6 +1532,10 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		}
 
 		foreach ( (array) $post_mime_types as $mime_type ) {
+			if ( empty( $mime_type ) ) {
+				continue;
+			}
+
 			$mime_type = preg_replace( '/\s/', '', $mime_type );
 			$slashpos  = strpos( $mime_type, '/' );
 			if ( false !== $slashpos ) {

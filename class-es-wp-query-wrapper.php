@@ -799,6 +799,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				$filter = array_values( array_merge( $filter, $es_mime['filters'] ) );
 			}
 			if ( ! empty( $es_mime['query'] ) ) {
+				$query['minimum_should_match'] = 1;
 				if ( empty( $query['should'] ) ) {
 					$query['should'] = $es_mime['query'];
 				} else {

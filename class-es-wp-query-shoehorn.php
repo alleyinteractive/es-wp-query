@@ -24,8 +24,7 @@ add_filter( 'query_vars', 'es_wp_query_arg' );
  * If a WP_Query object has `'es' => true`, use Elasticsearch to run the meat of the query.
  * This is fires on the "pre_get_posts" action.
  *
- * @param  WP_Query $query - Current full WP_Query object.
- * @return void
+ * @param WP_Query $query Current full WP_Query object.
  */
 function es_wp_query_shoehorn( &$query ) {
 	// Prevent infinite loops!
@@ -98,6 +97,15 @@ function es_wp_query_shoehorn( &$query ) {
 		foreach ( $conditionals as $key => $value ) {
 			$query->$key = $value;
 		}
+
+		/**
+		 * Fires before the ES_WP_Query_Shoehorn class is instantiated.
+		 *
+		 * @param WP_Query    $query Current full WP_Query object.
+		 * @param ES_WP_Query $es_query Current full ES_WP_Query object.
+		 * @param array       $query_args Query arguments.
+		 */
+		do_action( 'es_wp_query_shoehorn', $query, $es_query, $query_args );
 
 		new ES_WP_Query_Shoehorn( $query, $es_query, $query_args );
 	}

@@ -106,7 +106,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 		}
 
 		// Filter to remove empties.
-		$filters = array_filter( $filters );
+		$filters = array_values( array_filter( $filters ) );
 
 		if ( ! empty( $relation ) && 'or' === strtolower( $relation ) ) {
 			$relation = 'should';
@@ -321,7 +321,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 					INNER JOIN $wpdb->terms USING (term_id)
 					WHERE taxonomy = '{$query['taxonomy']}'
 					AND $wpdb->terms.{$query['field']} IN ($terms)
-				" 
+				"
 				);
 				break;
 			case 'term_taxonomy_id':
@@ -331,7 +331,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 					SELECT $resulting_field
 					FROM $wpdb->term_taxonomy
 					WHERE term_taxonomy_id IN ($terms)
-				" 
+				"
 				);
 				break;
 			default:
@@ -342,7 +342,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 					FROM $wpdb->term_taxonomy
 					WHERE taxonomy = '{$query['taxonomy']}'
 					AND term_id IN ($terms)
-				" 
+				"
 				);
 		}
 		// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.VIP.DirectDatabaseQuery.NoCaching, WordPress.VIP.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery

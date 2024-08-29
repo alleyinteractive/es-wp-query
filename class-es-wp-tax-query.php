@@ -313,7 +313,19 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 		switch ( $query['field'] ) {
 			case 'slug':
 			case 'name':
-				$terms = "'" . implode( "','", array_map( 'sanitize_title_for_query', $query['terms'] ) ) . "'";
+				if ( 'slug' === $query['field'] ) {
+					$terms = "'" . implode( "','", array_map( 'sanitize_title_for_query', $query['terms'] ) ) . "'";
+				} else {
+					$terms = "'" . implode(
+						"','",
+						array_map(
+							function ( $name ) {
+								return stripslashes( sanitize_term_field( 'name', $name, 0, reset( $query['taxonomy'] ), 'db' ) );
+							},
+							$query['terms']
+						)
+					) . "'";
+				}
 				$terms = $wpdb->get_col(
 					"
 					SELECT $wpdb->term_taxonomy.$resulting_field
@@ -321,7 +333,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 					INNER JOIN $wpdb->terms USING (term_id)
 					WHERE taxonomy = '{$query['taxonomy']}'
 					AND $wpdb->terms.{$query['field']} IN ($terms)
-				" 
+					"
 				);
 				break;
 			case 'term_taxonomy_id':
@@ -331,7 +343,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 					SELECT $resulting_field
 					FROM $wpdb->term_taxonomy
 					WHERE term_taxonomy_id IN ($terms)
-				" 
+					"
 				);
 				break;
 			default:
@@ -342,7 +354,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 					FROM $wpdb->term_taxonomy
 					WHERE taxonomy = '{$query['taxonomy']}'
 					AND term_id IN ($terms)
-				" 
+					"
 				);
 		}
 		// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.VIP.DirectDatabaseQuery.NoCaching, WordPress.VIP.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery

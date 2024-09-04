@@ -106,7 +106,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 		}
 
 		// Filter to remove empties.
-		$filters = array_filter( $filters );
+		$filters = array_values( array_filter( $filters ) );
 
 		if ( ! empty( $relation ) && 'or' === strtolower( $relation ) ) {
 			$relation = 'should';

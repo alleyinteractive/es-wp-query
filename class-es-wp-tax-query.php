@@ -308,7 +308,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 		$resulting_field = sanitize_key( $resulting_field );
 
 		// Empty 'terms' always results in a null transformation.
-		$terms = array_filter( $query['terms'] );
+		$terms = array_values( array_filter( $query['terms'] ) );
 		if ( empty( $terms ) ) {
 			$query['terms'] = array();
 			$query['field'] = $resulting_field;

@@ -23,7 +23,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 		$jetpack_search = null;
 		
 		if ( class_exists( 'Automattic\Jetpack\Search\Classic_Search' ) ) {
-			$jetpack_search = Automattic\Jetpack\Search\Classic_Search::initialize( get_current_blog_id() );
+			$jetpack_search = Automattic\Jetpack\Search\Classic_Search::initialize( \Automattic\Jetpack\Search\Helper::get_wpcom_site_id() );
 		} else if ( class_exists( 'Jetpack_Search' ) ) {
 			$jetpack_search = Jetpack_Search::instance();
 		

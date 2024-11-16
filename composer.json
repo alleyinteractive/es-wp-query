@@ -21,7 +21,7 @@
 	},
   "scripts": {
     "phpcbf": "phpcbf .",
-    "phpcs": "phpcs . --basepath=.",
+    "phpcs": "phpcs . --basepath=. --ignore=vendor/*",
     "phpunit": "phpunit",
     "setup": [
       "composer install"

@@ -175,12 +175,10 @@ class ES_WP_Date_Query extends WP_Date_Query {
 					}
 				}
 			}
-		} else {
-			if ( 1 > $time ) {
+		} elseif ( 1 > $time ) {
 				$filter_parts[] = $this->build_dsl_part( $es_query->es_map( "{$field}.seconds_from_hour" ), $time, $compare, 'floatval' );
-			} else {
-				$filter_parts[] = $this->build_dsl_part( $es_query->es_map( "{$field}.seconds_from_day" ), $time, $compare, 'floatval' );
-			}
+		} else {
+			$filter_parts[] = $this->build_dsl_part( $es_query->es_map( "{$field}.seconds_from_day" ), $time, $compare, 'floatval' );
 		}
 
 		return $filter_parts;

@@ -145,7 +145,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 						if ( ! empty( $post_ids ) ) {
 							global $wpdb;
 							$post__in    = implode( ',', $post_ids );
-							$this->posts = $wpdb->get_results( "SELECT $wpdb->posts.* FROM $wpdb->posts WHERE ID IN ($post__in) ORDER BY FIELD( {$wpdb->posts}.ID, $post__in )" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.VIP.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.NoCaching, (WordPress.VIP.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.VIP.DirectDatabaseQuery.DirectQuery
+							$this->posts = $wpdb->get_results( "SELECT $wpdb->posts.* FROM $wpdb->posts WHERE ID IN ($post__in) ORDER BY FIELD( {$wpdb->posts}.ID, $post__in )" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.VIP.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 						}
 						return;
 					}
@@ -358,7 +358,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		}
 		if ( ! isset( $q['nopaging'] ) ) {
 			if ( -1 === intval( $q['posts_per_page'] ) ) {
-				$q['nopaging'] = true; // phpcs:ignore WordPress.VIP.PostsPerPage.posts_per_page_nopaging
+				$q['nopaging'] = true; // phpcs:ignore WordPressVIPMinimum.Performance.NoPaging.nopaging_nopaging
 			} else {
 				$q['nopaging'] = false;
 			}
@@ -557,12 +557,11 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 						}
 					}
 					unset( $ptype_obj );
-				} else {
-					if ( function_exists( 'wpcom_vip_get_page_by_path' ) ) {
+				} elseif ( function_exists( 'wpcom_vip_get_page_by_path' ) ) {
 						$reqpage = wpcom_vip_get_page_by_path( $q['pagename'] );
-					} else {
-						$reqpage = get_page_by_path( $q['pagename'] ); // phpcs:ignore WordPressVIPMinimum.VIP.RestrictedFunctions.get_page_by_path_get_page_by_path
-					}
+				} else {
+					$reqpage = get_page_by_path( $q['pagename'] ); // phpcs:ignore WordPressVIPMinimum.VIP.RestrictedFunctions.get_page_by_path_get_page_by_path
+
 				}
 				if ( ! empty( $reqpage ) ) {
 					$reqpage = $reqpage->ID;
@@ -833,35 +832,33 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 		} elseif ( 'post_parent__in' === $q['orderby'] && ! empty( $post_parent__in ) ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedElseif
 			// See above.
 			// $orderby = "FIELD( {$wpdb->posts}.post_parent, $post_parent__in )";.
+		} elseif ( is_array( $q['orderby'] ) ) {
+			foreach ( $q['orderby'] as $_orderby => $order ) {
+				$orderby = addslashes_gpc( urldecode( $_orderby ) );
+				$parsed  = $this->parse_orderby( $orderby );
+
+				if ( ! $parsed ) {
+					continue;
+				}
+
+				$sort[] = array( $parsed => $this->parse_order( $order ) );
+			}
 		} else {
-			if ( is_array( $q['orderby'] ) ) {
-				foreach ( $q['orderby'] as $_orderby => $order ) {
-					$orderby = addslashes_gpc( urldecode( $_orderby ) );
-					$parsed  = $this->parse_orderby( $orderby );
+			$q['orderby'] = urldecode( $q['orderby'] );
+			$q['orderby'] = addslashes_gpc( $q['orderby'] );
 
-					if ( ! $parsed ) {
-						continue;
-					}
-
-					$sort[] = array( $parsed => $this->parse_order( $order ) );
-				}
-			} else {
-				$q['orderby'] = urldecode( $q['orderby'] );
-				$q['orderby'] = addslashes_gpc( $q['orderby'] );
-
-				foreach ( explode( ' ', $q['orderby'] ) as $i => $orderby ) {
-					$parsed = $this->parse_orderby( $orderby );
-					// Only allow certain values for safety.
-					if ( ! $parsed ) {
-						continue;
-					}
-
-					$sort[] = array( $parsed => $q['order'] );
+			foreach ( explode( ' ', $q['orderby'] ) as $i => $orderby ) {
+				$parsed = $this->parse_orderby( $orderby );
+				// Only allow certain values for safety.
+				if ( ! $parsed ) {
+					continue;
 				}
 
-				if ( empty( $sort ) ) {
-					$sort[] = array( $this->es_map( 'post_date' ) => $q['order'] );
-				}
+				$sort[] = array( $parsed => $q['order'] );
+			}
+
+			if ( empty( $sort ) ) {
+				$sort[] = array( $this->es_map( 'post_date' ) => $q['order'] );
 			}
 		}
 
@@ -970,7 +967,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				);
 			}
 			if ( ! empty( $r_status ) ) {
-				if ( ! empty( $q['perm'] ) && 'editable' === $q['perm'] && ! current_user_can( $edit_others_cap ) ) {
+				if ( ! empty( $q['perm'] ) && 'editable' === $q['perm'] && ! current_user_can( $edit_others_cap ) ) { // phpcs:ignore WordPress.WP.Capabilities.Undetermined
 					$status_ands[] = array(
 						'bool' => array(
 							'filter' => array(
@@ -984,7 +981,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				}
 			}
 			if ( ! empty( $p_status ) ) {
-				if ( ! empty( $q['perm'] ) && 'readable' === $q['perm'] && ! current_user_can( $read_private_cap ) ) {
+				if ( ! empty( $q['perm'] ) && 'readable' === $q['perm'] && ! current_user_can( $read_private_cap ) ) { // phpcs:ignore WordPress.WP.Capabilities.Undetermined
 					$status_ands[] = array(
 						'bool' => array(
 							'filter' => array(
@@ -1023,7 +1020,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				$singular_states_ors = array();
 				foreach ( (array) $private_states as $state ) {
 					// @todo: leaving off here
-					if ( current_user_can( $read_private_cap ) ) {
+					if ( current_user_can( $read_private_cap ) ) { // phpcs:ignore WordPress.WP.Capabilities.Undetermined
 						$singular_states[] = $state;
 					} else {
 						$singular_states_ors[] = array(
@@ -1104,7 +1101,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$cgroupby = ( ! empty( $cgroupby ) ) ? 'GROUP BY ' . $cgroupby : '';
 			$corderby = ( ! empty( $corderby ) ) ? 'ORDER BY ' . $corderby : '';
 
-			$this->comments      = (array) $wpdb->get_results( "SELECT $distinct $wpdb->comments.* FROM $wpdb->comments $cjoin $cwhere $cgroupby $corderby $climits" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.VIP.DirectDatabaseQuery.NoCaching, WordPress.VIP.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
+			$this->comments      = (array) $wpdb->get_results( "SELECT $distinct $wpdb->comments.* FROM $wpdb->comments $cjoin $cwhere $cgroupby $corderby $climits" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.VIP.DirectDatabaseQuery.NoCaching, WordPress.VIP.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 			$this->comment_count = count( $this->comments );
 
 			$post_ids = array();
@@ -1218,8 +1215,8 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			$this->es_args['size'] = $size;
 		}
 
-		// ES > 7.0 doesn't return the actual total hits by default (capped at 10k), but we need accurate counts
-		$this->es_args[ 'track_total_hits' ] = true;
+		// ES > 7.0 doesn't return the actual total hits by default (capped at 10k), but we need accurate counts.
+		$this->es_args['track_total_hits'] = true;
 
 		if ( ! $q['suppress_filters'] ) {
 			$this->es_args = apply_filters_ref_array( 'es_posts_request', array( $this->es_args, &$this ) );
@@ -1271,28 +1268,26 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				if ( ! is_user_logged_in() ) {
 					// User must be logged in to view unpublished posts.
 					$this->posts = array();
-				} else {
-					if ( $post_status_obj->protected ) {
+				} elseif ( $post_status_obj->protected ) {
 						// User must have edit permissions on the draft to preview.
-						if ( ! current_user_can( $edit_cap, $this->posts[0]->ID ) ) {
-							$this->posts = array();
-						} else {
-							$this->is_preview = true;
-							if ( 'future' !== $status ) {
-								$this->posts[0]->post_date = current_time( 'mysql' );
-							}
-						}
-					} elseif ( $post_status_obj->private ) {
-						if ( ! current_user_can( $read_cap, $this->posts[0]->ID ) ) {
-							$this->posts = array();
-						}
+					if ( ! current_user_can( $edit_cap, $this->posts[0]->ID ) ) { // phpcs:ignore WordPress.WP.Capabilities.Undetermined
+						$this->posts = array();
 					} else {
+						$this->is_preview = true;
+						if ( 'future' !== $status ) {
+							$this->posts[0]->post_date = current_time( 'mysql' );
+						}
+					}
+				} elseif ( $post_status_obj->private ) {
+					if ( ! current_user_can( $read_cap, $this->posts[0]->ID ) ) { // phpcs:ignore WordPress.WP.Capabilities.Undetermined
 						$this->posts = array();
 					}
+				} else {
+					$this->posts = array();
 				}
 			}
 
-			if ( $this->is_preview && $this->posts && current_user_can( $edit_cap, $this->posts[0]->ID ) ) {
+			if ( $this->is_preview && $this->posts && current_user_can( $edit_cap, $this->posts[0]->ID ) ) { // phpcs:ignore WordPress.WP.Capabilities.Undetermined
 				$this->posts[0] = get_post( apply_filters_ref_array( 'es_the_preview', array( $this->posts[0], &$this ) ) );
 			}
 		}
@@ -1312,7 +1307,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 					// Move to front, after other stickies.
 					array_splice( $this->posts, $sticky_offset, 0, array( $sticky_post ) );
 					// Increment the sticky offset. The next sticky will be placed at this offset.
-					$sticky_offset++;
+					++$sticky_offset;
 					// Remove post from sticky posts array.
 					$offset = array_search( $sticky_post->ID, $sticky_posts, true );
 					unset( $sticky_posts[ $offset ] );
@@ -1326,18 +1321,18 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 			// Fetch sticky posts that weren't in the query results.
 			if ( ! empty( $sticky_posts ) ) {
-				$stickies = get_posts( // phpcs:ignore WordPressVIPMinimum.VIP.RestrictedFunctions.get_posts_get_posts
+				$stickies = get_posts( // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.get_posts_get_posts
 					array(
 						'post__in'    => $sticky_posts,
 						'post_type'   => $post_type,
 						'post_status' => 'publish',
-						'nopaging'    => true, // phpcs:ignore WordPress.VIP.PostsPerPage.posts_per_page_nopaging
+						'nopaging'    => true, // phpcs:ignore WordPressVIPMinimum.Performance.NoPaging.nopaging_nopaging
 					)
 				);
 
 				foreach ( $stickies as $sticky_post ) {
 					array_splice( $this->posts, $sticky_offset, 0, array( $sticky_post ) );
-					$sticky_offset++;
+					++$sticky_offset;
 				}
 			}
 		}
@@ -1378,7 +1373,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 	protected function parse_search( &$q ) {
 		// Added slashes screw with quote grouping when done early, so done later.
 		$q['s'] = stripslashes( $q['s'] );
-		if ( empty( $_GET['s'] ) && $this->is_main_query() ) { // phpcs:ignore WordPress.VIP.SuperGlobalInputUsage.AccessDetected, WordPress.Security.NonceVerification.NoNonceVerification
+		if ( empty( $_GET['s'] ) && $this->is_main_query() ) { // phpcs:ignore WordPress.VIP.SuperGlobalInputUsage.AccessDetected, WordPress.Security.NonceVerification.Recommended
 			$q['s'] = urldecode( $q['s'] );
 		}
 		// There are no line breaks in <input /> fields.
@@ -1552,7 +1547,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 			}
 
 			if ( in_array( $mime_type, $wildcards, true ) ) {
-				return [];
+				return array();
 			}
 
 			if ( false !== strpos( $mime_pattern, '*' ) ) {
@@ -1585,15 +1580,15 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 				);
 			}
 
-			$query = [ $query ];
+			$query = array( $query );
 		} elseif ( ! empty( $prefix_mime_types ) ) {
 			foreach ( $prefix_mime_types as $prefix_mime_type ) {
 				$filters[] = array( 'prefix' => array( $this->es_map( 'post_mime_type' ) => $prefix_mime_type ) );
 			}
 		} elseif ( ! empty( $strict_mime_types ) ) {
-			$filters = [
+			$filters = array(
 				$this->dsl_terms( $this->es_map( 'post_mime_type' ), $strict_mime_types ),
-			];
+			);
 		}
 
 		return compact( 'filters', 'query' );

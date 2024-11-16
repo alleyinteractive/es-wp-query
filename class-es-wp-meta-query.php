@@ -82,15 +82,11 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 
 				
 				if ( isset( $meta_clauses[ $meta_clause_key ]['key'] ) ) {                 
-					$queries_types[
-						$meta_clause_key
-					] = array(
+					$queries_types[ $meta_clause_key ] = array(
 						'key' => $meta_clauses[ $meta_clause_key ]['key'],
 					);
 				} else {
-					$queries_types[
-						$meta_clause_key
-					] = array(
+					$queries_types[ $meta_clause_key ] = array(
 						'key' => $meta_clause_key,
 					);
 				}
@@ -248,7 +244,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 		$clause_key_base = $clause_key;
 		while ( isset( $this->clauses[ $clause_key ] ) ) {
 			$clause_key = $clause_key_base . '-' . $iterator;
-			$iterator++;
+			++$iterator;
 		}
 
 		// Split out 'exists' and 'not exists' queries. These may also be
@@ -402,7 +398,6 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 				return $filter;
 			}
 		}
-
 	}
 
 	/**

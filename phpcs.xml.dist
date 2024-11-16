@@ -29,7 +29,10 @@
 	<exclude-pattern>bin/</exclude-pattern>
 	<exclude-pattern>tests/</exclude-pattern>
 
-	<rule ref="WordPress" />
+	<rule ref="WordPress">
+	 <exclude name="WordPress.NamingConventions.PrefixAllGlobals" />
+  </rule>
+
 	<rule ref="WordPress-VIP-Go" />
 
 	<!-- The version set here matches the minimum version tested in .travis.yml.  -->

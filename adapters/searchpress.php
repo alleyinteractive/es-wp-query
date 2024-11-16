@@ -6,7 +6,7 @@
  */
 
 // phpcs:disable Generic.Classes.DuplicateClassName.Found
-
+// phpcs: disable Universal.Files.SeparateFunctionsFromOO.Mixed
 /**
  * An adapter for SearchPress.
  */
@@ -69,7 +69,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 
 	add_filter(
 		'sp_post_allowed_meta',
-		function() {
+		function () {
 			return array(
 				'numeric_value'    => array( 'long', 'double' ),
 				'decimal_value'    => array( 'value', 'long', 'double' ),
@@ -129,7 +129,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		$tries = 5;
 		$sleep = 3;
 		do {
-			$response = wp_remote_get( $host );
+			$response = wp_remote_get( $host ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get
 			if ( 200 === wp_remote_retrieve_response_code( $response ) ) {
 				$body = json_decode( wp_remote_retrieve_body( $response ), true );
 				if ( ! empty( $body['version']['number'] ) ) {
@@ -159,7 +159,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 	}
 
 	function sp_adapter_verify_response_code( $response ) {
-		if ( '200' != wp_remote_retrieve_response_code( $response ) ) {
+		if ( '200' !== wp_remote_retrieve_response_code( $response ) ) {
 			printf( "Could not index posts!\nResponse code %s\n", wp_remote_retrieve_response_code( $response ) );
 			if ( is_wp_error( $response ) ) {
 				printf( "Message: %s\n", $response->get_error_message() );

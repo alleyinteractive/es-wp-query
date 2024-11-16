@@ -6,6 +6,7 @@
  */
 
 // phpcs:disable Generic.Classes.DuplicateClassName.Found
+// phpcs:disable Universal.Files.SeparateFunctionsFromOO.Mixed
 
 /**
  * An adapter for VIP Search.
@@ -71,7 +72,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 						if ( ! empty( $post_ids ) ) {
 							global $wpdb;
 							$post__in    = implode( ',', $post_ids );
-							$this->posts = $wpdb->get_results( "SELECT $wpdb->posts.* FROM $wpdb->posts WHERE ID IN ($post__in) ORDER BY FIELD( {$wpdb->posts}.ID, $post__in )" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.VIP.DirectDatabaseQuery.NoCaching, WordPress.VIP.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
+							$this->posts = $wpdb->get_results( "SELECT $wpdb->posts.* FROM $wpdb->posts WHERE ID IN ($post__in) ORDER BY FIELD( {$wpdb->posts}.ID, $post__in )" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.VIP.DirectDatabaseQuery.NoCaching, WordPress.VIP.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 						}
 						return;
 					}
@@ -187,18 +188,15 @@ add_filter( 'es_field_map', 'vip_es_field_map' );
  * Returns the lowercase version of a meta value.
  *
  * @param mixed  $meta_value   The meta value.
- * @param string $meta_key     The meta key.
- * @param string $meta_compare The comparison operation.
- * @param string $meta_type    The type of meta (post, user, term, etc).
  * @return mixed If value is a string, returns the lowercase version. Otherwise, returns the original value, unmodified.
  */
-function vip_es_meta_value_tolower( $meta_value, $meta_key, $meta_compare, $meta_type ) {
+function vip_es_meta_value_tolower( $meta_value ) {
 	if ( ! is_string( $meta_value ) || empty( $meta_value ) ) {
 		return $meta_value;
 	}
 	return strtolower( $meta_value );
 }
-add_filter( 'es_meta_query_meta_value', 'vip_es_meta_value_tolower', 10, 4 );
+add_filter( 'es_meta_query_meta_value', 'vip_es_meta_value_tolower', 10 );
 
 /**
  * Normalise term name to lowercase as we are mapping that against the "sortable" field, which is a lowercased keyword.

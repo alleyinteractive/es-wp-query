@@ -71,7 +71,6 @@ if ( ! function_exists( 'es_get_posts' ) ) {
 
 		$get_posts = new ES_WP_Query();
 		return $get_posts->query( $r );
-
 	}
 }
 

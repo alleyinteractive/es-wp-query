@@ -4,7 +4,7 @@
  * @group meta
  */
 class Tests_Query_Post extends WP_UnitTestCase {
-	function setUp() {
+	public function setUp(): void {
 		parent::setUp();
 	}
 

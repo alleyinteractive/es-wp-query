@@ -8,7 +8,7 @@
 class Tests_Query_LoggedIn extends WP_UnitTestCase {
 	protected $q;
 
-	function setUp() {
+	public function setUp(): void {
 		parent::setUp();
 
 		$i = 0;

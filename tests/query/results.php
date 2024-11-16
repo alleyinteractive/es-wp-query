@@ -10,7 +10,13 @@
 class Tests_Query_Results extends WP_UnitTestCase {
 	protected $q;
 
-	function setUp() {
+	public $parent_one;
+	public $parent_two;
+	public $parent_three;
+
+
+
+	public function setUp(): void {
 		parent::setUp();
 
 		$cat_a = $this->factory->term->create( array( 'taxonomy' => 'category', 'name' => 'cat-a' ) );

@@ -13,7 +13,7 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 
 	public $q;
 
-	public function setUp() {
+	public function setUp(): void {
 		parent::setUp();
 
 		// Be careful modifying this. Tests are coded to expect this exact sample data.

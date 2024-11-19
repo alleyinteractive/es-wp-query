@@ -2,6 +2,9 @@
 <ruleset name="es-wp-query">
 	<description>Sniffs for the coding standards of the ES WP Query plugin</description>
 
+    <!-- Include Alley Rules -->
+    <rule ref="Alley-Interactive" />
+
 	<!--
 	Pass some flags to PHPCS:
 	 p flag: Show progress of the run.
@@ -28,15 +31,18 @@
 	<exclude-pattern>*/node_modules/*</exclude-pattern>
 	<exclude-pattern>bin/</exclude-pattern>
 	<exclude-pattern>tests/</exclude-pattern>
+	<exclude-pattern>vendor/</exclude-pattern>
 
-	<rule ref="WordPress">
-	 <exclude name="WordPress.NamingConventions.PrefixAllGlobals" />
-  </rule>
-
-	<rule ref="WordPress-VIP-Go" />
+    <rule ref="WordPress-VIP-Go">
+	  <exclude name="WordPress.NamingConventions.PrefixAllGlobals" />
+      <exclude name="WordPress.NamingConventions.PrefixAllGlobals.ShortPrefixPassed" />
+      <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound" />
+      <exclude name="WordPressVIPMinimum.Hooks.PreGetPosts.PreGetPosts" />
+      <exclude name="Universal.Files.SeparateFunctionsFromOO.Mixed" />
+    </rule>
 
 	<!-- The version set here matches the minimum version tested in .travis.yml.  -->
-	<config name="minimum_supported_wp_version" value="4.4.2" />
+	<config name="minimum_supported_wp_version" value="5.9.3" />
 
 	<rule ref="WordPress.WP.I18n">
 		<properties>

@@ -143,20 +143,20 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 										"default": {
 											"tokenizer": "standard",
 											"filter": [
-												"travis_word_delimiter",
+												"ci_word_delimiter",
 												"lowercase",
 												"stop",
-												"travis_snowball"
+												"ci_snowball"
 											],
 											"language": "English"
 										}
 									},
 									"filter": {
-										"travis_word_delimiter": {
+										"ci_word_delimiter": {
 											"type": "word_delimiter",
 											"preserve_original": true
 										},
-										"travis_snowball": {
+										"ci_snowball": {
 											"type": "snowball",
 											"language": "English"
 										}
@@ -383,7 +383,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 						$error_message .= "\n{$post->index->error->type}: {$post->index->error->reason}";
 					}
 				}
-				$error_message .= 'Backtrace:' . travis_es_debug_backtrace_summary();
+				$error_message .= 'Backtrace:' . ci_es_debug_backtrace_summary();
 				throw new ES_Index_Exception( $error_message );
 			}
 		}
@@ -415,7 +415,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 				$message[] = sprintf( 'Response code %s', wp_remote_retrieve_response_code( $response ) );
 				$message[] = sprintf( 'Message: %s', wp_remote_retrieve_body( $response ) );
 			}
-			$message[] = sprintf( 'Backtrace:%s', travis_es_debug_backtrace_summary() );
+			$message[] = sprintf( 'Backtrace:%s', ci_es_debug_backtrace_summary() );
 			throw new ES_Index_Exception( implode( "\n", $message ) );
 		}
 
@@ -427,7 +427,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 	 *
 	 * @return string
 	 */
-	function travis_es_debug_backtrace_summary() {
+	function ci_es_debug_backtrace_summary() {
 		$backtrace = wp_debug_backtrace_summary( null, 0, false );
 		$backtrace = array_filter(
 			$backtrace,

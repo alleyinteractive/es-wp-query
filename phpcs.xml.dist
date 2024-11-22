@@ -41,8 +41,7 @@
       <exclude name="Universal.Files.SeparateFunctionsFromOO.Mixed" />
     </rule>
 
-	<!-- The version set here matches the minimum version tested in .travis.yml.  -->
-	<config name="minimum_supported_wp_version" value="5.9.3" />
+	<config name="minimum_supported_wp_version" value="6.7.1" />
 
 	<rule ref="WordPress.WP.I18n">
 		<properties>
@@ -56,7 +55,7 @@
 
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<properties>
-			<property name="prefixes" type="array" value="es,sp_es,travis_es,vip_es" />
+			<property name="prefixes" type="array" value="es,sp_es,ci_es,vip_es" />
 		</properties>
 	</rule>
 

@@ -23,8 +23,13 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 	protected function query_es( $es_args ) {
 		global $es_wp_query_ci_doc_type;
 
+		$endpoint = 'http://localhost:9200/es-wp-query-unit-tests/_search';
+		if ( version_compare( ES_VERSION, '8.0.0', '<' ) ) {
+			$endpoint = "http://localhost:9200/es-wp-query-unit-tests/{$es_wp_query_ci_doc_type}/_search";
+		}
+
 		$response = wp_remote_post(
-			"http://localhost:9200/es-wp-query-unit-tests/{$es_wp_query_ci_doc_type}/_search",
+			$endpoint,
 			array(
 				'body'    => wp_json_encode( $es_args ),
 				'headers' => array(
@@ -359,8 +364,13 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 			$body[] = addcslashes( $post->to_json(), "\n" );
 		}
 
+		$endpoint = 'http://localhost:9200/es-wp-query-unit-tests/_bulk';
+		if ( version_compare( ES_VERSION, '8.0.0', '<' ) ) {
+			$endpoint = "http://localhost:9200/es-wp-query-unit-tests/{$es_wp_query_ci_doc_type}/_bulk";
+		}
+
 		$response = wp_remote_request(
-			"http://localhost:9200/es-wp-query-unit-tests/{$es_wp_query_ci_doc_type}/_bulk",
+			$endpoint,
 			array(
 				'method'  => 'PUT',
 				'body'    => wp_check_invalid_utf8( implode( "\n", $body ), true ) . "\n",

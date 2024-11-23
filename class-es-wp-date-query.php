@@ -158,7 +158,7 @@ class ES_WP_Date_Query extends WP_Date_Query {
 				'hour'   => null,
 				'minute' => null,
 				'second' => null,
-			] 
+			]
 		);
 
 		$time = $this->build_es_time( $compare, $query['hour'], $query['minute'], $query['second'] );
@@ -201,7 +201,7 @@ class ES_WP_Date_Query extends WP_Date_Query {
 	 * @return string|false A MySQL format date/time or false on failure
 	 */
 	public static function build_datetime( $datetime, $default_to_max = false ) {
-		$now = current_time( 'timestamp' );
+		$now = current_time( 'timestamp' ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
 
 		if ( ! is_array( $datetime ) ) {
 			// @todo Timezone issues here possibly
@@ -219,7 +219,7 @@ class ES_WP_Date_Query extends WP_Date_Query {
 		}
 
 		if ( ! isset( $datetime['day'] ) ) {
-			$datetime['day'] = ( $default_to_max ) ? (int) date( 't', mktime( 0, 0, 0, $datetime['month'], 1, $datetime['year'] ) ) : 1;
+			$datetime['day'] = ( $default_to_max ) ? (int) date( 't', mktime( 0, 0, 0, $datetime['month'], 1, $datetime['year'] ) ) : 1; // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
 		}
 
 		if ( ! isset( $datetime['hour'] ) ) {
@@ -324,7 +324,7 @@ class ES_WP_Date_Query extends WP_Date_Query {
 					[
 						'gte' => $value[0],
 						'lte' => $value[1],
-					] 
+					]
 				);
 				break;
 
@@ -333,16 +333,16 @@ class ES_WP_Date_Query extends WP_Date_Query {
 			case '<':
 			case '<=':
 				switch ( $compare ) {
-					case '>':   
+					case '>':
 						$operator = 'gt';
 						break;
-					case '>=':  
+					case '>=':
 						$operator = 'gte';
 						break;
-					case '<':   
+					case '<':
 						$operator = 'lt';
 						break;
-					case '<=':  
+					case '<=':
 						$operator = 'lte';
 						break;
 				}

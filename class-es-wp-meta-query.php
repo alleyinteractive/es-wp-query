@@ -27,8 +27,8 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 	 *
 	 * @param array $meta_query array of meta query clauses .
 	 *
-	 * @return none
-	 */ 
+	 * @return void
+	 */
 	public function __construct( $meta_query = false ) {
 		/*
 		 * Call parent, so $this->sanitize_query() gets called
@@ -80,8 +80,8 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 				 * As a result, the last one will be the one who prevails.
 				 */
 
-				
-				if ( isset( $meta_clauses[ $meta_clause_key ]['key'] ) ) {                 
+
+				if ( isset( $meta_clauses[ $meta_clause_key ]['key'] ) ) {
 					$queries_types[ $meta_clause_key ] = [
 						'key' => $meta_clauses[ $meta_clause_key ]['key'],
 					];
@@ -97,7 +97,7 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 				) ) {
 					$queries_types[ $meta_clause_key ]['type'] =
 						$meta_clauses[ $meta_clause_key ]['type'];
-				}           
+				}
 			} else {
 				/*
 				 * Recursively process the clause.
@@ -312,16 +312,16 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 			case '<':
 			case '<=':
 				switch ( $clause['compare'] ) {
-					case '>':   
+					case '>':
 						$operator = 'gt';
 						break;
-					case '>=':  
+					case '>=':
 						$operator = 'gte';
 						break;
-					case '<':   
+					case '<':
 						$operator = 'lt';
 						break;
-					case '<=':  
+					case '<=':
 						$operator = 'lte';
 						break;
 				}
@@ -409,21 +409,21 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 	public function get_cast_for_type( $type = '' ) {
 		$type = preg_replace( '/^([A-Z]+).*$/', '$1', strtoupper( $type ) );
 		switch ( $type ) {
-			case 'NUMERIC': 
+			case 'NUMERIC':
 				return 'long';
-			case 'SIGNED': 
+			case 'SIGNED':
 				return 'long';
-			case 'UNSIGNED': 
+			case 'UNSIGNED':
 				return 'long';
-			case 'BINARY': 
+			case 'BINARY':
 				return 'boolean';
-			case 'DECIMAL': 
+			case 'DECIMAL':
 				return 'double';
-			case 'DATE': 
+			case 'DATE':
 				return 'date';
-			case 'DATETIME': 
+			case 'DATETIME':
 				return 'datetime';
-			case 'TIME': 
+			case 'TIME':
 				return 'time';
 		}
 		return '';

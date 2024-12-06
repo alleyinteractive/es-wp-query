@@ -145,9 +145,8 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		// If we didn't end with a 200 status code, exit.
 		sp_adapter_verify_response_code( $response );
 
-		$i    = 0;
-		$beat = SP_Heartbeat()->check_beat( true );
-		while ( ! ( $beat ) && $i++ < 5 ) {
+		$i = 0;
+		while ( ! ( $beat = SP_Heartbeat()->check_beat( true ) ) && $i++ < 5 ) { // phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition
 			echo "\nHeartbeat failed, sleeping 2 seconds and trying again...\n";
 			sleep( 2 );
 		}
@@ -166,7 +165,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 	 * @return void
 	 */
 	function sp_adapter_verify_response_code( $response ) {
-		if ( '200' !== wp_remote_retrieve_response_code( $response ) ) {
+		if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
 			printf( "Could not index posts!\nResponse code %s\n", wp_remote_retrieve_response_code( $response ) );
 			if ( is_wp_error( $response ) ) {
 				printf( "Message: %s\n", $response->get_error_message() );

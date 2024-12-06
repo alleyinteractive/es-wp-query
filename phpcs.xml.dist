@@ -35,10 +35,10 @@
 
     <rule ref="WordPress-VIP-Go">
 	  <exclude name="WordPress.NamingConventions.PrefixAllGlobals" />
-      <exclude name="WordPress.NamingConventions.PrefixAllGlobals.ShortPrefixPassed" />
-      <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound" />
-      <exclude name="WordPressVIPMinimum.Hooks.PreGetPosts.PreGetPosts" />
-      <exclude name="Universal.Files.SeparateFunctionsFromOO.Mixed" />
+	  <exclude name="WordPress.NamingConventions.PrefixAllGlobals.ShortPrefixPassed" />
+	  <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound" />
+	  <exclude name="WordPressVIPMinimum.Hooks.PreGetPosts.PreGetPosts" />
+	  <exclude name="Universal.Files.SeparateFunctionsFromOO.Mixed" />
     </rule>
 
 	<config name="minimum_supported_wp_version" value="6.7.1" />

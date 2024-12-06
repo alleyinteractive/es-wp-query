@@ -1307,7 +1307,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 					// Move to front, after other stickies.
 					array_splice( $this->posts, $sticky_offset, 0, [ $sticky_post ] );
 					// Increment the sticky offset. The next sticky will be placed at this offset.
-					++$sticky_offset;
+					$sticky_offset++;
 					// Remove post from sticky posts array.
 					$offset = array_search( $sticky_post->ID, $sticky_posts, true );
 					unset( $sticky_posts[ $offset ] );
@@ -1332,7 +1332,7 @@ abstract class ES_WP_Query_Wrapper extends WP_Query {
 
 				foreach ( $stickies as $sticky_post ) {
 					array_splice( $this->posts, $sticky_offset, 0, [ $sticky_post ] );
-					++$sticky_offset;
+					$sticky_offset++;
 				}
 			}
 		}

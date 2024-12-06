@@ -199,9 +199,10 @@ class Tests_Query_Shoehorn extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @ticket 18897
+	 * @ticket https://core.trac.wordpress.org/ticket/18897
 	 */
 	function test_wp_query_offset_and_paged() {
+		$this->markTestSkipped('Setting offset parameter ignores the pages parameter. See https://core.trac.wordpress.org/ticket/18897');
 		$posts = $this->q->query('paged=2&offset=3&es=true');
 
 		$expected = array (

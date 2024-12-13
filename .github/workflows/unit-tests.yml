@@ -13,7 +13,7 @@ jobs:
         es_version: [7.17.25, 8.16.1]
         multisite: [0]
         wp_version: ["latest", "nightly"]
-        mysql_version: [5.7, 8.2.26] # Added MySQL versions to the matrix
+        mysql_version: [8.0, 8.4, 9.1]
     env:
       CACHEDIR: /tmp/test-cache
       WP_CORE_DIR: /tmp/wordpress/

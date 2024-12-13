@@ -162,7 +162,6 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 	 * Verifies that the response code is 200.
 	 *
 	 * @param array|WP_Error $response The response from wp_remote_get.
-	 * @return void
 	 */
 	function sp_adapter_verify_response_code( $response ) {
 		if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {

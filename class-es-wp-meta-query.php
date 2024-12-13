@@ -26,7 +26,6 @@ class ES_WP_Meta_Query extends WP_Meta_Query {
 	 * @access public
 	 *
 	 * @param array $meta_query array of meta query clauses .
-	 *
 	 */
 	public function __construct( $meta_query = false ) {
 		/*

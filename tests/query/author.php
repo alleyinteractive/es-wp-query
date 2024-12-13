@@ -7,7 +7,7 @@
  * @group author
  */
 class Tests_Query_Author extends WP_UnitTestCase {
-	function setup(): void {
+	public function setUp(): void {
 		parent::setUp();
 		$this->set_permalink_structure( '/%year%/%monthnum%/%day%/%postname%/' );
 	}

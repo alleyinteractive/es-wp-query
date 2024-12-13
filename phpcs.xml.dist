@@ -4,6 +4,7 @@
 
     <!-- Include Alley Rules -->
     <rule ref="Alley-Interactive" />
+    <config name="testVersion" value="7.4-" />
 
 	<!--
 	Pass some flags to PHPCS:

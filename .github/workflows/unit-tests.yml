@@ -13,6 +13,7 @@ jobs:
         es_version: [7.17.25, 8.16.1]
         multisite: [0]
         wp_version: ["latest", "nightly"]
+        mysql_version: [5.7, 8.2.26] # Added MySQL versions to the matrix
     env:
       CACHEDIR: /tmp/test-cache
       WP_CORE_DIR: /tmp/wordpress/
@@ -21,7 +22,7 @@ jobs:
       WP_MULTISITE: ${{ matrix.multisite }}
     services:
       mysql:
-        image: mysql:5.7
+        image: mysql:${{ matrix.mysql_version }}
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: yes
         ports:

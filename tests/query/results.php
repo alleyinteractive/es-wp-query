@@ -14,8 +14,6 @@ class Tests_Query_Results extends WP_UnitTestCase {
 	public $parent_two;
 	public $parent_three;
 
-
-
 	public function setUp(): void {
 		parent::setUp();
 

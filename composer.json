@@ -20,7 +20,7 @@
 		"yoast/phpunit-polyfills": "^1.0"
 	},
 	"scripts": {
-		"phpcbf": "phpcbf .",
+		"phpcbf": "phpcbf",
 		"phpcs": "phpcs",
 		"phpunit": "phpunit",
 		"setup": [

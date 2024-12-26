@@ -5,7 +5,7 @@ on: pull_request
 jobs:
   tests:
     name: "WP: ${{ matrix.wp_version }} - PHP: ${{ matrix.php }} - ES: ${{ matrix.es_version }} - MySQL: ${{ matrix.mysql_version }} - (MU: ${{ matrix.multisite }})"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false # do not fail fast, let all the failing tests fail.
       matrix:
@@ -37,7 +37,7 @@ jobs:
           access_token: ${{ github.token }}
 
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Configure sysctl limits
         run: |
@@ -61,7 +61,7 @@ jobs:
           coverage: none
 
       - name: Install dependencies
-        uses: ramsey/composer-install@v1
+        uses: ramsey/composer-install@v3
         with:
           composer-options: "--ignore-platform-reqs"
 

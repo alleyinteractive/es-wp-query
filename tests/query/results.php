@@ -285,10 +285,10 @@ class Tests_Query_Results extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @link https://core.trac.wordpress.org/ticket/18897
+	 * @ticket https://core.trac.wordpress.org/ticket/18897
 	 */
 	function test_query_offset_and_paged() {
-		$this->knownWPBug( '18897' );
+		$this->markTestSkipped( 'Setting offset parameter ignores the pages parameter. See https://core.trac.wordpress.org/ticket/18897' );
 		$posts = $this->q->query('paged=2&offset=3');
 
 		$expected = array (

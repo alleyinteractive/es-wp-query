@@ -5,7 +5,7 @@ on: pull_request
 jobs:
   tests:
     name: "WP: ${{ matrix.wp_version }} - PHP: ${{ matrix.php }} - ES: ${{ matrix.es_version }} - MySQL: ${{ matrix.mysql_version }} - (MU: ${{ matrix.multisite }})"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false # do not fail fast, let all the failing tests fail.
       matrix:
@@ -72,6 +72,9 @@ jobs:
           git --version
           php --version
           composer --version
+
+      - name: Install SVN
+        run: sudo apt-get install -y subversion
 
       - name: Set up WordPress
         run: |

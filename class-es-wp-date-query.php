@@ -19,7 +19,7 @@ class ES_WP_Date_Query extends WP_Date_Query {
 	 */
 	public function get_dsl( $es_query ) {
 		// The parts of the final query.
-		$filter = array();
+		$filter = [];
 
 		foreach ( $this->queries as $query ) {
 			$filter_parts = $this->get_es_subquery( $query, $es_query );
@@ -28,11 +28,11 @@ class ES_WP_Date_Query extends WP_Date_Query {
 				if ( 1 === count( $filter_parts ) ) {
 					$filter[] = reset( $filter_parts );
 				} else {
-					$filter[] = array(
-						'bool' => array(
+					$filter[] = [
+						'bool' => [
 							'filter' => $filter_parts,
-						),
-					);
+						],
+					];
 				}
 			}
 		}
@@ -46,13 +46,13 @@ class ES_WP_Date_Query extends WP_Date_Query {
 			} else {
 				$relation = 'filter';
 			}
-			$filter = array(
-				'bool' => array(
+			$filter = [
+				'bool' => [
 					$relation => $filter,
-				),
-			);
+				],
+			];
 		} else {
-			$filter = array();
+			$filter = [];
 		}
 
 		/**
@@ -75,11 +75,11 @@ class ES_WP_Date_Query extends WP_Date_Query {
 	protected function get_es_subquery( $query, $es_query ) {
 		// Ensure $query is an array before proceeding.
 		if ( ! is_array( $query ) ) {
-			return array();
+			return [];
 		}
 
 		// The sub-parts of a $where part.
-		$filter_parts = array();
+		$filter_parts = [];
 
 		$field = ( ! empty( $query['column'] ) ) ? esc_sql( $query['column'] ) : $this->column;
 		$field = $this->validate_column( $field );
@@ -101,7 +101,7 @@ class ES_WP_Date_Query extends WP_Date_Query {
 				$gt = 'gt';
 			}
 
-			$range = array();
+			$range = [];
 
 			if ( ! empty( $query['after'] ) ) {
 				$range[ $gt ] = $this->build_datetime( $query['after'], ! $inclusive );
@@ -138,7 +138,7 @@ class ES_WP_Date_Query extends WP_Date_Query {
 			$query['day_of_week'] = apply_filters( 'es_date_query_dayofweek', $day_of_week, $query['dayofweek'] );
 		}
 
-		foreach ( array( 'year', 'month', 'week', 'day', 'day_of_year', 'day_of_week' ) as $date_token ) {
+		foreach ( [ 'year', 'month', 'week', 'day', 'day_of_year', 'day_of_week' ] as $date_token ) {
 			if ( isset( $query[ $date_token ] ) ) {
 				$part = $this->build_dsl_part(
 					$es_query->es_map( "{$field}.{$date_token}" ),
@@ -154,16 +154,16 @@ class ES_WP_Date_Query extends WP_Date_Query {
 		// Avoid notices.
 		$query = wp_parse_args(
 			$query,
-			array(
+			[
 				'hour'   => null,
 				'minute' => null,
 				'second' => null,
-			) 
+			]
 		);
 
 		$time = $this->build_es_time( $compare, $query['hour'], $query['minute'], $query['second'] );
 		if ( false === $time ) {
-			foreach ( array( 'hour', 'minute', 'second' ) as $date_token ) {
+			foreach ( [ 'hour', 'minute', 'second' ] as $date_token ) {
 				if ( isset( $query[ $date_token ] ) ) {
 					$part = $this->build_dsl_part(
 						$es_query->es_map( "{$field}.{$date_token}" ),
@@ -175,12 +175,10 @@ class ES_WP_Date_Query extends WP_Date_Query {
 					}
 				}
 			}
-		} else {
-			if ( 1 > $time ) {
+		} elseif ( 1 > $time ) {
 				$filter_parts[] = $this->build_dsl_part( $es_query->es_map( "{$field}.seconds_from_hour" ), $time, $compare, 'floatval' );
-			} else {
-				$filter_parts[] = $this->build_dsl_part( $es_query->es_map( "{$field}.seconds_from_day" ), $time, $compare, 'floatval' );
-			}
+		} else {
+			$filter_parts[] = $this->build_dsl_part( $es_query->es_map( "{$field}.seconds_from_day" ), $time, $compare, 'floatval' );
 		}
 
 		return $filter_parts;
@@ -203,7 +201,7 @@ class ES_WP_Date_Query extends WP_Date_Query {
 	 * @return string|false A MySQL format date/time or false on failure
 	 */
 	public static function build_datetime( $datetime, $default_to_max = false ) {
-		$now = current_time( 'timestamp' );
+		$now = current_time( 'timestamp' ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
 
 		if ( ! is_array( $datetime ) ) {
 			// @todo Timezone issues here possibly
@@ -221,7 +219,7 @@ class ES_WP_Date_Query extends WP_Date_Query {
 		}
 
 		if ( ! isset( $datetime['day'] ) ) {
-			$datetime['day'] = ( $default_to_max ) ? (int) date( 't', mktime( 0, 0, 0, $datetime['month'], 1, $datetime['year'] ) ) : 1;
+			$datetime['day'] = ( $default_to_max ) ? (int) date( 't', mktime( 0, 0, 0, $datetime['month'], 1, $datetime['year'] ) ) : 1; // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
 		}
 
 		if ( ! isset( $datetime['hour'] ) ) {
@@ -263,20 +261,20 @@ class ES_WP_Date_Query extends WP_Date_Query {
 		switch ( $compare ) {
 			case '!=':
 			case '=':
-				return array(
+				return [
 					'gte' => self::build_datetime( $date, $lower_edge ),
 					'lte' => self::build_datetime( $date, $upper_edge ),
-				);
+				];
 
 			case '>':
-				return array( 'gt' => self::build_datetime( $date, $upper_edge ) );
+				return [ 'gt' => self::build_datetime( $date, $upper_edge ) ];
 			case '>=':
-				return array( 'gte' => self::build_datetime( $date, $lower_edge ) );
+				return [ 'gte' => self::build_datetime( $date, $lower_edge ) ];
 
 			case '<':
-				return array( 'lt' => self::build_datetime( $date, $lower_edge ) );
+				return [ 'lt' => self::build_datetime( $date, $lower_edge ) ];
 			case '<=':
-				return array( 'lte' => self::build_datetime( $date, $upper_edge ) );
+				return [ 'lte' => self::build_datetime( $date, $upper_edge ) ];
 		}
 	}
 
@@ -306,12 +304,12 @@ class ES_WP_Date_Query extends WP_Date_Query {
 			case 'BETWEEN':
 			case 'NOT BETWEEN':
 				if ( ! is_array( $value ) ) {
-					$value = array( $value, $value );
+					$value = [ $value, $value ];
 				} elseif ( count( $value ) >= 2 && ( ! isset( $value[0] ) || ! isset( $value[1] ) ) ) {
-					$value = array( array_shift( $value ), array_shift( $value ) );
+					$value = [ array_shift( $value ), array_shift( $value ) ];
 				} elseif ( count( $value ) ) {
 					$value = reset( $value );
-					$value = array( $value, $value );
+					$value = [ $value, $value ];
 				}
 
 				if ( ! isset( $value[0] ) || ! isset( $value[1] ) ) {
@@ -323,10 +321,10 @@ class ES_WP_Date_Query extends WP_Date_Query {
 
 				$part = ES_WP_Query_Wrapper::dsl_range(
 					$field,
-					array(
+					[
 						'gte' => $value[0],
 						'lte' => $value[1],
-					) 
+					]
 				);
 				break;
 
@@ -335,20 +333,20 @@ class ES_WP_Date_Query extends WP_Date_Query {
 			case '<':
 			case '<=':
 				switch ( $compare ) {
-					case '>':   
+					case '>':
 						$operator = 'gt';
 						break;
-					case '>=':  
+					case '>=':
 						$operator = 'gte';
 						break;
-					case '<':   
+					case '<':
 						$operator = 'lt';
 						break;
-					case '<=':  
+					case '<=':
 						$operator = 'lte';
 						break;
 				}
-				$part = ES_WP_Query_Wrapper::dsl_range( $field, array( $operator => $sanitize( $value ) ) );
+				$part = ES_WP_Query_Wrapper::dsl_range( $field, [ $operator => $sanitize( $value ) ] );
 				break;
 
 			default:
@@ -356,12 +354,12 @@ class ES_WP_Date_Query extends WP_Date_Query {
 				break;
 		}
 
-		if ( ! empty( $part ) && in_array( $compare, array( '!=', 'NOT IN', 'NOT BETWEEN' ), true ) ) {
-			return array(
-				'bool' => array(
+		if ( ! empty( $part ) && in_array( $compare, [ '!=', 'NOT IN', 'NOT BETWEEN' ], true ) ) {
+			return [
+				'bool' => [
 					'must_not' => $part,
-				),
-			);
+				],
+			];
 		} else {
 			return $part;
 		}
@@ -384,12 +382,12 @@ class ES_WP_Date_Query extends WP_Date_Query {
 	 */
 	public function build_es_time( $compare, $hour = null, $minute = null, $second = null ) {
 		// Complex combined queries aren't supported for multi-value queries.
-		if ( in_array( $compare, array( 'IN', 'NOT IN', 'BETWEEN', 'NOT BETWEEN' ), true ) ) {
+		if ( in_array( $compare, [ 'IN', 'NOT IN', 'BETWEEN', 'NOT BETWEEN' ], true ) ) {
 			return false;
 		}
 
 		// Lastly, ignore cases where just one unit is set or $minute is null.
-		if ( count( array_filter( array( $hour, $minute, $second ), 'is_null' ) ) > 1 || is_null( $minute ) ) {
+		if ( count( array_filter( [ $hour, $minute, $second ], 'is_null' ) ) > 1 || is_null( $minute ) ) {
 			return false;
 		}
 

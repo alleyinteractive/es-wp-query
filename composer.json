@@ -7,11 +7,31 @@
 	"authors": [
 		{
 			"name": "Alley",
-			"homepage": "https://alley.co/"
+			"homepage": "https://alley.com/"
 		}
 	],
 	"support": {
 		"issues": "https://github.com/alleyinteractive/es-wp-query/issues",
 		"source": "https://github.com/alleyinteractive/es-wp-query"
+	},
+	"require-dev": {
+		"php": ">=7.4",
+		"alleyinteractive/alley-coding-standards": "2.0",
+		"yoast/phpunit-polyfills": "^1.0"
+	},
+	"scripts": {
+		"phpcbf": "phpcbf",
+		"phpcs": "phpcs",
+		"phpunit": "phpunit",
+		"setup": [
+			"composer install"
+		]
+	},
+	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true,
+			"alleyinteractive/composer-wordpress-autoloader": true
+		},
+		"sort-packages": true
 	}
 }

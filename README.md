@@ -1,4 +1,5 @@
-<div><a href="https://travis-ci.org/alleyinteractive/es-wp-query"><img align="right" src="https://travis-ci.org/alleyinteractive/es-wp-query.svg?branch=master" /></a></div>
+![Coding Standards workflow](https://github.com/alleyinteractive/es-wp-query/actions/workflows/coding-standards.yml/badge.svg)
+![Unit Tests workflow](https://github.com/alleyinteractive/es-wp-query/actions/workflows/unit-tests.yml/badge.svg)
 
 # Elasticsearch Wrapper for WP_Query
 

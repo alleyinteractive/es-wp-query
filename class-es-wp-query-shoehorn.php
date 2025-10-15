@@ -35,7 +35,7 @@ function es_wp_query_shoehorn( &$query ) {
 
 	if ( ! empty( $query->get( 'es' ) ) ) {
 		// Backup the conditionals to restore later.
-		$conditionals = array(
+		$conditionals = [
 			'is_single'            => false,
 			'is_preview'           => false,
 			'is_page'              => false,
@@ -63,7 +63,7 @@ function es_wp_query_shoehorn( &$query ) {
 			'is_robots'            => false,
 			'is_posts_page'        => false,
 			'is_post_type_archive' => false,
-		);
+		];
 		foreach ( $conditionals as $key => $value ) {
 			$conditionals[ $key ] = $query->$key;
 		}
@@ -76,14 +76,14 @@ function es_wp_query_shoehorn( &$query ) {
 		 * subquery, we ensure that the subquery is as similar to the original
 		 * query as possible.
 		 */
-		$es_query_args           = $query->query;
-		$es_query_args['fields'] = 'ids';
+		$es_query_args                     = $query->query;
+		$es_query_args['fields']           = 'ids';
 		$es_query_args['es_is_main_query'] = $query->is_main_query();
-		$es_query                = new ES_WP_Query( $es_query_args );
+		$es_query                          = new ES_WP_Query( $es_query_args );
 
 		// Make the post query use the post IDs from the ES results instead.
 		$query->parse_query(
-			array(
+			[
 				'post_type'      => $query->get( 'post_type' ),
 				'post_status'    => $query->get( 'post_status' ),
 				'post__in'       => $es_query->posts,
@@ -91,7 +91,7 @@ function es_wp_query_shoehorn( &$query ) {
 				'fields'         => $query->get( 'fields' ),
 				'orderby'        => 'post__in',
 				'order'          => 'ASC',
-			)
+			]
 		);
 
 		// Reinsert all the conditionals from the original query.
@@ -196,12 +196,12 @@ class ES_WP_Query_Shoehorn {
 	public function add_query_hooks() {
 		if ( $this->post_count ) {
 			// Kills the FOUND_ROWS() database query.
-			add_filter( 'found_posts_query', array( $this, 'filter__found_posts_query' ), 1000, 2 );
+			add_filter( 'found_posts_query', [ $this, 'filter__found_posts_query' ], 1000, 2 );
 			// Since the FOUND_ROWS() query was killed, we need to supply the total number of found posts.
-			add_filter( 'found_posts', array( $this, 'filter__found_posts' ), 1000, 2 );
+			add_filter( 'found_posts', [ $this, 'filter__found_posts' ], 1000, 2 );
 		}
 
-		add_filter( 'posts_request', array( $this, 'filter__posts_request' ), 1000, 2 );
+		add_filter( 'posts_request', [ $this, 'filter__posts_request' ], 1000, 2 );
 	}
 
 	/**
@@ -213,7 +213,7 @@ class ES_WP_Query_Shoehorn {
 	 */
 	public function filter__found_posts_query( $sql, $query ) {
 		if ( spl_object_hash( $query ) === $this->hash ) {
-			remove_filter( 'found_posts_query', array( $this, 'filter__found_posts_query' ), 1000, 2 );
+			remove_filter( 'found_posts_query', [ $this, 'filter__found_posts_query' ], 1000, 2 );
 			if ( $this->do_found_posts ) {
 				return '';
 			}
@@ -230,7 +230,7 @@ class ES_WP_Query_Shoehorn {
 	 */
 	public function filter__found_posts( $found_posts, $query ) {
 		if ( spl_object_hash( $query ) === $this->hash ) {
-			remove_filter( 'found_posts', array( $this, 'filter__found_posts' ), 1000, 2 );
+			remove_filter( 'found_posts', [ $this, 'filter__found_posts' ], 1000, 2 );
 			if ( $this->do_found_posts ) {
 				return $this->found_posts;
 			}
@@ -247,7 +247,7 @@ class ES_WP_Query_Shoehorn {
 	 */
 	public function filter__posts_request( $sql, $query ) {
 		if ( spl_object_hash( $query ) === $this->hash ) {
-			remove_filter( 'posts_request', array( $this, 'filter__posts_request' ), 1000, 2 );
+			remove_filter( 'posts_request', [ $this, 'filter__posts_request' ], 1000, 2 );
 			$this->reboot_query_vars( $query );
 
 			if ( ! $this->post_count ) {

@@ -6,6 +6,7 @@
  */
 
 // phpcs:disable Generic.Classes.DuplicateClassName.Found
+// phpcs:disable Universal.Files.SeparateFunctionsFromOO.Mixed
 
 /**
  * An adapter for VIP Search.
@@ -39,7 +40,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 	 * @access protected
 	 */
 	protected function set_posts( $q, $es_response ) {
-		$this->posts = array();
+		$this->posts = [];
 		if ( ! is_wp_error( $es_response ) && isset( $es_response['documents'] ) ) {
 			switch ( $q['fields'] ) {
 				case 'ids':
@@ -62,7 +63,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 						$this->posts = wp_list_pluck( $es_response['documents'], '_source' );
 						return;
 					} else {
-						$post_ids = array();
+						$post_ids = [];
 						foreach ( $es_response['documents'] as $hit ) {
 							$post_id    = (array) $hit[ $this->es_map( 'post_id' ) ];
 							$post_ids[] = absint( reset( $post_id ) );
@@ -71,13 +72,13 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 						if ( ! empty( $post_ids ) ) {
 							global $wpdb;
 							$post__in    = implode( ',', $post_ids );
-							$this->posts = $wpdb->get_results( "SELECT $wpdb->posts.* FROM $wpdb->posts WHERE ID IN ($post__in) ORDER BY FIELD( {$wpdb->posts}.ID, $post__in )" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.VIP.DirectDatabaseQuery.NoCaching, WordPress.VIP.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
+							$this->posts = $wpdb->get_results( "SELECT $wpdb->posts.* FROM $wpdb->posts WHERE ID IN ($post__in) ORDER BY FIELD( {$wpdb->posts}.ID, $post__in )" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.VIP.DirectDatabaseQuery.NoCaching, WordPress.VIP.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 						}
 						return;
 					}
 			}
 		} else {
-			$this->posts = array();
+			$this->posts = [];
 		}
 	}
 
@@ -95,7 +96,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 		} else {
 			$this->found_posts = 0;
 		}
-		$this->found_posts   = apply_filters_ref_array( 'es_found_posts', array( $this->found_posts, &$this ) );
+		$this->found_posts   = apply_filters_ref_array( 'es_found_posts', [ $this->found_posts, &$this ] );
 		$this->max_num_pages = ceil( $this->found_posts / $q['posts_per_page'] );
 	}
 }
@@ -108,7 +109,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
  */
 function vip_es_field_map( $es_map ) {
 	return wp_parse_args(
-		array(
+		[
 			'post_author'                   => 'post_author.id',
 			'post_author.user_nicename'     => 'post_author.login.raw',
 			'post_date'                     => 'post_date',
@@ -177,7 +178,7 @@ function vip_es_field_map( $es_map ) {
 			'tag_id'                        => 'terms.post_tag.term_id',
 			'tag_slug'                      => 'terms.post_tag.slug',
 			'tag_name'                      => 'terms.post_tag.name.sortable',
-		),
+		],
 		$es_map
 	);
 }
@@ -186,30 +187,26 @@ add_filter( 'es_field_map', 'vip_es_field_map' );
 /**
  * Returns the lowercase version of a meta value.
  *
- * @param mixed  $meta_value   The meta value.
- * @param string $meta_key     The meta key.
- * @param string $meta_compare The comparison operation.
- * @param string $meta_type    The type of meta (post, user, term, etc).
+ * @param mixed $meta_value The meta value.
  * @return mixed If value is a string, returns the lowercase version. Otherwise, returns the original value, unmodified.
  */
-function vip_es_meta_value_tolower( $meta_value, $meta_key, $meta_compare, $meta_type ) {
+function vip_es_meta_value_tolower( $meta_value ) {
 	if ( ! is_string( $meta_value ) || empty( $meta_value ) ) {
 		return $meta_value;
 	}
 	return strtolower( $meta_value );
 }
-add_filter( 'es_meta_query_meta_value', 'vip_es_meta_value_tolower', 10, 4 );
+add_filter( 'es_meta_query_meta_value', 'vip_es_meta_value_tolower', 10 );
 
 /**
  * Normalise term name to lowercase as we are mapping that against the "sortable" field, which is a lowercased keyword.
  *
  * @param string|mixed $term     Term's name which should be normalised to
  *                               lowercase.
- * @param string       $taxonomy Taxonomy of the term.
  * @return mixed If $term is a string, lowercased string is returned. Otherwise
  *               original value is return unchanged.
  */
-function vip_es_term_name_slug_tolower( $term, $taxonomy ) {
+function vip_es_term_name_slug_tolower( $term ) {
 	if ( ! is_string( $term ) || empty( $term ) ) {
 		return $term;
 	}
@@ -268,19 +265,18 @@ function vip_es_disable_advanced_post_cache( &$query ) {
 		 * does not have an effect on WP_Query()-results directly.
 		 */
 
-		remove_filter( 'posts_request', array( $advanced_post_cache_object, 'posts_request' ) );
-		remove_filter( 'posts_results', array( $advanced_post_cache_object, 'posts_results' ) );
+		remove_filter( 'posts_request', [ $advanced_post_cache_object, 'posts_request' ] );
+		remove_filter( 'posts_results', [ $advanced_post_cache_object, 'posts_results' ] );
 
-		remove_filter( 'post_limits_request', array( $advanced_post_cache_object, 'post_limits_request' ), 999 );
+		remove_filter( 'post_limits_request', [ $advanced_post_cache_object, 'post_limits_request' ], 999 );
 
-		remove_filter( 'found_posts_query', array( $advanced_post_cache_object, 'found_posts_query' ) );
-		remove_filter( 'found_posts', array( $advanced_post_cache_object, 'found_posts' ) );
+		remove_filter( 'found_posts_query', [ $advanced_post_cache_object, 'found_posts_query' ] );
+		remove_filter( 'found_posts', [ $advanced_post_cache_object, 'found_posts' ] );
 
 		$disabled_apc = true;
-	} else {
-		// A non-ES query.
-		if ( true === $disabled_apc ) {
-			/*
+	} elseif ( true === $disabled_apc ) {
+			/**
+			 * A non-ES query.
 			 * Earlier, we disabled Advanced Post Cache
 			 * entirely, but now a non-Elasticsearch query is
 			 * being run, and in such cases it might be useful
@@ -290,7 +286,6 @@ function vip_es_disable_advanced_post_cache( &$query ) {
 			$advanced_post_cache_object->__construct();
 
 			$disabled_apc = false;
-		}
 	}
 }
 add_action( 'pre_get_posts', 'vip_es_disable_advanced_post_cache', -100 );

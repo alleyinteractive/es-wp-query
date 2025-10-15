@@ -53,7 +53,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 
 		$filters = $this->get_dsl_clauses();
 
-		return apply_filters_ref_array( 'es_wp_tax_query_dsl', array( $filters, $this->queries, $this->es_query ) );
+		return apply_filters_ref_array( 'es_wp_tax_query_dsl', [ $filters, $this->queries, $this->es_query ] );
 	}
 
 	/**
@@ -89,7 +89,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 	 *                   false on error.
 	 */
 	protected function get_dsl_for_query( &$query ) {
-		$filters = array();
+		$filters = [];
 
 		foreach ( $query as $key => &$clause ) {
 			if ( 'relation' === $key ) {
@@ -115,11 +115,11 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 		}
 
 		if ( count( $filters ) > 1 ) {
-			$filters = array(
-				'bool' => array(
+			$filters = [
+				'bool' => [
 					$relation => $filters,
-				),
-			);
+				],
+			];
 		} elseif ( ! empty( $filters ) ) {
 			$filters = reset( $filters );
 		}
@@ -162,14 +162,14 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 		}
 
 		if ( 'AND' === $clause['operator'] ) {
-			$terms_method = array( $this->es_query, 'dsl_all_terms' );
+			$terms_method = [ $this->es_query, 'dsl_all_terms' ];
 		} else {
-			$terms_method = array( $this->es_query, 'dsl_terms' );
+			$terms_method = [ $this->es_query, 'dsl_terms' ];
 		}
 
 		if ( empty( $clause['terms'] ) ) {
 			if ( 'NOT IN' === $clause['operator'] || 'AND' === $clause['operator'] ) {
-				return array();
+				return [];
 			} elseif ( 'IN' === $clause['operator'] ) {
 				return $this->get_no_results_clause();
 			}
@@ -207,16 +207,16 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 				if ( ! empty( $clause['taxonomy'] ) ) {
 					$current_filter = call_user_func( $terms_method, $this->es_query->tax_map( $clause['taxonomy'], 'term_tt_id' ), $clause['terms'] );
 				} else {
-					$matches = array();
+					$matches = [];
 					foreach ( $clause['terms'] as &$term ) {
 						$matches[] = $this->es_query->dsl_multi_match( $this->es_query->tax_map( '*', 'term_tt_id' ), $term );
 					}
 					if ( count( $matches ) > 1 ) {
-						$current_filter = array(
-							'bool' => array(
+						$current_filter = [
+							'bool' => [
 								( 'AND' === $clause['operator'] ? 'filter' : 'should' ) => $matches,
-							),
-						);
+							],
+						];
 					} else {
 						$current_filter = reset( $matches );
 					}
@@ -231,11 +231,11 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 		}
 
 		if ( 'NOT IN' === $clause['operator'] ) {
-			return array(
-				'bool' => array(
+			return [
+				'bool' => [
 					'must_not' => $current_filter,
-				),
-			);
+				],
+			];
 		} else {
 			return $current_filter;
 		}
@@ -273,7 +273,7 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 				return;
 			}
 
-			$children = array();
+			$children = [];
 			foreach ( $query['terms'] as $term ) {
 				$children   = array_merge( $children, get_term_children( $term, $query['taxonomy'] ) );
 				$children[] = $term;
@@ -310,18 +310,18 @@ class ES_WP_Tax_Query extends WP_Tax_Query {
 		// Empty 'terms' always results in a null transformation.
 		$terms = array_values( array_filter( $query['terms'] ) );
 		if ( empty( $terms ) ) {
-			$query['terms'] = array();
+			$query['terms'] = [];
 			$query['field'] = $resulting_field;
 			return;
 		}
 
-		$args = array(
+		$args = [
 			'get'                    => 'all',
 			'number'                 => 0,
 			'taxonomy'               => $query['taxonomy'],
 			'update_term_meta_cache' => false,
 			'orderby'                => 'none',
-		);
+		];
 
 		// Term query parameter name depends on the 'field' being searched on.
 		switch ( $query['field'] ) {

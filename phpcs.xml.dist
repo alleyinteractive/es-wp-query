@@ -2,6 +2,10 @@
 <ruleset name="es-wp-query">
 	<description>Sniffs for the coding standards of the ES WP Query plugin</description>
 
+	<!-- Include Alley Rules -->
+	<rule ref="Alley-Interactive" />
+	<config name="testVersion" value="7.4-" />
+
 	<!--
 	Pass some flags to PHPCS:
 	 p flag: Show progress of the run.
@@ -28,12 +32,17 @@
 	<exclude-pattern>*/node_modules/*</exclude-pattern>
 	<exclude-pattern>bin/</exclude-pattern>
 	<exclude-pattern>tests/</exclude-pattern>
+	<exclude-pattern>vendor/</exclude-pattern>
 
-	<rule ref="WordPress" />
-	<rule ref="WordPress-VIP-Go" />
+	<rule ref="WordPress-VIP-Go">
+	  <exclude name="WordPress.NamingConventions.PrefixAllGlobals" />
+	  <exclude name="WordPress.NamingConventions.PrefixAllGlobals.ShortPrefixPassed" />
+	  <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound" />
+	  <exclude name="WordPressVIPMinimum.Hooks.PreGetPosts.PreGetPosts" />
+	  <exclude name="Universal.Files.SeparateFunctionsFromOO.Mixed" />
+	</rule>
 
-	<!-- The version set here matches the minimum version tested in .travis.yml.  -->
-	<config name="minimum_supported_wp_version" value="4.4.2" />
+	<config name="minimum_supported_wp_version" value="6.7.1" />
 
 	<rule ref="WordPress.WP.I18n">
 		<properties>
@@ -47,7 +56,7 @@
 
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<properties>
-			<property name="prefixes" type="array" value="es,sp_es,travis_es,vip_es" />
+			<property name="prefixes" type="array" value="es,sp_es,ci_es,vip_es" />
 		</properties>
 	</rule>
 

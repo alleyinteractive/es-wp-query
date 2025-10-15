@@ -1,0 +1,89 @@
+name: Unit Tests
+
+on: pull_request
+
+jobs:
+  tests:
+    name: "WP: ${{ matrix.wp_version }} - PHP: ${{ matrix.php }} - ES: ${{ matrix.es_version }} - MySQL: ${{ matrix.mysql_version }} - (MU: ${{ matrix.multisite }})"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # do not fail fast, let all the failing tests fail.
+      matrix:
+        php: [8.2, 8.3, 8.4]
+        es_version: [7.17.25, 8.16.1]
+        multisite: [0]
+        wp_version: ["latest", "nightly"]
+        mysql_version: [8.0, 8.4, 9.1]
+    env:
+      CACHEDIR: /tmp/test-cache
+      WP_CORE_DIR: /tmp/wordpress/
+      WP_TESTS_DIR: /tmp/wordpress-tests-lib
+      WP_VERSION: ${{ matrix.wp_version }}
+      WP_MULTISITE: ${{ matrix.multisite }}
+    services:
+      mysql:
+        image: mysql:${{ matrix.mysql_version }}
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Cancel previous runs of this workflow (pull requests only)
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: styfle/cancel-workflow-action@0.5.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Configure sysctl limits
+        run: |
+          sudo swapoff -a
+          sudo sysctl -w vm.swappiness=1
+          sudo sysctl -w fs.file-max=262144
+          sudo sysctl -w vm.max_map_count=262144
+
+      - name: Set up Elasticsearch
+        uses: elastic/elastic-github-actions/elasticsearch@master
+        with:
+          stack-version: ${{ matrix.es_version }}
+          security-enabled: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, gd
+          tools: composer:v2
+          coverage: none
+
+      - name: Install dependencies
+        uses: ramsey/composer-install@v3
+        with:
+          composer-options: "--ignore-platform-reqs"
+
+      - name: Log information
+        run: |
+          echo "$GITHUB_REF"
+          echo "$GITHUB_EVENT_NAME"
+          git --version
+          php --version
+          composer --version
+
+      - name: Install SVN
+        run: sudo apt-get install -y subversion
+
+      - name: Set up WordPress
+        run: |
+          bash <(curl -s "https://raw.githubusercontent.com/wp-cli/sample-plugin/master/bin/install-wp-tests.sh") wordpress_test root '' 127.0.0.1 ${{ matrix.wp_version }}
+          rm -rf "${WP_CORE_DIR}wp-content/plugins"
+          mkdir -p "${WP_CORE_DIR}wp-content/plugins/es-wp-query"
+          rsync -a --exclude=.git . "${WP_CORE_DIR}wp-content/plugins/es-wp-query"
+
+      - name: Run tests
+        run: |
+          cd ${WP_CORE_DIR}wp-content/plugins/es-wp-query
+          composer phpunit

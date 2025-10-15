@@ -19,8 +19,8 @@ function _manually_load_plugin() {
 
 	if ( file_exists( dirname( __FILE__ ) . '/es.php' ) ) {
 		require_once( dirname( __FILE__ ) . '/es.php' );
-	} elseif ( getenv( 'TRAVIS' ) ) {
-		es_wp_query_load_adapter( 'travis' );
+	} elseif ( getenv( 'GITHUB_ACTIONS' ) ) {
+		es_wp_query_load_adapter( 'ci' );
 	} else {
 		echo "\n\nSetup Required\n"
 			. "===========================================================\n"

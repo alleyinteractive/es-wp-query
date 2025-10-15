@@ -13,7 +13,16 @@ class Tests_Query_Shoehorn extends WP_UnitTestCase {
 
 	public $subquery_assertions = array();
 
-	public function setUp() {
+	public $parent_one;
+	public $parent_two;
+	public $parent_three;
+	public $child_one;
+	public $child_two;
+	public $child_three;
+	public $child_four;
+
+
+	public function setUp(): void {
 		global $wp_query;
 
 		parent::setUp();
@@ -63,7 +72,7 @@ class Tests_Query_Shoehorn extends WP_UnitTestCase {
 		$this->q = new WP_Query();
 	}
 
-	public function tearDown() {
+	public function tearDown(): void {
 		$this->reset_post_types();
 		parent::tearDown();
 	}
@@ -190,9 +199,10 @@ class Tests_Query_Shoehorn extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @ticket 18897
+	 * @ticket https://core.trac.wordpress.org/ticket/18897
 	 */
 	function test_wp_query_offset_and_paged() {
+		$this->markTestSkipped( 'Setting offset parameter ignores the pages parameter. See https://core.trac.wordpress.org/ticket/18897' );
 		$posts = $this->q->query('paged=2&offset=3&es=true');
 
 		$expected = array (

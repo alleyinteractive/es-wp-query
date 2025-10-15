@@ -34,19 +34,19 @@ if ( ! function_exists( 'es_get_posts' ) ) {
 	 * @return array List of posts.
 	 */
 	function es_get_posts( $args = null ) {
-		$defaults = array(
+		$defaults = [
 			'numberposts'      => 5,
 			'offset'           => 0,
 			'category'         => 0,
 			'orderby'          => 'date',
 			'order'            => 'DESC',
-			'include'          => array(),
-			'exclude'          => array(),
+			'include'          => [],
+			'exclude'          => [], // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude
 			'meta_key'         => '', // phpcs:ignore WordPress.VIP.SlowDBQuery.slow_db_query_meta_key
-			'meta_value'       => '', // phpcs:ignore WordPress.VIP.SlowDBQuery.slow_db_query_meta_value
+			'meta_value'       => '', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 			'post_type'        => 'post',
-			'suppress_filters' => true, // phpcs:ignore WordPressVIPMinimum.VIP.WPQueryParams.suppressFiltersTrue
-		);
+			'suppress_filters' => true, // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.SuppressFilters_suppress_filters
+		];
 
 		$r = wp_parse_args( $args, $defaults );
 		if ( empty( $r['post_status'] ) ) {
@@ -63,7 +63,7 @@ if ( ! function_exists( 'es_get_posts' ) ) {
 			$r['posts_per_page'] = count( $incposts );  // Only the number of posts included.
 			$r['post__in']       = $incposts;
 		} elseif ( ! empty( $r['exclude'] ) ) {
-			$r['post__not_in'] = wp_parse_id_list( $r['exclude'] ); // phpcs:ignore WordPressVIPMinimum.VIP.WPQueryParams.post__not_in
+			$r['post__not_in'] = wp_parse_id_list( $r['exclude'] ); // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in
 		}
 
 		$r['ignore_sticky_posts'] = true;
@@ -71,7 +71,6 @@ if ( ! function_exists( 'es_get_posts' ) ) {
 
 		$get_posts = new ES_WP_Query();
 		return $get_posts->query( $r );
-
 	}
 }
 
@@ -79,11 +78,11 @@ if ( ! function_exists( 'es_get_posts' ) ) {
 /**
  * Loads one of the included adapters.
  *
- * @param  string $adapter Which adapter to include. Currently allows searchpress, wpcom-vip, travis, jetpack-search, and vip-search.
+ * @param  string $adapter Which adapter to include. Currently allows searchpress, wpcom-vip, ci, jetpack-search, and vip-search.
  * @return void
  */
 function es_wp_query_load_adapter( $adapter ) {
-	if ( in_array( $adapter, array( 'searchpress', 'travis', 'jetpack-search', 'vip-search' ), true ) ) {
+	if ( in_array( $adapter, [ 'searchpress', 'ci', 'jetpack-search', 'vip-search' ], true ) ) {
 		require_once ES_WP_QUERY_PATH . "/adapters/{$adapter}.php";
 	}
 }

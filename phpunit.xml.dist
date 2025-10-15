@@ -7,18 +7,18 @@
 	convertWarningsToExceptions="true"
 	>
 	<testsuites>
-		<testsuite>
+		<testsuite name="ES WP Query">
 			<directory suffix=".php">./tests/query/</directory>
 		</testsuite>
 	</testsuites>
-	<filter>
-		<whitelist processUncoveredFilesFromWhitelist="true">
+  <coverage processUncoveredFiles="true">
+		<include>
 			<directory suffix=".php">./</directory>
-			<exclude>
-				<directory suffix=".php">./tests/</directory>
-				<directory suffix=".php">./bin/</directory>
-				<directory suffix=".php">./adapters/</directory>
-			</exclude>
-		</whitelist>
-	</filter>
+    </include>
+    <exclude>
+      <directory suffix=".php">./tests/</directory>
+      <directory suffix=".php">./bin/</directory>
+      <directory suffix=".php">./adapters/</directory>
+    </exclude>
+	</coverage>
 </phpunit>

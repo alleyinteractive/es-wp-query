@@ -1,15 +1,15 @@
 <?php // phpcs:disable
 /**
- * ES_WP_Query adapters: Travis CI adapter
+ * ES_WP_Query adapters: CI adapter
  *
- * Code in this file will only ever be run in a Travis CI context when running
+ * Code in this file will only ever be run in a CI context when running
  * unit tests.
  *
  * @package ES_WP_Query
  */
 
 /**
- * A generic ES implementation for Travis CI.
+ * A generic ES implementation for CI.
  */
 class ES_WP_Query extends ES_WP_Query_Wrapper {
 
@@ -21,10 +21,15 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 	 * @return array The response from the Elasticsearch server.
 	 */
 	protected function query_es( $es_args ) {
-		global $es_wp_query_travis_doc_type;
+		global $es_wp_query_ci_doc_type;
+
+		$endpoint = 'http://localhost:9200/es-wp-query-unit-tests/_search';
+		if ( version_compare( ES_VERSION, '8.0.0', '<' ) ) {
+			$endpoint = "http://localhost:9200/es-wp-query-unit-tests/{$es_wp_query_ci_doc_type}/_search";
+		}
 
 		$response = wp_remote_post(
-			"http://localhost:9200/es-wp-query-unit-tests/{$es_wp_query_travis_doc_type}/_search",
+			$endpoint,
 			array(
 				'body'    => wp_json_encode( $es_args ),
 				'headers' => array(
@@ -48,7 +53,7 @@ class ES_Index_Exception extends Exception {
  * @param array $es_map Additional mappings to layer on top of the default.
  * @return array Mappings to use.
  */
-function travis_es_field_map( $es_map ) {
+function ci_es_field_map( $es_map ) {
 	return wp_parse_args(
 		array(
 			'post_meta'         => 'post_meta.%s.value',
@@ -61,7 +66,7 @@ function travis_es_field_map( $es_map ) {
 		$es_map
 	);
 }
-add_filter( 'es_field_map', 'travis_es_field_map' );
+add_filter( 'es_field_map', 'ci_es_field_map' );
 
 if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 
@@ -97,7 +102,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		} while ( --$tries );
 
 		// If we didn't end with a 200 status code, bail.
-		return travis_es_verify_response_code( $response );
+		return ci_es_verify_response_code( $response );
 	}
 
 	/**
@@ -106,8 +111,8 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 	 * @throws ES_Index_Exception If the indexing operation fails.
 	 */
 	function es_wp_query_index_test_data() {
-		global $es_wp_query_travis_doc_type;
-		$es_wp_query_travis_doc_type = '_doc';
+		global $es_wp_query_ci_doc_type;
+		$es_wp_query_ci_doc_type = '_doc';
 
 		// Ensure the index is empty.
 		wp_remote_request( 'http://localhost:9200/es-wp-query-unit-tests/', array( 'method' => 'DELETE' ) );
@@ -122,10 +127,10 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		}
 		if ( version_compare( ES_VERSION, '6.0.0', '<' ) ) {
 			// ES < 6 doesn't support the doc type _doc.
-			$es_wp_query_travis_doc_type = 'post';
+			$es_wp_query_ci_doc_type = 'post';
 		}
 		if ( version_compare( ES_VERSION, '7.0.0', '<' ) ) {
-			$doc_type_open  = sprintf( '"%s": {', $es_wp_query_travis_doc_type );
+			$doc_type_open  = sprintf( '"%s": {', $es_wp_query_ci_doc_type );
 			$doc_type_close = '}';
 		}
 
@@ -143,20 +148,20 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 										"default": {
 											"tokenizer": "standard",
 											"filter": [
-												"travis_word_delimiter",
+												"ci_word_delimiter",
 												"lowercase",
 												"stop",
-												"travis_snowball"
+												"ci_snowball"
 											],
 											"language": "English"
 										}
 									},
 									"filter": {
-										"travis_word_delimiter": {
+										"ci_word_delimiter": {
 											"type": "word_delimiter",
 											"preserve_original": true
 										},
-										"travis_snowball": {
+										"ci_snowball": {
 											"type": "snowball",
 											"language": "English"
 										}
@@ -333,7 +338,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 				),
 			)
 		);
-		if ( true !== travis_es_verify_response_code( $response ) ) {
+		if ( true !== ci_es_verify_response_code( $response ) ) {
 			exit( 1 );
 		}
 
@@ -350,7 +355,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 
 		$es_posts = array();
 		foreach ( $posts as $post ) {
-			$es_posts[] = new Travis_ES_Post( $post );
+			$es_posts[] = new CI_ES_Post( $post );
 		}
 
 		$body = array();
@@ -359,8 +364,13 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 			$body[] = addcslashes( $post->to_json(), "\n" );
 		}
 
+		$endpoint = 'http://localhost:9200/es-wp-query-unit-tests/_bulk';
+		if ( version_compare( ES_VERSION, '8.0.0', '<' ) ) {
+			$endpoint = "http://localhost:9200/es-wp-query-unit-tests/{$es_wp_query_ci_doc_type}/_bulk";
+		}
+
 		$response = wp_remote_request(
-			"http://localhost:9200/es-wp-query-unit-tests/{$es_wp_query_travis_doc_type}/_bulk",
+			$endpoint,
 			array(
 				'method'  => 'PUT',
 				'body'    => wp_check_invalid_utf8( implode( "\n", $body ), true ) . "\n",
@@ -369,7 +379,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 				),
 			)
 		);
-		travis_es_verify_response_code( $response );
+		ci_es_verify_response_code( $response );
 
 		$itemized_response = json_decode( wp_remote_retrieve_body( $response ) );
 		foreach ( (array) $itemized_response->items as $post ) {
@@ -383,7 +393,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 						$error_message .= "\n{$post->index->error->type}: {$post->index->error->reason}";
 					}
 				}
-				$error_message .= 'Backtrace:' . travis_es_debug_backtrace_summary();
+				$error_message .= 'Backtrace:' . ci_es_debug_backtrace_summary();
 				throw new ES_Index_Exception( $error_message );
 			}
 		}
@@ -396,7 +406,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 				),
 			)
 		);
-		travis_es_verify_response_code( $response );
+		ci_es_verify_response_code( $response );
 	}
 
 	/**
@@ -406,7 +416,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 	 * @return bool
 	 * @throws ES_Index_Exception If the indexing fails.
 	 */
-	function travis_es_verify_response_code( $response ) {
+	function ci_es_verify_response_code( $response ) {
 		if ( 200 !== intval( wp_remote_retrieve_response_code( $response ) ) ) {
 			$message = [ 'Failed to index posts!' ];
 			if ( is_wp_error( $response ) ) {
@@ -415,7 +425,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 				$message[] = sprintf( 'Response code %s', wp_remote_retrieve_response_code( $response ) );
 				$message[] = sprintf( 'Message: %s', wp_remote_retrieve_body( $response ) );
 			}
-			$message[] = sprintf( 'Backtrace:%s', travis_es_debug_backtrace_summary() );
+			$message[] = sprintf( 'Backtrace:%s', ci_es_debug_backtrace_summary() );
 			throw new ES_Index_Exception( implode( "\n", $message ) );
 		}
 
@@ -423,16 +433,16 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 	}
 
 	/**
-	 * Provides a backtrace summary for error reporting in Travis tests.
+	 * Provides a backtrace summary for error reporting in CI tests.
 	 *
 	 * @return string
 	 */
-	function travis_es_debug_backtrace_summary() {
+	function ci_es_debug_backtrace_summary() {
 		$backtrace = wp_debug_backtrace_summary( null, 0, false );
 		$backtrace = array_filter(
 			$backtrace,
 			function( $call ) {
-				return ! preg_match( '/PHPUnit_(TextUI_(Command|TestRunner)|Framework_(TestSuite|TestCase|TestResult))|ReflectionMethod|travis_es_(verify_response_code|debug_backtrace_summary)/', $call );
+				return ! preg_match( '/PHPUnit_(TextUI_(Command|TestRunner)|Framework_(TestSuite|TestCase|TestResult))|ReflectionMethod|ci_es_(verify_response_code|debug_backtrace_summary)/', $call );
 			}
 		);
 		return "\n\t" . join( "\n\t", $backtrace );
@@ -441,7 +451,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 	/**
 	 * Taken from SearchPress.
 	 */
-	class Travis_ES_Post {
+	class CI_ES_Post {
 
 		/**
 		 * This stores what will eventually become our JSON.
@@ -460,7 +470,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		protected static $users = array();
 
 		/**
-		 * Travis_ES_Post constructor.
+		 * CI_ES_Post constructor.
 		 *
 		 * @param WP_Post $post The post object to use.
 		 * @access public

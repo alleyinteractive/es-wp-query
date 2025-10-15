@@ -4,3 +4,5 @@ wpcom-helper.php
 /report/
 .idea
 .vscode
+/vendor/
+.phpunit.result.cache

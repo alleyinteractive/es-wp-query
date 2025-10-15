@@ -6,7 +6,7 @@
  */
 
 // phpcs:disable Generic.Classes.DuplicateClassName.Found
-
+// phpcs:disable Universal.Files.SeparateFunctionsFromOO.Mixed
 /**
  * An adapter for SearchPress.
  */
@@ -20,7 +20,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
 	 * @return array The response from the Elasticsearch server.
 	 */
 	protected function query_es( $es_args ) {
-		return SP_API()->search( wp_json_encode( $es_args ), array( 'output' => ARRAY_A ) );
+		return SP_API()->search( wp_json_encode( $es_args ), [ 'output' => ARRAY_A ] );
 	}
 }
 
@@ -32,7 +32,7 @@ class ES_WP_Query extends ES_WP_Query_Wrapper {
  */
 function sp_es_field_map( $es_map ) {
 	return wp_parse_args(
-		array(
+		[
 			'post_name'             => 'post_name.raw',
 			'post_title'            => 'post_title.raw',
 			'post_title.analyzed'   => 'post_title',
@@ -53,7 +53,7 @@ function sp_es_field_map( $es_map ) {
 			'category_tt_id'        => 'terms.%s.term_id',
 			'tag_name'              => 'terms.%s.name.raw',
 			'tag_tt_id'             => 'terms.%s.term_id',
-		),
+		],
 		$es_map
 	);
 }
@@ -63,34 +63,34 @@ add_filter( 'es_field_map', 'sp_es_field_map' );
 // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped, WordPress.PHP.DevelopmentFunctions.error_log_print_r
 if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 
-	remove_action( 'save_post', array( SP_Sync_Manager(), 'sync_post' ) );
-	remove_action( 'delete_post', array( SP_Sync_Manager(), 'delete_post' ) );
-	remove_action( 'trashed_post', array( SP_Sync_Manager(), 'delete_post' ) );
+	remove_action( 'save_post', [ SP_Sync_Manager(), 'sync_post' ] );
+	remove_action( 'delete_post', [ SP_Sync_Manager(), 'delete_post' ] );
+	remove_action( 'trashed_post', [ SP_Sync_Manager(), 'delete_post' ] );
 
 	add_filter(
 		'sp_post_allowed_meta',
-		function() {
-			return array(
-				'numeric_value'    => array( 'long', 'double' ),
-				'decimal_value'    => array( 'value', 'long', 'double' ),
-				'time'             => array( 'value', 'long' ),
-				'foo'              => array( 'value', 'long' ),
-				'foo2'             => array( 'value' ),
-				'foo3'             => array( 'value' ),
-				'foo4'             => array( 'value' ),
-				'number_of_colors' => array( 'value', 'long' ),
-				'oof'              => array( 'value' ),
-				'bar'              => array( 'value' ),
-				'bar1'             => array( 'value' ),
-				'bar2'             => array( 'value' ),
-				'baz'              => array( 'value' ),
-				'froo'             => array( 'value' ),
-				'tango'            => array( 'value' ),
-				'color'            => array( 'value' ),
-				'vegetable'        => array( 'value' ),
-				'city'             => array( 'value' ),
-				'address'          => array( 'value' ),
-			);
+		function () {
+			return [
+				'numeric_value'    => [ 'long', 'double' ],
+				'decimal_value'    => [ 'value', 'long', 'double' ],
+				'time'             => [ 'value', 'long' ],
+				'foo'              => [ 'value', 'long' ],
+				'foo2'             => [ 'value' ],
+				'foo3'             => [ 'value' ],
+				'foo4'             => [ 'value' ],
+				'number_of_colors' => [ 'value', 'long' ],
+				'oof'              => [ 'value' ],
+				'bar'              => [ 'value' ],
+				'bar1'             => [ 'value' ],
+				'bar2'             => [ 'value' ],
+				'baz'              => [ 'value' ],
+				'froo'             => [ 'value' ],
+				'tango'            => [ 'value' ],
+				'color'            => [ 'value' ],
+				'vegetable'        => [ 'value' ],
+				'city'             => [ 'value' ],
+				'address'          => [ 'value' ],
+			];
 		}
 	);
 
@@ -129,7 +129,7 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		$tries = 5;
 		$sleep = 3;
 		do {
-			$response = wp_remote_get( $host );
+			$response = wp_remote_get( $host ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get
 			if ( 200 === wp_remote_retrieve_response_code( $response ) ) {
 				$body = json_decode( wp_remote_retrieve_body( $response ), true );
 				if ( ! empty( $body['version']['number'] ) ) {
@@ -142,11 +142,11 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 			}
 		} while ( --$tries );
 
-		// If we didn't end with a 200 status code, exit
+		// If we didn't end with a 200 status code, exit.
 		sp_adapter_verify_response_code( $response );
 
 		$i = 0;
-		while ( ! ( $beat = SP_Heartbeat()->check_beat( true ) ) && $i++ < 5 ) {
+		while ( ! ( $beat = SP_Heartbeat()->check_beat( true ) ) && $i++ < 5 ) { // phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition
 			echo "\nHeartbeat failed, sleeping 2 seconds and trying again...\n";
 			sleep( 2 );
 		}
@@ -158,8 +158,13 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		return true;
 	}
 
+	/**
+	 * Verifies that the response code is 200.
+	 *
+	 * @param array|WP_Error $response The response from wp_remote_get.
+	 */
 	function sp_adapter_verify_response_code( $response ) {
-		if ( '200' != wp_remote_retrieve_response_code( $response ) ) {
+		if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
 			printf( "Could not index posts!\nResponse code %s\n", wp_remote_retrieve_response_code( $response ) );
 			if ( is_wp_error( $response ) ) {
 				printf( "Message: %s\n", $response->get_error_message() );
@@ -172,31 +177,34 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 	 * A function to make test data available in the index.
 	 */
 	function es_wp_query_index_test_data() {
-		// If your ES server is not at localhost:9200, you need to set $_ENV['searchpress_host'].
-		$host = ! empty( $_ENV['searchpress_host'] ) ? $_ENV['searchpress_host'] : 'http://localhost:9200';
+		// If your ES server is not at localhost:9200, you need to set $_ENV['SEARCHPRESS_HOST'].
+		$host = getenv( 'SEARCHPRESS_HOST' );
+		if ( empty( $host ) ) {
+			$host = 'http://localhost:9200';
+		}
 
 		SP_Config()->update_settings(
-			array(
+			[
 				'active' => false,
 				'host'   => $host,
-			)
+			]
 		);
 		SP_API()->index = 'es-wp-query-tests';
 
 		SP_Config()->flush();
 		SP_Config()->create_mapping();
 
-		$posts = get_posts( // phpcs:ignore WordPressVIPMinimum.VIP.RestrictedFunctions.get_posts_get_posts
-			array(
+		$posts = get_posts( // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.get_posts_get_posts
+			[
 				'posts_per_page' => -1, // phpcs:ignore WordPress.VIP.PostsPerPage.posts_per_page_posts_per_page
 				'post_type'      => 'any',
 				'post_status'    => array_values( get_post_stati() ),
 				'orderby'        => 'ID',
 				'order'          => 'ASC',
-			)
+			]
 		);
 
-		$sp_posts = array();
+		$sp_posts = [];
 		foreach ( $posts as $post ) {
 			$sp_posts[] = new SP_Post( $post );
 		}
@@ -209,10 +217,10 @@ if ( defined( 'ES_WP_QUERY_TEST_ENV' ) && ES_WP_QUERY_TEST_ENV ) {
 		}
 
 		SP_Config()->update_settings(
-			array(
+			[
 				'active'    => true,
 				'must_init' => false,
-			)
+			]
 		);
 
 		SP_API()->post( '_refresh' );

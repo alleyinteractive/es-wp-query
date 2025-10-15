@@ -26,7 +26,7 @@
 
 // phpcs:disable WordPressVIPMinimum.Files.IncludingFile.IncludingFile
 
-define( 'ES_WP_QUERY_PATH', dirname( __FILE__ ) );
+define( 'ES_WP_QUERY_PATH', __DIR__ );
 
 require_once ES_WP_QUERY_PATH . '/class-es-wp-query-wrapper.php';
 require_once ES_WP_QUERY_PATH . '/class-es-wp-tax-query.php';
